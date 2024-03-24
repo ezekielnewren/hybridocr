@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { generateMatrix } from './matrixGenerator';
 import MatrixDisplay from './MatrixDisplay';
 
 function App() {
   const [size, setSize] = useState(10); // Default rows
   const [matrix, setMatrix] = useState(() => generateMatrix(size, size));
+  const inputRef = useRef(null);
+  // const [textInput, setTextInput] = useState("");
 
   const initializeMatrix = () => {
     // Initialize matrix with the specified size
@@ -17,6 +19,10 @@ function App() {
     );
     setMatrix(newMatrix);
   };
+
+  const handleGenerateClick = () => {
+      // your code here.
+  }
 
   return (
     <div className="App">
@@ -32,6 +38,14 @@ function App() {
           />
         </label>
         <button onClick={initializeMatrix}>Initialize Matrix</button>
+      </div>
+      <div>
+        <input
+          type="text"
+          ref={inputRef}
+          placeholder="Letter to generate"
+        />
+      <button onClick={handleGenerateClick}>Generate</button>
       </div>
       <MatrixDisplay matrix={matrix} setCellState={setCellState} />
     </div>
