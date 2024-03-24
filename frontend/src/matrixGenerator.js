@@ -4,7 +4,7 @@ export const generateMatrix = (rows, cols) => {
     let row = [];
     for (let j = 0; j < cols; j++) {
       // Randomly assigns true or false
-      row.push(Math.random() > 0.5);
+      row.push(false);
     }
     matrix.push(row);
   }

@@ -1,7 +1,6 @@
-// MatrixDisplay.js
 import React from 'react';
 
-const MatrixDisplay = ({ matrix, onToggle }) => {
+const MatrixDisplay = ({ matrix, toggleCell }) => {
   return (
     <div style={{ display: 'inline-block' }}>
       {matrix.map((row, rowIndex) => (
@@ -9,12 +8,12 @@ const MatrixDisplay = ({ matrix, onToggle }) => {
           {row.map((cell, colIndex) => (
             <div
               key={colIndex}
-              onClick={() => onToggle(rowIndex, colIndex)}
+              onClick={() => toggleCell(rowIndex, colIndex)}
               style={{
                 width: '20px',
                 height: '20px',
                 backgroundColor: cell ? 'black' : 'white',
-                cursor: 'pointer',
+                border: '1px solid rgba(0, 0, 0, 0.1)', // Faint grid lines
               }}
             ></div>
           ))}
