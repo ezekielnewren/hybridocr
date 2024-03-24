@@ -23,6 +23,10 @@ const MatrixDisplay = ({ matrix, setCellState }) => {
     setIsDragging(false);
   };
 
+  const handleContextMenu = (e) => {
+    e.preventDefault();
+  };
+
   React.useEffect(() => {
     // Listen for global mouse up events to stop dragging
     window.addEventListener('mouseup', handleMouseUp);
@@ -30,7 +34,7 @@ const MatrixDisplay = ({ matrix, setCellState }) => {
   }, []);
 
   return (
-    <div style={{ display: 'inline-block' }} onMouseUp={handleMouseUp}>
+    <div style={{ display: 'inline-block' }} onMouseUp={handleMouseUp} onContextMenu={handleContextMenu}>
       {matrix.map((row, rowIndex) => (
         <div key={rowIndex} style={{ display: 'flex' }}>
           {row.map((cell, colIndex) => (
