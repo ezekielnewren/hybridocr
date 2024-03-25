@@ -34,6 +34,11 @@ function App() {
 
   }, [canvas]);
 
+  function newMatrix() {
+      canvas.matrix = Core.newMatrix(size, size)
+      drawNow();
+  }
+
   function delay(ms) {
       return new Promise(resolve => setTimeout(resolve, ms));
   }
@@ -72,7 +77,7 @@ function App() {
             min="1"
           />
         </label>
-        <button onClick={() => {canvas.matrix = Core.newMatrix(size, size)}}>New Matrix</button>
+        <button onClick={() => {newMatrix()}}>New Matrix</button>
       </div>
       <div>
         <input
