@@ -11,7 +11,7 @@ const MatrixDisplay = ({matrix}) => {
 
   const toggleCursor = useCallback(() => {
       let old = matrix[cursor.row][cursor.col];
-      matrix[cursor.row][cursor.col] = !old;
+      matrix[cursor.row][cursor.col] = old^1;
   }, [cursor, setCursor]);
 
   const moveCursor = useCallback((rowChange, colChange) => {
@@ -53,8 +53,8 @@ const MatrixDisplay = ({matrix}) => {
                 width: '20px',
                 height: '20px',
                 backgroundColor: (rowIndex === cursor.row && colIndex === cursor.col)
-                  ? (cell ? '#444444' : '#dddddd')
-                  : (cell ? 'black' : 'white'),
+                  ? (cell>0 ? '#444444' : '#dddddd')
+                  : (cell>0 ? 'black' : 'white'),
                 border: '1px solid rgba(0, 0, 0, 0.1)',
               }}
             ></div>

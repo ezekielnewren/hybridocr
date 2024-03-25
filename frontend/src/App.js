@@ -1,13 +1,14 @@
 import React, {useState, useRef, useCallback, useEffect} from 'react';
-import { newMatrix } from './matrixGenerator';
+import * as Core from './core';
 import MatrixDisplay from './MatrixDisplay';
+
 
 function App() {
   const [size, setSize] = useState(10); // Default rows
-  const [matrix, setMatrix] = useState(() => newMatrix(size, size));
+  const [matrix, setMatrix] = useState(() => Core.newMatrix(size, size));
   const inputRef = useRef(null);
 
-  const handleGenerateClick = () => {
+  const onDraw = () => {
       // your code here.
   }
 
@@ -24,7 +25,7 @@ function App() {
             min="1"
           />
         </label>
-        <button onClick={() => {setMatrix(newMatrix(size, size))}}>New Matrix</button>
+        <button onClick={() => {setMatrix(Core.newMatrix(size, size))}}>New Matrix</button>
       </div>
       <div>
         <input
@@ -32,7 +33,7 @@ function App() {
           ref={inputRef}
           placeholder="Letter to generate"
         />
-      <button onClick={handleGenerateClick}>Generate</button>
+      <button onClick={onDraw}>Generate</button>
       </div>
       <MatrixDisplay matrix={matrix}/>
     </div>
