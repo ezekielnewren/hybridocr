@@ -41,7 +41,10 @@ function App() {
             case 'ArrowDown': moveCurrentCell(1, 0); break;
             case 'ArrowLeft': moveCurrentCell(0, -1); break;
             case 'ArrowRight': moveCurrentCell(0, 1); break;
-            case ' ': toggleCurrentCellState(); break;
+            case ' ':
+                moveCurrentCell(0, 0);
+                toggleCurrentCellState();
+                break;
           }
       };
       document.addEventListener("keydown", handleKeyDown);
