@@ -45,9 +45,9 @@ const MatrixDisplay = ({ matrix, currentCell, setCellState }) => {
               style={{
                 width: '20px',
                 height: '20px',
-                backgroundColor: rowIndex === currentCell.row && colIndex === currentCell.col
-                  ? cell ? 'darkgrey' : 'lightgrey' // Current cell color based on state
-                  : cell ? 'black' : 'white', // Other cells color
+                backgroundColor: (rowIndex === currentCell.row && colIndex === currentCell.col)
+                  ? (cell ? '#444444' : '#dddddd') // Current cell color based on state
+                  : (cell ? 'black' : 'white'), // Other cells color
                 border: '1px solid rgba(0, 0, 0, 0.1)',
               }}
             ></div>
