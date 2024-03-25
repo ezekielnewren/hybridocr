@@ -5,7 +5,7 @@ import MatrixDisplay from './MatrixDisplay';
 
 function App() {
   const [modCount, setModCount] = useState(0);
-  const [size, setSize] = useState(11); // Default rows
+  const [size, setSize] = useState(28); // same size as MNIST
   const inputRef = useRef(null);
   const [canvas, setCanvas] = useState(new Core.Canvas(size, size));
 
