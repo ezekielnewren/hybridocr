@@ -1,10 +1,7 @@
 import React, {useCallback, useEffect, useState} from 'react';
 import * as Core from './core';
 
-const MatrixDisplay = ({matrix, cursor}) => {
-
-  // const [cursor, setCursor] = useState({row: 0, col: 0});
-
+const MatrixDisplay = ({matrix, cursor, update}) => {
   const handleContextMenu = (e) => {
     e.preventDefault();
   };
