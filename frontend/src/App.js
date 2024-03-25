@@ -1,16 +1,17 @@
-import React, { useState, useRef } from 'react';
-import { generateMatrix } from './matrixGenerator';
+import React, {useState, useRef, useCallback, useEffect} from 'react';
+import { newMatrix } from './matrixGenerator';
 import MatrixDisplay from './MatrixDisplay';
 
 function App() {
   const [size, setSize] = useState(10); // Default rows
-  const [matrix, setMatrix] = useState(() => generateMatrix(size, size));
+  const [matrix, setMatrix] = useState(() => newMatrix(size, size));
+  const [currentCell, setCurrentCell] = useState({ row: 0, col: 0});
   const inputRef = useRef(null);
   // const [textInput, setTextInput] = useState("");
 
   const initializeMatrix = () => {
     // Initialize matrix with the specified size
-    setMatrix(generateMatrix(size, size));
+    setMatrix(newMatrix(size, size));
   };
 
   const setCellState = (rowIndex, colIndex, newState) => {
@@ -19,6 +20,37 @@ function App() {
     );
     setMatrix(newMatrix);
   };
+
+  const toggleCurrentCellState = useCallback(() => {
+      let old = matrix[currentCell.row][currentCell.col];
+      matrix[currentCell.row][currentCell.col] = !old;
+  }, [currentCell, setMatrix]);
+
+
+  const moveCurrentCell = useCallback((rowChange, colChange) => {
+      setCurrentCell((prev) => ({
+          row: Math.max(0, Math.min(prev.row+rowChange, matrix.length-1)),
+          col: Math.max(0, Math.min(prev.col + colChange, matrix[0].length-1))
+      }));
+  }, [matrix]);
+
+  useEffect(() => {
+      const handleKeyDown = (event) => {
+          switch (event.key) {
+            case 'ArrowUp': moveCurrentCell(-1, 0); break;
+            case 'ArrowDown': moveCurrentCell(1, 0); break;
+            case 'ArrowLeft': moveCurrentCell(0, -1); break;
+            case 'ArrowRight': moveCurrentCell(0, 1); break;
+            case ' ': toggleCurrentCellState(); break;
+          }
+      };
+      document.addEventListener("keydown", handleKeyDown);
+
+      return () => {
+          document.removeEventListener("keydown", handleKeyDown);
+      };
+
+  }, [toggleCurrentCellState, moveCurrentCell]);
 
   const handleGenerateClick = () => {
       // your code here.
@@ -47,7 +79,7 @@ function App() {
         />
       <button onClick={handleGenerateClick}>Generate</button>
       </div>
-      <MatrixDisplay matrix={matrix} setCellState={setCellState} />
+      <MatrixDisplay matrix={matrix} currentCell={currentCell} setCellState={setCellState} />
     </div>
   );
 }

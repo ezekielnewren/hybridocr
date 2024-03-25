@@ -1,4 +1,4 @@
-export const generateMatrix = (rows, cols) => {
+export const newMatrix = (rows, cols) => {
   let matrix = [];
   for (let i = 0; i < rows; i++) {
     let row = [];

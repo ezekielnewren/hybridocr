@@ -1,6 +1,6 @@
 import React from 'react';
 
-const MatrixDisplay = ({ matrix, setCellState }) => {
+const MatrixDisplay = ({ matrix, currentCell, setCellState }) => {
   // Track the mouse state
   const [isDragging, setIsDragging] = React.useState(false);
   const [dragStartValue, setDragStartValue] = React.useState(null);
@@ -40,12 +40,14 @@ const MatrixDisplay = ({ matrix, setCellState }) => {
           {row.map((cell, colIndex) => (
             <div
               key={colIndex}
-              onMouseDown={(e) => handleMouseDown(e, rowIndex, colIndex)}
-              onMouseEnter={() => handleMouseEnter(rowIndex, colIndex)}
+              // onMouseDown={(e) => handleMouseDown(e, rowIndex, colIndex)}
+              // onMouseEnter={() => handleMouseEnter(rowIndex, colIndex)}
               style={{
                 width: '20px',
                 height: '20px',
-                backgroundColor: cell ? 'black' : 'white',
+                backgroundColor: rowIndex === currentCell.row && colIndex === currentCell.col
+                  ? cell ? 'darkgrey' : 'lightgrey' // Current cell color based on state
+                  : cell ? 'black' : 'white', // Other cells color
                 border: '1px solid rgba(0, 0, 0, 0.1)',
               }}
             ></div>
