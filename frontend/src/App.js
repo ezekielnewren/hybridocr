@@ -5,7 +5,6 @@ import MatrixDisplay from './MatrixDisplay';
 function App() {
   const [size, setSize] = useState(10); // Default rows
   const [matrix, setMatrix] = useState(() => newMatrix(size, size));
-  const [currentCell, setCurrentCell] = useState({ row: 0, col: 0});
   const inputRef = useRef(null);
 
   const handleGenerateClick = () => {
