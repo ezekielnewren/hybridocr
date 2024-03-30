@@ -3,6 +3,8 @@ from collections import OrderedDict
 import matplotlib.pyplot as plt
 import fitz
 import io
+
+import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 from pathlib import Path
 
@@ -36,6 +38,12 @@ def pdf_extract(file: Path):
             out.append(image)
 
     return out
+
+
+def array_to_image(word: np.array):
+    word *= 255.0
+    word = word.astype(np.uint8)
+    return Image.fromarray(word)
 
 
 def show_image(img):

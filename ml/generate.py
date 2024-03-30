@@ -52,16 +52,12 @@ for font_path in config["font"]:
         img = draw_word(c, font, font_height)
         font_map[c] = np.array(img) / 255.0
 
-    # alphabet = [font_map[c] for c in character_set]
-    # alphabet = np.concatenate(alphabet, axis=1)
-    # alphabet *= 255.0
-    # alphabet = alphabet.astype(np.uint8)
-    # image = Image.fromarray(alphabet)
-    # show_image(image)
+    # word = np.concatenate([font_map[c] for c in character_set], axis=1)
+    # img = array_to_image(word)
+    # show_image(img)
 
     beg = time.time()
     if method == 0:
-
         for word in dictionary:
             print(word)
             t = [font_map[c] for c in word]
