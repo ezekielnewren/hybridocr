@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 import matplotlib.pyplot as plt
 import fitz
 import io
@@ -52,23 +54,11 @@ def show_image(img):
     plt.show()
 
 
-def draw_word(word, font_path, font_size, height):
-    font = ImageFont.truetype(font_path, font_size)
-
-    # Calculate the width and height of the text to be rendered
-    text_width, text_height = font.getsize(word)
-
-    # Adjust font size to fit the fixed height if necessary
-    while text_height > height:
-        font_size -= 1
-        font = ImageFont.truetype(font_path, font_size)
-        text_width, text_height = font.getsize(word)
-
-    # Create an image canvas with the calculated width and fixed height
-    image = Image.new("L", (text_width, height), "white")
+def draw_word(word, font: ImageFont, height):
+    w, h = font.getsize(word)
+    if h > height:
+        raise ValueError("height of the character exceeds the stated height")
+    image = Image.new("L", (w, height), "white")
     draw = ImageDraw.Draw(image)
-
-    # Draw the text onto the canvas
     draw.text((0, 0), word, fill="black", font=font)
-
     return image
