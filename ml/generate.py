@@ -108,7 +108,9 @@ class TextToImageGenerator:
             for i in range(0, self.image_generator_len(), batch_size):
                 sample = []
                 sample_len = []
-                label = []
+                # label = []
+                indicies = []
+                values = []
                 label_len = []
                 for j in range(batch_size):
                     x, word = self.example(i+j)
@@ -117,17 +119,21 @@ class TextToImageGenerator:
                     sample.append(x)
                     sample_len.append(x.shape[1])
 
-                    label.append(y)
+                    indicies += [[j, k] for k in range(len(y))]
+                    values += y
                     label_len.append(len(y))
 
-                x_max_len = max(sample_len)
-                y_max_len = max(label_len)
+                sample_max_len = max(sample_len)
+                label_max_len = max(label_len)
 
                 for j in range(len(sample)):
-                    pad = x_max_len-sample[j].shape[1]
+                    pad = sample_max_len-sample[j].shape[1]
                     pad_tensor = np.ones((self.font_height, pad))
                     sample[j] = np.concatenate([sample[j], pad_tensor], axis=1)
+                    sample_len[j] = (sample_len[j]-2)//2
                     pass
+
+                label = tf.sparse.SparseTensor(indices=indicies, values=values, dense_shape=(batch_size, label_max_len))
 
                 feed = np.stack(sample)
                 feed = feed.reshape((feed.shape[0], feed.shape[1], feed.shape[2], 1))

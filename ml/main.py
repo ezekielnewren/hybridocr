@@ -32,7 +32,7 @@ def main():
     count = 0
     beg = time.time()
 
-    generator.fit(engine.model, 1)
+    generator.fit(engine, 1)
 
     # idx = [i for i in range(generator.image_generator_len())]
     # chunk_size = 100000
