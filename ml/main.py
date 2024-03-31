@@ -1,8 +1,12 @@
+import string
+
 import tensorflow as tf
 from tensorflow.keras.layers import Input, Conv2D, GlobalAveragePooling2D, MaxPooling2D, Reshape, LSTM, Dense, Dropout, Flatten
 
 
 def main():
+    alphabet = string.ascii_letters+string.digits+string.punctuation
+
     h, w = 28, None
     filters = 32
     kernel_size = 3
@@ -13,7 +17,7 @@ def main():
         MaxPooling2D(pool_size=(pool_size, pool_size)),
         Reshape((-1, filters*(h-kernel_size+1) // pool_size)),
         LSTM(128),
-        Dense(10, activation="softmax")
+        Dense(len(alphabet), activation="softmax")
     ])
 
 
