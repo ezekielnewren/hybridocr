@@ -1,43 +1,63 @@
 import string
+import random
+import time
+import json
+import sys
 
-import tensorflow as tf
-from tensorflow.keras.layers import Input, Conv2D, GlobalAveragePooling2D, MaxPooling2D, Reshape, LSTM, Dense, Dropout, Flatten
-import numpy as np
+from tqdm import tqdm
+from engine import OCREngine
+from generate import TextToImageGenerator
+from pathlib import Path
 
 
 def main():
-    alphabet = string.ascii_letters+string.digits+string.punctuation
+    engine = OCREngine()
 
-    h, w = 28, None
-    filters = 32
-    kernel_size = 3
-    pool_size = 2
-    model = tf.keras.models.Sequential([
-        Input((h, w, 1)),
-        Conv2D(filters=filters, kernel_size=(kernel_size, kernel_size), activation='relu'),
-        MaxPooling2D(pool_size=(pool_size, pool_size)),
-        Reshape((-1, filters*(h-kernel_size+1) // pool_size)),
-        LSTM(128, return_sequences=True),
-        Dense(1+len(alphabet), activation="softmax")  # the 1 is the blank symbol
-    ])
+    dir_home = Path(sys.argv[1])
 
-    image = np.ones((28, 15))
-    image = image.reshape((1, 28, 15, 1))
-    prediction = model.predict(image)
+    file_config = dir_home / "config.json"
 
-    input_length = np.ones(prediction.shape[0]) * prediction.shape[1]
-    decoded, _ = tf.nn.ctc_greedy_decoder(
-        inputs=tf.transpose(prediction, [1, 0, 2]),
-        sequence_length=input_length,
-        merge_repeated=True,
-        blank_index=0
-    )
+    beg = time.time()
+    with open(file_config) as fd:
+        config = json.loads(fd.read())
 
-    # To extract the decoded sequence
-    decoded_classes = tf.sparse.to_dense(decoded[0], default_value=-1).numpy()
+    dictionary = [string.ascii_letters + string.digits + string.punctuation]
+    with open(config["dictionary"]) as fd:
+        dictionary += [v.rstrip() for v in fd.readlines()]
 
-    text = "".join([alphabet[i-1] for i in decoded_classes[0]])
-    print(text)
+    generator = TextToImageGenerator(dir_home, dictionary, config["font"], 28)
+    elapsed = time.time() - beg
+    print("time to initialize:", elapsed)
+
+    count = 0
+    beg = time.time()
+
+    idx = [i for i in range(generator.image_generator_len())]
+    chunk_size = 100000
+    for epoch in range(1):
+        t = []
+        for i in tqdm(idx):
+            v = generator.example(i)
+            t.append(v)
+            if len(t) >= chunk_size:
+                sample, label = zip(*t)
+                label = [engine.to_label(v) for v in label]
+                t.clear()
+                engine.model.fit(sample, label, 1, 128)
+            # img = array_to_image(sample)
+            # show_image(img)
+            pass
+        random.shuffle(idx)
+
+    # for i in tqdm(range(generator.image_generator_len())):
+    #     sample, label = generator.example(i)
+    #     # img = array_to_image(sample)
+    #     # show_image(img)
+    #     pass
+
+    elapsed = time.time() - beg
+    print("total time:", elapsed)
+    print("rate:", float(count) / elapsed)
 
 
 if __name__ == "__main__":
