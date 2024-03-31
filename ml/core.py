@@ -1,5 +1,8 @@
+import gzip
+import tempfile
 from collections import OrderedDict
 
+import cbor2
 import matplotlib.pyplot as plt
 import fitz
 import io
@@ -70,3 +73,19 @@ def draw_word(word, font: ImageFont, height):
     draw = ImageDraw.Draw(image)
     draw.text((0, 0), word, fill="black", font=font)
     return image
+
+
+def cbor_save(data):
+    return gzip.compress(cbor2.dumps(data))
+
+
+def cbor_load(data):
+    x = gzip.decompress(data)
+    return cbor2.loads(x)
+
+
+def save_to_file_with_rename(dir: Path, name: str, data: bytes):
+    with tempfile.NamedTemporaryFile(dir=dir, delete=False) as fd:
+        fd.write(data)
+    x = dir / name
+    Path(fd.name).rename(x)
