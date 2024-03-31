@@ -101,40 +101,6 @@ class TextToImageGenerator:
         m = self.font_map[r]
         return np.concatenate([m[c] for c in word], axis=1), word
 
-    def iter(self):
-        import tensorflow as tf
-        inst = self
-
-        class Seq(tf.keras.utils.Sequence):
-            def __init__(self, batch_size, shuffle=True):
-                self.batch_size = batch_size
-                self.shuffle = shuffle
-                self.index = [i for i in range(inst.image_generator_len())]
-
-            def __len__(self):
-                # Number of batches in the Sequence
-                return int(np.ceil(len(self.index) / float(self.batch_size)))
-
-            def __getitem__(self, idx):
-                # Fetch a batch of data
-                off = idx*self.batch_size
-                length = min((idx+1)*self.batch_size, len(self.index))
-                # sample = list()
-                # label = list()
-                x = [inst.example(i) for i in range(off, off+length)]
-                # for i in range(off, off+length):
-                #     x = inst.example(self.index[i])
-                #     sample.append(x[0])
-                #     label.append(x[1])
-                sample, label = zip(*x)
-                return sample, label
-
-            def on_epoch_end(self):
-                if self.shuffle:
-                    random.shuffle(self.index)
-
-        return Seq(128)
-
     def font_example(self):
         for k in self.font_map:
             yield draw_word(k, self.font_map[k]["font"], self.font_height), k
@@ -160,27 +126,24 @@ def main():
     count = 0
     beg = time.time()
 
-    seq = generator.iter()
-    for i in tqdm(range(len(seq))):
-        batch = seq[i]
-        pass
+    idx = [i for i in range(generator.image_generator_len())]
+    chunk_size = 100000
+    for epoch in range(1):
+        t = []
+        for i in tqdm(idx):
+            v = generator.example(i)
+            t.append(v)
+            if len(t) >= chunk_size:
+                sample, label = zip(*t)
+                t.clear()
+            # img = array_to_image(sample)
+            # show_image(img)
+            pass
+        random.shuffle(idx)
 
     # for i in tqdm(range(generator.image_generator_len())):
     #     sample, label = generator.example(i)
     #     # img = array_to_image(sample)
-    #     # show_image(img)
-    #     pass
-
-    # for sample, label in tqdm(generator.image_generator(), total=generator.image_generator_len()):
-    #     count += 1
-    #     # print(label)
-    #     # img = array_to_image(array)
-    #     # show_image(img)
-    #     pass
-
-    # for img, path in generator.sample():
-    #     count += 1
-    #     print(path)
     #     # show_image(img)
     #     pass
 
