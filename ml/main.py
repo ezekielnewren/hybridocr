@@ -32,22 +32,24 @@ def main():
     count = 0
     beg = time.time()
 
-    idx = [i for i in range(generator.image_generator_len())]
-    chunk_size = 100000
-    for epoch in range(1):
-        t = []
-        for i in tqdm(idx):
-            v = generator.example(i)
-            t.append(v)
-            if len(t) >= chunk_size:
-                sample, label = zip(*t)
-                label = [engine.to_label(v) for v in label]
-                t.clear()
-                engine.model.fit(sample, label, 1, 128)
-            # img = array_to_image(sample)
-            # show_image(img)
-            pass
-        random.shuffle(idx)
+    generator.fit(engine.model, 1)
+
+    # idx = [i for i in range(generator.image_generator_len())]
+    # chunk_size = 100000
+    # for epoch in range(1):
+    #     t = []
+    #     for i in tqdm(idx):
+    #         v = generator.example(i)
+    #         t.append(v)
+    #         if len(t) >= chunk_size:
+    #             sample, label = zip(*t)
+    #             label = [engine.to_label(v) for v in label]
+    #             t.clear()
+    #             engine.model.fit(sample, label, 1, 128)
+    #         # img = array_to_image(sample)
+    #         # show_image(img)
+    #         pass
+    #     random.shuffle(idx)
 
     # for i in tqdm(range(generator.image_generator_len())):
     #     sample, label = generator.example(i)

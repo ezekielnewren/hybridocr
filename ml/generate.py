@@ -1,14 +1,10 @@
-import random
-import string
-
-from tqdm import tqdm
-import time
 from core import *
-import sys
 from pathlib import Path
-import json
 import numpy as np
 from collections import OrderedDict
+import tensorflow as tf
+
+from ml.engine import OCREngine
 
 
 class TextToImageGenerator:
@@ -104,6 +100,52 @@ class TextToImageGenerator:
     def font_example(self):
         for k in self.font_map:
             yield draw_word(k, self.font_map[k]["font"], self.font_height), k
+
+    def fit(self, engine: OCREngine, epoch):
+        optimizer = tf.keras.optimizers.Adam()
+        batch_size = 128
+        for e in range(epoch):
+            for i in range(0, self.image_generator_len(), batch_size):
+                sample = []
+                sample_len = []
+                label = []
+                label_len = []
+                for j in range(batch_size):
+                    x, word = self.example(i+j)
+                    y = engine.to_label(word)
+
+                    sample.append(x)
+                    sample_len.append(x.shape[1])
+
+                    label.append(y)
+                    label_len.append(len(y))
+
+                x_max_len = max(sample_len)
+                y_max_len = max(label_len)
+
+                for j in range(len(sample)):
+                    pad = x_max_len-sample[j].shape[1]
+                    pad_tensor = np.ones((self.font_height, pad))
+                    sample[j] = np.concatenate([sample[j], pad_tensor], axis=1)
+                    pass
+
+                feed = np.stack(sample)
+                feed = feed.reshape((feed.shape[0], feed.shape[1], feed.shape[2], 1))
+
+                y_pred = engine.model(feed, training=True)
+                y_pred = tf.transpose(y_pred, [1, 0, 2])
+
+                loss = tf.nn.ctc_loss(
+                    labels=label,
+                    logits=y_pred,
+                    label_length=label_len,
+                    logit_length=sample_len,
+                    logits_time_major=True,
+                    blank_index=0
+                )
+
+                pass
+        pass
 
 
 def main():

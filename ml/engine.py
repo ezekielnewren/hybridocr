@@ -23,7 +23,9 @@ class OCREngine:
             MaxPooling2D(pool_size=(pool_size, pool_size)),
             Reshape((-1, filters * (h - kernel_size + 1) // pool_size)),
             LSTM(128, return_sequences=True),
-            Dense(1 + len(self.alphabet), activation="softmax")  # the 1 is the blank symbol
+            Dense(128, activation="relu"),
+            Dropout(0.2),
+            Dense(1 + len(self.alphabet))  # the 1 is the blank symbol
         ])
 
     def to_label(self, word: str):
