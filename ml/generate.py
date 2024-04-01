@@ -1,3 +1,5 @@
+from tqdm import tqdm
+
 from core import *
 from pathlib import Path
 import numpy as np
@@ -105,14 +107,15 @@ class TextToImageGenerator:
         optimizer = tf.keras.optimizers.Adam()
         batch_size = 128
         for e in range(epoch):
-            for i in range(0, self.image_generator_len(), batch_size):
+            length = self.image_generator_len()
+            for i in tqdm(range(0, length, batch_size)):
                 sample = []
                 sample_len = []
                 # label = []
                 indicies = []
                 values = []
                 label_len = []
-                for j in range(batch_size):
+                for j in range(min(batch_size, length-i)):
                     x, word = self.example(i+j)
                     y = engine.to_label(word)
 
@@ -138,17 +141,21 @@ class TextToImageGenerator:
                 feed = np.stack(sample)
                 feed = feed.reshape((feed.shape[0], feed.shape[1], feed.shape[2], 1))
 
-                y_pred = engine.model(feed, training=True)
-                y_pred = tf.transpose(y_pred, [1, 0, 2])
+                with tf.GradientTape() as tape:
+                    y_pred = engine.model(feed, training=True)
+                    y_pred = tf.transpose(y_pred, [1, 0, 2])
 
-                loss = tf.nn.ctc_loss(
-                    labels=label,
-                    logits=y_pred,
-                    label_length=label_len,
-                    logit_length=sample_len,
-                    logits_time_major=True,
-                    blank_index=0
-                )
+                    loss = tf.nn.ctc_loss(
+                        labels=label,
+                        logits=y_pred,
+                        label_length=label_len,
+                        logit_length=sample_len,
+                        logits_time_major=True,
+                        blank_index=0
+                    )
+
+                g = tape.gradient(loss, engine.model.trainable_variables)
+                optimizer.apply_gradients(zip(g, engine.model.trainable_variables))
 
                 pass
         pass
