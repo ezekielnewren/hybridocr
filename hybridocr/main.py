@@ -1,12 +1,9 @@
-import string
-import random
 import time
 import json
 import sys
 
-from tqdm import tqdm
-from engine import OCREngine
-from generate import TextToImageGenerator
+from hybridocr.engine import OCREngine
+from hybridocr.generate import TextToImageGenerator
 from pathlib import Path
 
 

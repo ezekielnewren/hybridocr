@@ -19,3 +19,6 @@ dependencies = [
 
 [tool.hatch.metadata]
 # Additional hatch-specific configuration goes here
+
+[project.scripts]
+hybridocr = "hybridocr.main:main"

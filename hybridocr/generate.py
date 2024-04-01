@@ -1,12 +1,12 @@
 from tqdm import tqdm
 
-from core import *
+from hybridocr.engine import OCREngine
+from hybridocr.core import *
 from pathlib import Path
 import numpy as np
 from collections import OrderedDict
 import tensorflow as tf
 
-from hybridocr.engine import OCREngine
 
 
 class TextToImageGenerator:
