@@ -10,19 +10,20 @@ from ml.engine import OCREngine
 
 
 class TextToImageGenerator:
-    def __init__(self, _dir_home, _wordlist, _font_path: list, _font_height):
+    def __init__(self, _dir_home, _alphabet, _wordlist, _font_path: list, _font_height):
         self.dir_home = Path(_dir_home)
+        self.alphabet = _alphabet
         self.wordlist = _wordlist
         self.font_path = _font_path
         self.font_height = _font_height
 
-        self.alphabet = set()
-        for word in self.wordlist:
-            for c in word:
-                self.alphabet.add(c)
-        t = [c for c in self.alphabet]
-        t.sort()
-        self.alphabet = "".join(t)
+        # self.alphabet = set()
+        # for word in self.wordlist:
+        #     for c in word:
+        #         self.alphabet.add(c)
+        # t = [c for c in self.alphabet]
+        # t.sort()
+        # self.alphabet = "".join(t)
 
         file_font_cache = self.dir_home / "fonts.cbor.gz"
 
@@ -133,7 +134,7 @@ class TextToImageGenerator:
                     pad = sample_max_len-sample[j].shape[1]
                     pad_tensor = np.ones((self.font_height, pad))
                     sample[j] = np.concatenate([sample[j], pad_tensor], axis=1)
-                    sample_len[j] = (sample_len[j]-2)//2
+                    sample_len[j] = sample_len[j]//2
                     pass
 
                 label = tf.sparse.SparseTensor(indices=indicies, values=values, dense_shape=(batch_size, label_max_len))

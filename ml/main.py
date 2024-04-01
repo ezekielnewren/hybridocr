@@ -21,11 +21,11 @@ def main():
     with open(file_config) as fd:
         config = json.loads(fd.read())
 
-    dictionary = [string.ascii_letters + string.digits + string.punctuation]
+    # dictionary = [string.ascii_letters + string.digits + string.punctuation]
     with open(config["dictionary"]) as fd:
-        dictionary += [v.rstrip() for v in fd.readlines()]
+        dictionary = [v.rstrip() for v in fd.readlines()]
 
-    generator = TextToImageGenerator(dir_home, dictionary, config["font"], 28)
+    generator = TextToImageGenerator(dir_home, engine.alphabet, dictionary, config["font"], 28)
     elapsed = time.time() - beg
     print("time to initialize:", elapsed)
 

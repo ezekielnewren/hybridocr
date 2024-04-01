@@ -14,14 +14,14 @@ class OCREngine:
             self.alphabet_map[self.alphabet[i]] = i+1
 
         h, w = 28, None
-        filters = 32
+        filters = 4
         kernel_size = 3
         pool_size = 2
         self.model = tf.keras.models.Sequential([
             Input((h, w, 1)),
-            Conv2D(filters=filters, kernel_size=(kernel_size, kernel_size), activation='relu'),
+            Conv2D(filters=filters, kernel_size=(kernel_size, kernel_size), padding="same", activation='relu'),
             MaxPooling2D(pool_size=(pool_size, pool_size)),
-            Reshape((-1, filters * (h - kernel_size + 1) // pool_size)),
+            Reshape((-1, filters * h // pool_size)),
             LSTM(128, return_sequences=True),
             Dense(128, activation="relu"),
             Dropout(0.2),
