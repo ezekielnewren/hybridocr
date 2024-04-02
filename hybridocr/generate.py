@@ -37,7 +37,8 @@ class TextToImageGenerator:
 
         if self.font_height not in self.font_cache:
             t = list()
-            for font_path in self.font_path:
+            for font_name in self.font_path:
+                font_path = str(self.dir_home / "fonts" / font_name)
                 for font_size in range(1, 50 + 1):
                     try:
                         font = ImageFont.truetype(font_path, font_size)
@@ -160,13 +161,4 @@ class TextToImageGenerator:
 
                 pass
         pass
-
-
-def main():
-    pass
-
-
-if __name__ == "__main__":
-    main()
-
 

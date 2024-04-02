@@ -5,9 +5,10 @@ import sys
 from hybridocr.engine import OCREngine
 from hybridocr.generate import TextToImageGenerator
 from pathlib import Path
+from fontTools.ttLib import TTFont
 
 
-def main():
+def go0():
     engine = OCREngine()
 
     dir_home = Path(sys.argv[1])
@@ -29,34 +30,34 @@ def main():
     count = 0
     beg = time.time()
 
-    generator.fit(engine, 5)
-
-    # idx = [i for i in range(generator.image_generator_len())]
-    # chunk_size = 100000
-    # for epoch in range(1):
-    #     t = []
-    #     for i in tqdm(idx):
-    #         v = generator.example(i)
-    #         t.append(v)
-    #         if len(t) >= chunk_size:
-    #             sample, label = zip(*t)
-    #             label = [engine.to_label(v) for v in label]
-    #             t.clear()
-    #             engine.model.fit(sample, label, 1, 128)
-    #         # img = array_to_image(sample)
-    #         # show_image(img)
-    #         pass
-    #     random.shuffle(idx)
-
-    # for i in tqdm(range(generator.image_generator_len())):
-    #     sample, label = generator.example(i)
-    #     # img = array_to_image(sample)
-    #     # show_image(img)
-    #     pass
+    generator.fit(engine, 1)
 
     elapsed = time.time() - beg
     print("total time:", elapsed)
     print("rate:", float(count) / elapsed)
+
+
+def go1():
+    dir_home = Path(sys.argv[1])
+    file_config = dir_home / "config.json"
+
+    beg = time.time()
+    with open(file_config) as fd:
+        config = json.loads(fd.read())
+
+    for v in config["font"]:
+        path = dir_home / "fonts" / v
+
+        font = TTFont(path)
+        print(path.name)
+        for axis in font['fvar'].axes:
+            print("   ", axis.axisTag)
+
+    pass
+
+
+def main():
+    go0()
 
 
 if __name__ == "__main__":
