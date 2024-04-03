@@ -112,7 +112,7 @@ class TextToImageGenerator:
         for k in self.font_map:
             yield draw_word(k, self.font_map[k]["font"], self.font_height), k
 
-    def fit(self, engine: OCREngine, epoch, batch_size=1024):
+    def fit(self, engine: OCREngine, epoch, batch_size=128):
         optimizer = tf.keras.optimizers.Adam()
         for e in range(epoch):
             length = self.image_generator_len()
@@ -127,6 +127,9 @@ class TextToImageGenerator:
                     x, word = self.example(i+j)
                     y = engine.to_label(word)
 
+                    if x.shape[1] < engine.min_pad:
+                        x = pad_array(x, self.font_height, engine.min_pad)
+
                     sample.append(x)
                     sample_len.append(x.shape[1])
 
@@ -139,7 +142,7 @@ class TextToImageGenerator:
 
                 for j in range(len(sample)):
                     sample[j] = pad_array(sample[j], self.font_height, sample_max_len)
-                    sample_len[j] = engine.model.translate_width(sample_len[j])
+                    sample_len[j] = engine.translate_width(sample_len[j])
                     pass
 
                 label = tf.sparse.SparseTensor(indices=indicies, values=values, dense_shape=(batch_size, label_max_len))
@@ -151,14 +154,17 @@ class TextToImageGenerator:
                     y_pred = engine.model(feed, training=True)
                     y_pred = tf.transpose(y_pred, [1, 0, 2])
 
-                    loss = tf.nn.ctc_loss(
-                        labels=label,
-                        logits=y_pred,
-                        label_length=label_len,
-                        logit_length=sample_len,
-                        logits_time_major=True,
-                        blank_index=0
-                    )
+                    try:
+                        loss = tf.nn.ctc_loss(
+                            labels=label,
+                            logits=y_pred,
+                            label_length=label_len,
+                            logit_length=sample_len,
+                            logits_time_major=True,
+                            blank_index=0
+                        )
+                    except Exception as e:
+                        raise e
 
                 g = tape.gradient(loss, engine.model.trainable_variables)
                 optimizer.apply_gradients(zip(g, engine.model.trainable_variables))

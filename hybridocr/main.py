@@ -27,7 +27,7 @@ def go0():
     with open(file_dictionary) as fd:
         dictionary = [v.rstrip() for v in fd.readlines()]
 
-    generator = TextToImageGenerator(dir_home, engine.alphabet, dictionary, config["font"], 28)
+    generator = TextToImageGenerator(dir_home, engine.alphabet, dictionary, config["font"], engine.height)
     elapsed = time.time() - beg
     print("time to initialize:", elapsed)
 

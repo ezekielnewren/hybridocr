@@ -7,6 +7,7 @@ from collections import OrderedDict
 from tensorflow.keras import Model
 import sympy as sp
 
+
 class OCREngine:
     def __init__(self):
         self.alphabet = string.ascii_letters + string.digits + string.punctuation
@@ -14,9 +15,9 @@ class OCREngine:
         for i in range(len(self.alphabet)):
             self.alphabet_map[self.alphabet[i]] = i+1
 
-        h, w = 28, None
+        self.height, self.width = 28, None
         self.model = tf.keras.models.Sequential()
-        self.model.add(Input((h, w, 1)))
+        self.model.add(Input((self.height, self.width, 1)))
         self.model.add(Conv2D(filters=32, kernel_size=(3, 3), padding="same", activation='relu'))
         self.model.add(MaxPooling2D(pool_size=(2, 2)))
         self.model.add(Conv2D(filters=64, kernel_size=(3, 3), padding="same", activation='relu'))
@@ -64,9 +65,9 @@ class OCREngine:
                 ew = ew.simplify()
                 ewl = sp.lambdify("w", ew)
 
-                assert v.output.shape[1] == lh(h)
+                assert v.output.shape[1] == lh(self.height)
                 if v.output.shape[2] is not None:
-                    assert v.output.shape[2] == lw(w)
+                    assert v.output.shape[2] == lw(self.width)
             elif isinstance(v, MaxPooling2D):
                 pool_size = v.pool_size
 
@@ -80,22 +81,28 @@ class OCREngine:
                 ew = ew.simplify()
                 ewl = sp.lambdify("w", ew)
 
-                assert v.output.shape[1] == lh(h)
+                assert v.output.shape[1] == lh(self.height)
                 if v.output.shape[2] is not None:
-                    assert v.output.shape[2] == lw(w)
+                    assert v.output.shape[2] == lw(self.width)
 
         self.model.add(Permute((2, 1, 3)))
         v = self.model.layers[-1]
-        self.model.add(Reshape((-1, lh(h)*v.output.shape[-1])))
+        self.model.add(Reshape((-1, lh(self.height)*v.output.shape[-1])))
         v = self.model.layers[-1]
         self.model.add(LSTM(128, return_sequences=True))
         v = self.model.layers[-1]
         if v.output.shape[1] is not None:
-            assert v.output.shape[1] == lw(w)
+            assert v.output.shape[1] == lw(self.width)
 
         self.model.add(Dense(128, activation="relu"))
         self.model.add(Dropout(0.2))
         self.model.add(Dense(1+len(self.alphabet)))
+
+        self.min_pad = 1
+        while True:
+            if lw(self.min_pad) > 0:
+                break
+            self.min_pad += 1
 
         self.model.compile(optimizer="adam")
 
