@@ -139,7 +139,7 @@ class TextToImageGenerator:
 
                 for j in range(len(sample)):
                     sample[j] = pad_array(sample[j], self.font_height, sample_max_len)
-                    sample_len[j] = sample_len[j]//2
+                    sample_len[j] = engine.model.translate_width(sample_len[j])
                     pass
 
                 label = tf.sparse.SparseTensor(indices=indicies, values=values, dense_shape=(batch_size, label_max_len))
