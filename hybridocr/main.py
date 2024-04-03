@@ -20,7 +20,9 @@ def go0():
         config = json.loads(fd.read())
 
     # dictionary = [string.ascii_letters + string.digits + string.punctuation]
-    with open(config["dictionary"]) as fd:
+    dir_wordlist = dir_home / "wordlist"
+    file_dictionary = dir_wordlist / config["dictionary"]
+    with open(file_dictionary) as fd:
         dictionary = [v.rstrip() for v in fd.readlines()]
 
     generator = TextToImageGenerator(dir_home, engine.alphabet, dictionary, config["font"], 28)

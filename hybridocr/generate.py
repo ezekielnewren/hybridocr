@@ -6,24 +6,16 @@ from pathlib import Path
 import numpy as np
 from collections import OrderedDict
 import tensorflow as tf
-
+import os
 
 
 class TextToImageGenerator:
-    def __init__(self, _dir_home, _alphabet, _wordlist, _font_path: list, _font_height):
+    def __init__(self, _dir_home, _alphabet, _wordlist, _font_selection: list, _font_height):
         self.dir_home = Path(_dir_home)
         self.alphabet = _alphabet
         self.wordlist = _wordlist
-        self.font_path = _font_path
+        self.font_selection = _font_selection
         self.font_height = _font_height
-
-        # self.alphabet = set()
-        # for word in self.wordlist:
-        #     for c in word:
-        #         self.alphabet.add(c)
-        # t = [c for c in self.alphabet]
-        # t.sort()
-        # self.alphabet = "".join(t)
 
         file_font_cache = self.dir_home / "fonts.cbor.gz"
 
@@ -35,55 +27,70 @@ class TextToImageGenerator:
         with open(file_font_cache, "rb") as fd:
             self.font_cache = cbor_load(fd.read())
 
+        change = 0
         if self.font_height not in self.font_cache:
-            t = list()
-            for font_name in self.font_path:
-                font_path = str(self.dir_home / "fonts" / font_name)
-                for font_size in range(1, 50 + 1):
-                    try:
-                        font = ImageFont.truetype(font_path, font_size)
-                    except OSError as e:
-                        if e.args[0] == "invalid pixel size":
-                            continue
-                        raise e
-                    text_width, text_height = font.getsize(self.alphabet)
-                    if text_height > self.font_height:
-                        font_size -= 1
+            self.font_cache[self.font_height] = OrderedDict()
+            change += 1
 
-                    if text_height >= self.font_height:
-                        x = OrderedDict()
-                        x["path"] = font_path
-                        x["size"] = font_size
-                        t.append(x)
-                        break
+        font_path = []
+        for root, dirs, files in os.walk(self.dir_home/"fonts"):
+            for file in files:
+                t = Path(root)/file
+                if t.is_file() and str(t).endswith("ttf"):
+                    font_path.append(file)
+        font_path.sort()
 
-            self.font_cache[self.font_height] = t
+        for font_name in font_path:
+            if font_name in self.font_cache[self.font_height]:
+                continue
+            path = str(self.dir_home / "fonts" / font_name)
+            for font_size in range(1, 50 + 1):
+                try:
+                    font = ImageFont.truetype(path, font_size)
+                except OSError as e:
+                    if e.args[0] == "invalid pixel size":
+                        continue
+                    raise e
+                _, _, text_width, text_height = font.getbbox(self.alphabet)
+                if text_height > self.font_height:
+                    font_size -= 1
 
-            for v in self.font_cache[self.font_height]:
-                font_path = v["path"]
-                font_size = v["size"]
+                if text_height >= self.font_height:
+                    self.font_cache[self.font_height][font_name] = OrderedDict()
+                    self.font_cache[self.font_height][font_name]["size"] = font_size
+                    change += 1
+                    break
 
-                font = ImageFont.truetype(font_path, font_size)
+        for font_name in self.font_cache[self.font_height]:
+            v = self.font_cache[self.font_height][font_name]
+            if "symbol" in v:
+                continue
 
-                v["symbol"] = OrderedDict()
-                for c in self.alphabet:
-                    w = draw_word(c, font, self.font_height)
-                    obj = {
-                        "size": w.size,
-                        "data": w.tobytes()
-                    }
-                    # arr = np.array(w) / 255.0
-                    v["symbol"][c] = obj
+            change += 1
+            path = str(self.dir_home / "fonts" / font_name)
+            font = ImageFont.truetype(path, v["size"])
 
+            v["symbol"] = OrderedDict()
+            for c in self.alphabet:
+                w = draw_word(c, font, self.font_height)
+                obj = {
+                    "size": w.size,
+                    "data": w.tobytes()
+                }
+                # arr = np.array(w) / 255.0
+                v["symbol"][c] = obj
+
+        if change > 0:
             data = cbor_save(self.font_cache)
             save_to_file_with_rename(self.dir_home, file_font_cache.name, data)
 
         self.font_map = OrderedDict()
-        for i, v in enumerate(self.font_cache[self.font_height]):
+        for i, font_name in enumerate(self.font_selection):
+            v = self.font_cache[self.font_height][font_name]
             for c in v["symbol"]:
                 obj = v["symbol"][c]
                 img = Image.frombytes("L", obj["size"], obj["data"])
-                arr = np.array(img) / 255.0
+                arr = image_to_array(img)
                 v["symbol"][c] = arr
             self.font_map[i] = v["symbol"]
 
@@ -132,9 +139,7 @@ class TextToImageGenerator:
                 label_max_len = max(label_len)
 
                 for j in range(len(sample)):
-                    pad = sample_max_len-sample[j].shape[1]
-                    pad_tensor = np.ones((self.font_height, pad))
-                    sample[j] = np.concatenate([sample[j], pad_tensor], axis=1)
+                    sample[j] = pad_array(sample[j], self.font_height, sample_max_len)
                     sample_len[j] = sample_len[j]//2
                     pass
 

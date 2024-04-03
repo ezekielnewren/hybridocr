@@ -43,10 +43,20 @@ def pdf_extract(file: Path):
     return out
 
 
-def array_to_image(word: np.array):
-    word *= 255.0
-    word = word.astype(np.uint8)
-    return Image.fromarray(word)
+def array_to_image(arr: np.array):
+    arr *= 255.0
+    arr = arr.astype(np.uint8)
+    return Image.fromarray(arr)
+
+
+def image_to_array(img: Image):
+    return 1-np.array(img)/255.0
+
+
+def pad_array(arr: np.array, height, width):
+    pad = width - arr.shape[1]
+    pad_tensor = np.zeros((height, pad))
+    return np.concatenate([arr, pad_tensor], axis=1)
 
 
 def show_image(img):
