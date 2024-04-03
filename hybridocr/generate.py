@@ -112,9 +112,8 @@ class TextToImageGenerator:
         for k in self.font_map:
             yield draw_word(k, self.font_map[k]["font"], self.font_height), k
 
-    def fit(self, engine: OCREngine, epoch):
+    def fit(self, engine: OCREngine, epoch, batch_size=2048):
         optimizer = tf.keras.optimizers.Adam()
-        batch_size = 128
         for e in range(epoch):
             length = self.image_generator_len()
             for i in tqdm(range(0, length, batch_size)):

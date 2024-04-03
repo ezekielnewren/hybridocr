@@ -2,6 +2,8 @@ import time
 import json
 import sys
 
+from keras.src.saving.saving_api import save_model
+
 from hybridocr.engine import OCREngine
 from hybridocr.generate import TextToImageGenerator
 from pathlib import Path
@@ -32,7 +34,12 @@ def go0():
     count = 0
     beg = time.time()
 
+    file_model = dir_home/"model.keras"
+
     generator.fit(engine, 1)
+
+    # https://www.tensorflow.org/tutorials/keras/save_and_load
+    engine.model.save(file_model)
 
     elapsed = time.time() - beg
     print("total time:", elapsed)
