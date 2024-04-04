@@ -7,6 +7,7 @@ import numpy as np
 from collections import OrderedDict
 import random
 import tensorflow as tf
+import time
 import os
 
 
@@ -121,6 +122,8 @@ class TextToImageGenerator:
 
             validate, train, test = split_distribution([.15, .70, .15], length)
 
+            checkpoint = time.time()
+
             train_map = [v for v in range(train[0], train[1])]
             validate_map = [v for v in range(validate[0], validate[1])]
             test_map = [v for v in range(test[0], test[1])]
@@ -178,6 +181,27 @@ class TextToImageGenerator:
 
                 g = tape.gradient(loss, engine.model.trainable_variables)
                 optimizer.apply_gradients(zip(g, engine.model.trainable_variables))
+
+                now = time.time()
+                if (now-checkpoint) > 10.0:
+                    checkpoint = now
+                    decoded, log_prob = tf.nn.ctc_greedy_decoder(
+                        inputs=y_pred,
+                        sequence_length=sample_len
+                    )
+
+                    dense_decoded = tf.sparse.to_dense(decoded[0])
+
+                    correct = 0
+
+                    l = tf.sparse.to_dense(label)
+                    for k in range(label.shape[0]):
+                        guess = [int(v) for v in dense_decoded[k] if int(v) > 0]
+                        answer = [int(v) for v in l[k]][0:label_len[k]]
+                        if guess == answer:
+                            correct += 1
+
+                    print("accuracy:", correct/dense_decoded.shape[0])
 
                 pass
         pass

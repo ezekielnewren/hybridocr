@@ -37,7 +37,7 @@ def go0():
     file_model = dir_home/"model.keras"
 
     if not file_model.exists():
-        generator.fit(engine, 2)
+        generator.fit(engine, 6)
 
         # https://www.tensorflow.org/tutorials/keras/save_and_load
         engine.model.save(file_model)
@@ -46,8 +46,8 @@ def go0():
         engine.model = tf.keras.models.load_model(file_model)
 
     for i in range(20):
-        sample, label = generator.example(generator.image_generator_len()-1-i)
-        show_image(array_to_image(sample))
+        sample, label = generator.example(i)
+        # show_image(array_to_image(sample))
         guess = engine.inference(sample)
 
         print("expected:", label, "actual:", guess)

@@ -112,14 +112,14 @@ class OCREngine:
     def to_word(self, label: list[int]):
         return "".join([self.alphabet[i-1] for i in label])
 
-    def inference(self, img: Image):
-        arr = image_to_array(img)
+    def inference(self, arr: Image):
+        # arr = image_to_array(img)
         image = arr.reshape((1, arr.shape[0], arr.shape[1], 1))
         logits = self.model(image)
         logits = tf.transpose(logits, [1, 0, 2])
         # prediction = self.model.predict(image)
 
-        input_length = tf.constant([self.translate_width(image.shape[1])])
+        input_length = tf.constant([self.translate_width(image.shape[2])])
         decoded, log_prob = tf.nn.ctc_greedy_decoder(
             inputs=logits,
             sequence_length=input_length
@@ -127,22 +127,9 @@ class OCREngine:
 
         dense_decoded = tf.sparse.to_dense(decoded[0])
 
-        # decoded, _ = tf.nn.ctc_beam_search_decoder(inputs=logits,
-        #                                            sequence_length=[logits.shape[1]] * logits.shape[0])
-        # dense_decoded = tf.sparse.to_dense(decoded[0], default_value=-1)
+        clean = [int(v) for v in dense_decoded[0] if int(v) > 0]
 
-        # input_length = np.ones(prediction.shape[0]) * prediction.shape[1]
-        # input_length = [self.translate_width(arr.shape[1])]
-        # decoded, _ = tf.nn.ctc_greedy_decoder(
-        #     inputs=tf.transpose(prediction, [1, 0, 2]),
-        #     sequence_length=input_length,
-        #     merge_repeated=True,
-        #     blank_index=0
-        # )
-        #
-        # decoded_classes = tf.sparse.to_dense(decoded[0], default_value=-1).numpy()
-
-        return "".join([self.alphabet[i - 1] for i in dense_decoded[0]])
+        return "".join([self.alphabet[i - 1] for i in clean])
 
     def train_step(self, data):
         sample, label = data
