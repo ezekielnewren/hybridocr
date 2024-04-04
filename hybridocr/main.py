@@ -36,7 +36,7 @@ def go0():
 
     file_model = dir_home/"model.keras"
 
-    generator.fit(engine, 1)
+    generator.fit(engine, 2)
 
     # https://www.tensorflow.org/tutorials/keras/save_and_load
     engine.model.save(file_model)

@@ -5,6 +5,7 @@ from hybridocr.core import *
 from pathlib import Path
 import numpy as np
 from collections import OrderedDict
+import random
 import tensorflow as tf
 import os
 
@@ -115,16 +116,25 @@ class TextToImageGenerator:
     def fit(self, engine: OCREngine, epoch, batch_size=128):
         optimizer = tf.keras.optimizers.Adam()
         for e in range(epoch):
+
             length = self.image_generator_len()
-            for i in tqdm(range(0, length, batch_size)):
+
+            validate, train, test = split_distribution([.15, .70, .15], length)
+
+            train_map = [v for v in range(train[0], train[1])]
+            validate_map = [v for v in range(validate[0], validate[1])]
+            test_map = [v for v in range(test[0], test[1])]
+            if e > 0:
+                random.shuffle(train_map)
+            for i in tqdm(range(0, len(train_map), batch_size)):
                 sample = []
                 sample_len = []
                 # label = []
                 indicies = []
                 values = []
                 label_len = []
-                for j in range(min(batch_size, length-i)):
-                    x, word = self.example(i+j)
+                for j in range(min(batch_size, len(train_map)-i)):
+                    x, word = self.example(train_map[i+j])
                     y = engine.to_label(word)
 
                     if x.shape[1] < engine.min_pad:

@@ -99,3 +99,17 @@ def save_to_file_with_rename(dir: Path, name: str, data: bytes):
         fd.write(data)
     x = dir / name
     Path(fd.name).rename(x)
+
+
+def split_distribution(split, length):
+    off = 0
+    if sum(split) != 1.0:
+        raise ValueError("split must sum up to 1")
+
+    t = []
+    for i in range(len(split)):
+        end = int(length * sum(split[0:i + 1]))
+        t.append((off, end))
+        off = end
+
+    return t
