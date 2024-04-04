@@ -2,13 +2,12 @@ import time
 import json
 import sys
 
-from keras.src.saving.saving_api import save_model
-
 from hybridocr.engine import OCREngine
 from hybridocr.generate import TextToImageGenerator
 from pathlib import Path
 from fontTools.ttLib import TTFont
-from core import *
+from hybridocr.core import *
+
 
 def go0():
     engine = OCREngine()

@@ -8,6 +8,7 @@ from tensorflow.keras import Model
 import sympy as sp
 from hybridocr.core import *
 
+
 class OCREngine:
     def __init__(self):
         self.alphabet = string.ascii_letters + string.digits + string.punctuation
