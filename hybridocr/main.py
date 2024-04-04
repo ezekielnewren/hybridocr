@@ -46,11 +46,12 @@ def go0():
         engine.model = tf.keras.models.load_model(file_model)
 
     for i in range(20):
-        sample, label = generator.example(i)
-        # show_image(array_to_image(sample))
+        sample, label = generator.example(generator.image_generator_len()-1-i)
+        show_image(array_to_image(sample))
         guess = engine.inference(sample)
 
-        print("expected:", label, "actual:", guess)
+        print("expected:", label)
+        print("actual  :", guess)
 
     elapsed = time.time() - beg
     print("total time:", elapsed)
