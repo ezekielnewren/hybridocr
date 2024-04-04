@@ -44,6 +44,7 @@ def pdf_extract(file: Path):
 
 
 def array_to_image(arr: np.array):
+    arr = 1-arr
     arr *= 255.0
     arr = arr.astype(np.uint8)
     return Image.fromarray(arr)

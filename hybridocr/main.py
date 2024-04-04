@@ -8,7 +8,7 @@ from hybridocr.engine import OCREngine
 from hybridocr.generate import TextToImageGenerator
 from pathlib import Path
 from fontTools.ttLib import TTFont
-
+from core import *
 
 def go0():
     engine = OCREngine()
@@ -36,10 +36,21 @@ def go0():
 
     file_model = dir_home/"model.keras"
 
-    generator.fit(engine, 2)
+    if not file_model.exists():
+        generator.fit(engine, 2)
 
-    # https://www.tensorflow.org/tutorials/keras/save_and_load
-    engine.model.save(file_model)
+        # https://www.tensorflow.org/tutorials/keras/save_and_load
+        engine.model.save(file_model)
+    else:
+        import tensorflow as tf
+        engine.model = tf.keras.models.load_model(file_model)
+
+    for i in range(20):
+        sample, label = generator.example(generator.image_generator_len()-1-i)
+        show_image(array_to_image(sample))
+        guess = engine.inference(sample)
+
+        print("expected:", label, "actual:", guess)
 
     elapsed = time.time() - beg
     print("total time:", elapsed)
