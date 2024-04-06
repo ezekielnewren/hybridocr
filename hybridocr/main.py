@@ -56,6 +56,8 @@ def go0():
         ds.prefetch(buffer_size=tf.data.AUTOTUNE)
         engine.model.fit(x=ds, y=None, batch_size=batch_size, epochs=1,
                          steps_per_epoch=int(math.ceil(len(it) / batch_size)))
+        engine.model.save(file_model)
+
         random_bytes = os.urandom(8)
         seed = struct.unpack("Q", random_bytes)[0]
         it.set_seed(seed)
