@@ -19,6 +19,7 @@ def go0():
     engine = OCREngine()
 
     dir_home = Path(sys.argv[1])
+    batch_size = int(sys.argv[2])
 
     file_config = dir_home / "config.json"
 
@@ -40,8 +41,6 @@ def go0():
     beg = time.time()
 
     file_model = dir_home/"model.keras"
-
-    batch_size = 128
 
     dist = split_distribution([.75, .25], len(generator))
     it = TextToImageIterator(generator, dist[0], batch_size, None, engine.translate_width, engine.to_label)
