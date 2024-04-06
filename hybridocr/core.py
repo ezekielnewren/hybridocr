@@ -56,6 +56,8 @@ def image_to_array(img: Image):
 
 def pad_array(arr: np.array, height, width):
     pad = width - arr.shape[1]
+    if pad == 0:
+        return arr
     pad_tensor = np.zeros((height, pad))
     return np.concatenate([arr, pad_tensor], axis=1)
 

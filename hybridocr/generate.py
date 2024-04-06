@@ -96,15 +96,10 @@ class TextToImageGenerator:
                 v["symbol"][c] = arr
             self.font_map[i] = v["symbol"]
 
-    def image_generator_len(self):
+    def __len__(self):
         return len(self.wordlist)*len(self.font_map)
 
-    def image_generator(self):
-        for word in self.wordlist:
-            for m in self.font_map.values():
-                yield np.concatenate([m["symbol"][c] for c in word], axis=1), word
-
-    def example(self, idx):
+    def __getitem__(self, idx):
         q, r = divmod(idx, len(self.font_map))
         word = self.wordlist[q]
         m = self.font_map[r]
@@ -114,95 +109,92 @@ class TextToImageGenerator:
         for k in self.font_map:
             yield draw_word(k, self.font_map[k]["font"], self.font_height), k
 
-    def fit(self, engine: OCREngine, epoch, batch_size=128):
-        optimizer = tf.keras.optimizers.Adam()
-        for e in range(epoch):
 
-            length = self.image_generator_len()
+class TextToImageIterator:
+    def __init__(self, _generator: TextToImageGenerator, _range, batch_size, seed, translate_width, word_to_label):
+        self.index = None
+        self.generator = _generator
+        self.lo, self.hi = _range[0], _range[1]
+        self.batch_size = batch_size
+        self.set_seed(seed)
+        self.translate_width = translate_width
+        self.word_to_label = word_to_label
 
-            validate, train, test = split_distribution([.15, .70, .15], length)
+    def set_seed(self, seed):
+        self.index = [i for i in range(self.lo, self.hi)]
+        if seed is not None:
+            random.seed(seed)
+            random.shuffle(self.index)
 
-            checkpoint = time.time()
+    def __len__(self):
+        return len(self.index)
 
-            train_map = [v for v in range(train[0], train[1])]
-            validate_map = [v for v in range(validate[0], validate[1])]
-            test_map = [v for v in range(test[0], test[1])]
-            if e > 0:
-                random.shuffle(train_map)
-            for i in tqdm(range(0, len(train_map), batch_size)):
-                sample = []
-                sample_len = []
-                # label = []
-                indicies = []
-                values = []
-                label_len = []
-                for j in range(min(batch_size, len(train_map)-i)):
-                    x, word = self.example(train_map[i+j])
-                    y = engine.to_label(word)
+    def stream(self):
+        for i in range(0, len(self.index), self.batch_size):
+            sample, label = [], []
 
-                    if x.shape[1] < engine.min_pad:
-                        x = pad_array(x, self.font_height, engine.min_pad)
+            length = min(self.batch_size, len(self)-i)
+            for j in range(i, i+length):
+                x, word = self.generator[self.index[j]]
+                sample.append(x)
 
-                    sample.append(x)
-                    sample_len.append(x.shape[1])
+                y = self.word_to_label(word)
+                label.append(y)
 
-                    indicies += [[j, k] for k in range(len(y))]
-                    values += y
-                    label_len.append(len(y))
+            sample_max_len = max([int(v.shape[1]) for v in sample])
+            label_max_len = max([len(v) for v in label])+2
 
-                sample_max_len = max(sample_len)
-                label_max_len = max(label_len)
+            indices = []
+            values = []
+            for j in range(length):
+                sample_len = sample[j].shape[1]
+                sample[j] = pad_array(sample[j], self.generator.font_height, sample_max_len)
+                for k in range(len(label[j])):
+                    indices.append([j, k])
+                    values.append(label[j][k])
 
-                for j in range(len(sample)):
-                    sample[j] = pad_array(sample[j], self.font_height, sample_max_len)
-                    sample_len[j] = engine.translate_width(sample_len[j])
-                    pass
+                indices.append([j, label_max_len-2])
+                values.append(len(label[j]))
 
-                label = tf.sparse.SparseTensor(indices=indicies, values=values, dense_shape=(batch_size, label_max_len))
+                indices.append([j, label_max_len-1])
+                values.append(self.translate_width(sample_len))
+            sample = np.stack(sample)
+            sample = sample.reshape(sample.shape + (1,))
 
-                feed = np.stack(sample)
-                feed = feed.reshape((feed.shape[0], feed.shape[1], feed.shape[2], 1))
+            label = tf.sparse.SparseTensor(indices=indices, values=values, dense_shape=(length, label_max_len))
 
-                with tf.GradientTape() as tape:
-                    y_pred = engine.model(feed, training=True)
-                    y_pred = tf.transpose(y_pred, [1, 0, 2])
+            if sample.shape[0] != label.shape[0]:
+                raise ValueError("first dimension does not match")
 
-                    try:
-                        loss = tf.nn.ctc_loss(
-                            labels=label,
-                            logits=y_pred,
-                            label_length=label_len,
-                            logit_length=sample_len,
-                            logits_time_major=True,
-                            blank_index=0
-                        )
-                    except Exception as e:
-                        raise e
+            yield sample, label
 
-                g = tape.gradient(loss, engine.model.trainable_variables)
-                optimizer.apply_gradients(zip(g, engine.model.trainable_variables))
+    def dataset(self):
+        return tf.data.Dataset.from_generator(self.stream, output_signature=(
+            tf.TensorSpec(shape=(None, self.generator.font_height, None, 1), dtype=tf.float32),
+            tf.SparseTensorSpec(shape=(None, None), dtype=tf.int32)
+        ))
 
-                now = time.time()
-                if (now-checkpoint) > 10.0:
-                    checkpoint = now
-                    decoded, log_prob = tf.nn.ctc_greedy_decoder(
-                        inputs=y_pred,
-                        sequence_length=sample_len
-                    )
+    @staticmethod
+    def loss(y_true, y_pred):
+        label = tf.sparse.to_dense(y_true)
+        label_len = tf.cast(label[:, -2], tf.int32)
+        sample_len = tf.cast(label[:, -1], tf.int32)
 
-                    dense_decoded = tf.sparse.to_dense(decoded[0])
+        y_true = tf.sparse.SparseTensor(
+            indices=y_true.indices,
+            values=tf.cast(y_true.values, tf.int32),
+            dense_shape=y_true.dense_shape
+        )
 
-                    correct = 0
+        logits_time_major = True
+        if logits_time_major:
+            y_pred = tf.transpose(y_pred, [1, 0, 2])
 
-                    l = tf.sparse.to_dense(label)
-                    for k in range(label.shape[0]):
-                        guess = [int(v) for v in dense_decoded[k] if int(v) > 0]
-                        answer = [int(v) for v in l[k]][0:label_len[k]]
-                        if guess == answer:
-                            correct += 1
-
-                    print("accuracy:", correct/dense_decoded.shape[0])
-
-                pass
-        pass
-
+        return tf.nn.ctc_loss(
+            labels=y_true,
+            logits=y_pred,
+            label_length=label_len,
+            logit_length=sample_len,
+            logits_time_major=logits_time_major,
+            blank_index=0
+        )

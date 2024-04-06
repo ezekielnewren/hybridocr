@@ -1,12 +1,18 @@
+import math
+import os
+import struct
 import time
 import json
 import sys
 
+from tqdm import tqdm
+
 from hybridocr.engine import OCREngine
-from hybridocr.generate import TextToImageGenerator
+from hybridocr.generate import TextToImageGenerator, TextToImageIterator
 from pathlib import Path
 from fontTools.ttLib import TTFont
 from hybridocr.core import *
+import tensorflow as tf
 
 
 def go0():
@@ -35,22 +41,23 @@ def go0():
 
     file_model = dir_home/"model.keras"
 
-    if not file_model.exists():
-        generator.fit(engine, 6)
+    batch_size = 128
 
-        # https://www.tensorflow.org/tutorials/keras/save_and_load
-        engine.model.save(file_model)
-    else:
-        import tensorflow as tf
-        engine.model = tf.keras.models.load_model(file_model)
+    dist = split_distribution([.75, .25], len(generator))
+    it = TextToImageIterator(generator, dist[0], batch_size, None, engine.translate_width, engine.to_label)
 
-    for i in range(20):
-        sample, label = generator.example(generator.image_generator_len()-1-i)
-        show_image(array_to_image(sample))
-        guess = engine.inference(sample)
+    # for sample, label in it.stream():
+    #     logits = engine.model(sample)
+    #     TextToImageIterator.loss(label, logits)
 
-        print("expected:", label)
-        print("actual  :", guess)
+    engine.model.compile(optimizer="adam", loss=TextToImageIterator.loss)
+
+    for epoch in range(5):
+        engine.model.fit(x=it.dataset(), y=None, batch_size=batch_size, epochs=1,
+                         steps_per_epoch=int(math.ceil(len(it) / batch_size)))
+        random_bytes = os.urandom(8)
+        seed = struct.unpack("Q", random_bytes)[0]
+        it.set_seed(seed)
 
     elapsed = time.time() - beg
     print("total time:", elapsed)

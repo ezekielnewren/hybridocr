@@ -4,7 +4,6 @@ from PIL import Image
 from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D, Reshape, Permute, LSTM, Dense, Dropout
 import numpy as np
 from collections import OrderedDict
-from tensorflow.keras import Model
 import sympy as sp
 from hybridocr.core import *
 
@@ -20,9 +19,9 @@ class OCREngine:
         self.model = tf.keras.models.Sequential()
         self.model.add(Input((self.height, self.width, 1)))
         self.model.add(Conv2D(filters=32, kernel_size=(3, 3), padding="same", activation='relu'))
-        self.model.add(MaxPooling2D(pool_size=(2, 2)))
+        # self.model.add(MaxPooling2D(pool_size=(2, 2)))
         self.model.add(Conv2D(filters=64, kernel_size=(3, 3), padding="same", activation='relu'))
-        self.model.add(MaxPooling2D(pool_size=(2, 2)))
+        # self.model.add(MaxPooling2D(pool_size=(2, 2)))
         # self.model.add(Conv2D(filters=128, kernel_size=(3, 3), padding="valid", activation='relu'))
         # self.model.add(MaxPooling2D(pool_size=(2, 2)))
 
