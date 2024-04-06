@@ -52,7 +52,9 @@ def go0():
     engine.model.compile(optimizer="adam", loss=TextToImageIterator.loss)
 
     for epoch in range(5):
-        engine.model.fit(x=it.dataset(), y=None, batch_size=batch_size, epochs=1,
+        ds = it.dataset()
+        ds.prefetch(buffer_size=tf.data.AUTOTUNE)
+        engine.model.fit(x=ds, y=None, batch_size=batch_size, epochs=1,
                          steps_per_epoch=int(math.ceil(len(it) / batch_size)))
         random_bytes = os.urandom(8)
         seed = struct.unpack("Q", random_bytes)[0]
