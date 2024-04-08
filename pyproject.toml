@@ -9,10 +9,10 @@ description = "A brief description of your package"
 authors = [{name = "Your Name", email = "you@example.com"}]
 ## hatch dep show requirements | xargs -l pip install
 dependencies = [
-    "tensorflow>=2.15.0",
+    "tensorflow==2.15.0",
     "cbor2==5.6.2",
-    "matplotlib==3.8.3",
-    "numpy==1.26.4",
+    "matplotlib>=3.7.5",
+    "numpy>=1.23.5",
     "Pillow==9.5.0",
     "PyMuPDF==1.24.0",
     "tqdm==4.66.2",
