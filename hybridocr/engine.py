@@ -33,7 +33,7 @@ class OCREngine:
     def to_label(self, word: str):
         return [self.alphabet_map[c] for c in word]
 
-    def to_word(self, label: list[int]):
+    def to_word(self, label):
         return "".join([self.alphabet[i-1] for i in label])
 
     def inference(self, arr: Image):
