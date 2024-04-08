@@ -16,7 +16,6 @@ import tensorflow as tf
 
 
 def go0():
-    engine = OCREngine()
 
     dir_home = Path(sys.argv[1])
     batch_size = int(sys.argv[2])
@@ -24,6 +23,8 @@ def go0():
     file_config = dir_home / "config.json"
 
     beg = time.time()
+
+    engine = OCREngine()
     with open(file_config) as fd:
         config = json.loads(fd.read())
 
