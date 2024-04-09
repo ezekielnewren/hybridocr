@@ -146,6 +146,8 @@ class TextToImageIterator:
                 label.append(y)
 
             sample_max_len = max([int(v.shape[1]) for v in sample])
+            sample_pad_len = sample_max_len+1
+
             label_max_len = max([len(v) for v in label])
             label_pad_len = label_max_len+2
 
@@ -156,7 +158,7 @@ class TextToImageIterator:
             values = []
             for j in range(length):
                 sample_len.append(self.translate_width(sample[j].shape[1]))
-                sample[j] = pad_array(sample[j], self.generator.font_height, sample_max_len)
+                sample[j] = pad_array(sample[j], self.generator.font_height, sample_pad_len)
                 for k in range(len(label[j])):
                     indices.append([j, k])
                     values.append(label[j][k])
@@ -164,6 +166,7 @@ class TextToImageIterator:
                 label_len.append(len(label[j]))
             sample = np.stack(sample)
             sample = sample.reshape(sample.shape + (1,))
+            assert(sample.shape[2] == sample_pad_len)
 
             for j in range(length):
                 indices.append([j, label_max_len+0])
@@ -188,14 +191,14 @@ class TextToImageIterator:
 
     @staticmethod
     def loss(y_true, y_pred):
-        batch_size = int(y_true.dense_shape[0])
+        batch_size = y_true.dense_shape[0]
         sample_len = tf.cast(y_true.values[-batch_size*2:-batch_size,], tf.int32)
         label_len = tf.cast(y_true.values[-batch_size:,], tf.int32)
 
         y_true = tf.sparse.SparseTensor(
             indices=y_true.indices[:-batch_size*2],
             values=tf.cast(y_true.values[:-batch_size*2], tf.int32),
-            dense_shape=(y_true.dense_shape[0], y_true.dense_shape[1]-2)
+            dense_shape=y_true.dense_shape
         )
 
         logits_time_major = True
