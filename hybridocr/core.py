@@ -44,11 +44,6 @@ def pdf_extract(file: Path):
     return out
 
 
-def noop_loss(y_true, y_pred):
-    # return tf.constant([y_true.values[0]-y_pred[0][0][0]], dtype=tf.float32)
-    return tf.constant([0.0], dtype=tf.float32)
-
-
 def array_to_image(arr: np.array):
     arr = 1-arr
     arr *= 255.0

@@ -146,26 +146,34 @@ class TextToImageIterator:
                 label.append(y)
 
             sample_max_len = max([int(v.shape[1]) for v in sample])
-            label_max_len = max([len(v) for v in label])+2
+            label_max_len = max([len(v) for v in label])
+            label_pad_len = label_max_len+2
+
+            sample_len = []
+            label_len = []
 
             indices = []
             values = []
             for j in range(length):
-                sample_len = sample[j].shape[1]
+                sample_len.append(self.translate_width(sample[j].shape[1]))
                 sample[j] = pad_array(sample[j], self.generator.font_height, sample_max_len)
                 for k in range(len(label[j])):
                     indices.append([j, k])
                     values.append(label[j][k])
 
-                indices.append([j, label_max_len-2])
-                values.append(len(label[j]))
-
-                indices.append([j, label_max_len-1])
-                values.append(self.translate_width(sample_len))
+                label_len.append(len(label[j]))
             sample = np.stack(sample)
             sample = sample.reshape(sample.shape + (1,))
 
-            label = tf.sparse.SparseTensor(indices=indices, values=values, dense_shape=(length, label_max_len))
+            for j in range(length):
+                indices.append([j, label_max_len+0])
+                values.append(sample_len[j])
+
+            for j in range(length):
+                indices.append([j, label_max_len+1])
+                values.append(label_len[j])
+
+            label = tf.sparse.SparseTensor(indices=indices, values=values, dense_shape=(length, label_pad_len))
 
             if sample.shape[0] != label.shape[0]:
                 raise ValueError("first dimension does not match")
@@ -180,21 +188,21 @@ class TextToImageIterator:
 
     @staticmethod
     def loss(y_true, y_pred):
-        label = tf.sparse.to_dense(y_true)
-        label_len = tf.cast(label[:, -2], tf.int32)
-        sample_len = tf.cast(label[:, -1], tf.int32)
+        batch_size = int(y_true.dense_shape[0])
+        sample_len = tf.cast(y_true.values[-batch_size*2:-batch_size,], tf.int32)
+        label_len = tf.cast(y_true.values[-batch_size:,], tf.int32)
 
         y_true = tf.sparse.SparseTensor(
-            indices=y_true.indices,
-            values=tf.cast(y_true.values, tf.int32),
-            dense_shape=y_true.dense_shape
+            indices=y_true.indices[:-batch_size*2],
+            values=tf.cast(y_true.values[:-batch_size*2], tf.int32),
+            dense_shape=(y_true.dense_shape[0], y_true.dense_shape[1]-2)
         )
 
         logits_time_major = True
         if logits_time_major:
             y_pred = tf.transpose(y_pred, [1, 0, 2])
 
-        return tf.nn.ctc_loss(
+        loss = tf.nn.ctc_loss(
             labels=y_true,
             logits=y_pred,
             label_length=label_len,
@@ -202,3 +210,4 @@ class TextToImageIterator:
             logits_time_major=logits_time_major,
             blank_index=0
         )
+        return loss
