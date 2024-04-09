@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import fitz
 import io
 
+import tensorflow as tf
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 from pathlib import Path
@@ -41,6 +42,11 @@ def pdf_extract(file: Path):
             out.append(image)
 
     return out
+
+
+def noop_loss(y_true, y_pred):
+    # return tf.constant([y_true.values[0]-y_pred[0][0][0]], dtype=tf.float32)
+    return tf.constant([0.0], dtype=tf.float32)
 
 
 def array_to_image(arr: np.array):

@@ -1,10 +1,5 @@
 import string
-import tensorflow as tf
-from PIL import Image
 from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D, Reshape, Permute, LSTM, Dense, Dropout
-import numpy as np
-from collections import OrderedDict
-import sympy as sp
 from hybridocr.core import *
 
 

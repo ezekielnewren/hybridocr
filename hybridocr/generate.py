@@ -111,17 +111,18 @@ class TextToImageGenerator:
 
 
 class TextToImageIterator:
-    def __init__(self, _generator: TextToImageGenerator, _range, batch_size, seed, translate_width, word_to_label):
+    def __init__(self, _generator: TextToImageGenerator, _global_range, _local_range, batch_size, seed, translate_width, word_to_label):
         self.index = None
         self.generator = _generator
-        self.lo, self.hi = _range[0], _range[1]
+        self.global_range = _global_range
+        self.local_range = _local_range or (0, self.global_range[1]-self.global_range[0])
         self.batch_size = batch_size
         self.set_seed(seed)
         self.translate_width = translate_width
         self.word_to_label = word_to_label
 
     def set_seed(self, seed):
-        self.index = [i for i in range(self.lo, self.hi)]
+        self.index = [i for i in range(self.global_range[0], self.global_range[1])]
         if seed is not None:
             random.seed(seed)
             random.shuffle(self.index)
@@ -129,8 +130,11 @@ class TextToImageIterator:
     def __len__(self):
         return len(self.index)
 
+    def batches(self):
+        return (len(self)+(self.batch_size-1))//self.batch_size
+
     def stream(self):
-        for i in range(0, len(self.index), self.batch_size):
+        for i in range(self.local_range[0], self.local_range[1], self.batch_size):
             sample, label = [], []
 
             length = min(self.batch_size, len(self)-i)

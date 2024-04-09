@@ -44,13 +44,19 @@ def go0():
     file_model = dir_home/"model.keras"
 
     dist = split_distribution([.75, .25], len(generator))
-    it = TextToImageIterator(generator, dist[0], batch_size, None, engine.translate_width, engine.to_label)
-
-    # for sample, label in it.stream():
-    #     logits = engine.model(sample)
-    #     TextToImageIterator.loss(label, logits)
+    global_range = dist[0]
+    it = TextToImageIterator(generator, global_range, (28224, global_range[1]-global_range[0]), batch_size, None, engine.translate_width, engine.to_label)
+    with tqdm(initial=it.local_range[0], total=len(it)) as counter:
+        for sample, label in it.stream():
+            sample = tf.convert_to_tensor(sample)
+            logits = engine.model(sample)
+            loss0 = TextToImageIterator.loss(label, logits)
+            # loss1 = noop_loss(label, logits)
+            counter.update(label.shape[0])
+            pass
 
     engine.model.compile(optimizer="adam", loss=TextToImageIterator.loss)
+    engine.model.compile(optimizer="adam", loss=noop_loss)
 
     for epoch in range(5):
         ds = it.dataset()
