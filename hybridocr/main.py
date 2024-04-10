@@ -16,6 +16,7 @@ import tensorflow as tf
 
 
 def go0():
+    # tf.debugging.enable_check_numerics()
 
     dir_home = Path(sys.argv[1])
     batch_size = int(sys.argv[2])
@@ -48,12 +49,24 @@ def go0():
     it = TextToImageIterator(generator, global_range, (0, global_range[1] - global_range[0]), batch_size, None,
                              engine.translate_width, engine.to_label)
 
-    engine.model.compile(optimizer="adam", loss=TextToImageIterator.loss)
+    # with tqdm(initial=it.local_range[0], total=len(it)) as counter:
+    #     for sample, label in it.stream():
+    #         logits = engine.model(sample)
+    #         loss = TextToImageIterator.loss(label, logits)
+    #         counter.update(label.shape[0])
+    #         loss_view = "{:.5f}".format(float(tf.reduce_mean(loss)))
+    #         counter.set_postfix(loss=loss_view)
+    #         pass
+
+    optimizer = tf.keras.optimizers.Adam(learning_rate=1e-1, clipvalue=None)
+    engine.model.compile(optimizer=optimizer, loss=TextToImageIterator.loss)
     for epoch in range(5):
         ds = it.dataset()
         ds.prefetch(buffer_size=tf.data.AUTOTUNE)
         engine.model.fit(x=ds, y=None, batch_size=batch_size, epochs=1,
-                         steps_per_epoch=int(math.ceil(len(it) / batch_size)))
+                         steps_per_epoch=int(math.ceil(len(it) / batch_size)),
+                         callbacks=[TerminateOnNaN()]
+                         )
         engine.model.save(file_model)
 
         random_bytes = os.urandom(8)

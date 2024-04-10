@@ -1,6 +1,8 @@
 import string
 from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D, Reshape, Permute, LSTM, Dense, Dropout
 from hybridocr.core import *
+from collections import OrderedDict
+import tensorflow as tf
 
 
 class OCREngine:

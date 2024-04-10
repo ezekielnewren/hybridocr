@@ -1,14 +1,14 @@
 import gzip
+import math
 import tempfile
-from collections import OrderedDict
 
 import cbor2
 import matplotlib.pyplot as plt
 import fitz
 import io
 
-import tensorflow as tf
 import numpy as np
+from tensorflow.keras.callbacks import Callback
 from PIL import Image, ImageDraw, ImageFont
 from pathlib import Path
 
@@ -117,3 +117,15 @@ def split_distribution(split, length):
         off = end
 
     return t
+
+
+class TerminateOnNaN(Callback):
+    def on_batch_end(self, batch, logs=None):
+        logs = logs or {}
+        loss = logs.get('loss')
+        if loss is None:
+            return
+        if math.isnan(loss) or math.isinf(loss):
+            print(f'Batch {batch}: Invalid loss, terminating training')
+            self.model.stop_training = True
+

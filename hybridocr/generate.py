@@ -146,7 +146,7 @@ class TextToImageIterator:
                 label.append(y)
 
             sample_max_len = max([int(v.shape[1]) for v in sample])
-            sample_pad_len = sample_max_len+1
+            sample_pad_len = sample_max_len
 
             label_max_len = max([len(v) for v in label])
             label_pad_len = label_max_len+2
@@ -191,6 +191,7 @@ class TextToImageIterator:
 
     @staticmethod
     def loss(y_true, y_pred):
+        # with tf.device("/cpu:0"):
         batch_size = y_true.dense_shape[0]
         sample_len = tf.cast(y_true.values[-batch_size*2:-batch_size,], tf.int32)
         label_len = tf.cast(y_true.values[-batch_size:,], tf.int32)
@@ -198,14 +199,15 @@ class TextToImageIterator:
         y_true = tf.sparse.SparseTensor(
             indices=y_true.indices[:-batch_size*2],
             values=tf.cast(y_true.values[:-batch_size*2], tf.int32),
-            dense_shape=y_true.dense_shape
+            dense_shape=(y_true.dense_shape[0], y_true.dense_shape[1]-2)
+            # dense_shape=y_true.dense_shape
         )
 
         logits_time_major = True
         if logits_time_major:
             y_pred = tf.transpose(y_pred, [1, 0, 2])
 
-        loss = tf.nn.ctc_loss(
+        return tf.nn.ctc_loss(
             labels=y_true,
             logits=y_pred,
             label_length=label_len,
@@ -213,4 +215,3 @@ class TextToImageIterator:
             logits_time_major=logits_time_major,
             blank_index=0
         )
-        return loss
