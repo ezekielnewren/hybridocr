@@ -120,6 +120,10 @@ def split_distribution(split, length):
 
 
 class TerminateOnNaN(Callback):
+    def on_train_begin(self, logs=None):
+        # Initialize a custom attribute at the beginning of training
+        self.model.terminated_on_nan = False
+
     def on_batch_end(self, batch, logs=None):
         logs = logs or {}
         loss = logs.get('loss')
@@ -128,4 +132,5 @@ class TerminateOnNaN(Callback):
         if math.isnan(loss) or math.isinf(loss):
             print(f'Batch {batch}: Invalid loss, terminating training')
             self.model.stop_training = True
+            self.model.terminated_on_nan = True
 

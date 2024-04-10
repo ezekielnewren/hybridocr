@@ -12,6 +12,9 @@ from hybridocr.generate import TextToImageGenerator, TextToImageIterator
 from pathlib import Path
 from fontTools.ttLib import TTFont
 from hybridocr.core import *
+
+import os
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 import tensorflow as tf
 
 
@@ -58,15 +61,23 @@ def go0():
     #         counter.set_postfix(loss=loss_view)
     #         pass
 
-    optimizer = tf.keras.optimizers.Adam(learning_rate=1e-1, clipvalue=None)
-    engine.model.compile(optimizer=optimizer, loss=TextToImageIterator.loss)
+    strictly_cpu = os.environ.get("CUDA_VISIBLE_DEVICES")
+    strictly_cpu = strictly_cpu is not None and strictly_cpu == -1
+
+    engine.model.compile(optimizer="adam", loss=TextToImageIterator.loss)
     for epoch in range(5):
         ds = it.dataset()
         ds.prefetch(buffer_size=tf.data.AUTOTUNE)
+
+        callbacks = []
+        if not strictly_cpu:
+            callbacks.append(TerminateOnNaN())
         engine.model.fit(x=ds, y=None, batch_size=batch_size, epochs=1,
                          steps_per_epoch=int(math.ceil(len(it) / batch_size)),
-                         callbacks=[TerminateOnNaN()]
+                         callbacks=callbacks
                          )
+        if engine.model.terminated_on_nan:
+            break
         engine.model.save(file_model)
 
         random_bytes = os.urandom(8)
