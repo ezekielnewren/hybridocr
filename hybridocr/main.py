@@ -1,9 +1,11 @@
 import math
 import os
+import random
 import struct
 import time
 import json
 import sys
+# from random import random
 
 from tqdm import tqdm
 
@@ -13,80 +15,112 @@ from pathlib import Path
 from fontTools.ttLib import TTFont
 from hybridocr.core import *
 
+import argparse
+
 import os
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 import tensorflow as tf
 
 
+def parse_arguments(argv):
+    parser = argparse.ArgumentParser(description='Process train and test file paths.')
+
+    parser.add_argument("--hybridocr_home", type=str,
+                        default=os.getenv("HYBRIDOCR_HOME", None),
+                        help="directory of the hybridocr home, this can also be specified as an the envvar HYBRIDOCR_HOME")
+
+    parser.add_argument('--train', type=str,
+                        help='path to the training file relative to the home directory')
+
+    parser.add_argument('--test', type=str,
+                        help='path to the training file relative to the home directory')
+
+    args = parser.parse_args(argv)
+
+    if args.hybridocr_home is None:
+        print("must specify hybridocr_home", file=sys.stderr)
+    args.hybridocr_home = Path(args.hybridocr_home)
+
+    return args
+
+
 def go0():
     # tf.debugging.enable_check_numerics()
 
-    dir_home = Path(sys.argv[1])
-    batch_size = int(sys.argv[2])
+    args = parse_arguments(sys.argv[1:])
 
-    file_config = dir_home / "config.json"
+    if args.train is not None:
+        beg = time.time()
 
-    beg = time.time()
+        engine = OCREngine()
 
-    engine = OCREngine()
-    with open(file_config) as fd:
-        config = json.loads(fd.read())
+        file_train = args.hybridocr_home / args.train
 
-    # dictionary = [string.ascii_letters + string.digits + string.punctuation]
-    dir_wordlist = dir_home / "wordlist"
-    file_dictionary = dir_wordlist / config["dictionary"]
-    with open(file_dictionary) as fd:
-        dictionary = [v.rstrip() for v in fd.readlines()]
+        with open(file_train) as fd:
+            train_config = json.loads(fd.read())
 
-    generator = TextToImageGenerator(dir_home, engine.alphabet, dictionary, config["font"], engine.height)
-    elapsed = time.time() - beg
-    print("time to initialize:", elapsed)
+        dictionary = []
 
-    count = 0
-    beg = time.time()
+        dir_wordlist = args.hybridocr_home / "wordlist"
+        for file_name in train_config["dictionary"]:
+            file_dictionary = dir_wordlist / file_name
+            with open(file_dictionary) as fd:
+                dictionary += [v.rstrip() for v in fd.readlines()]
 
-    file_model = dir_home/"model.keras"
+        generator = TextToImageGenerator(args.hybridocr_home, engine.alphabet, dictionary, train_config["font"], engine.height)
+        elapsed = time.time() - beg
+        print("time to initialize:", elapsed)
 
-    dist = split_distribution([.75, .25], len(generator))
-    global_range = dist[0]
-    it = TextToImageIterator(generator, global_range, (0, global_range[1] - global_range[0]), batch_size, None,
-                             engine.translate_width, engine.to_label)
+        count = 0
+        beg = time.time()
 
-    # with tqdm(initial=it.local_range[0], total=len(it)) as counter:
-    #     for sample, label in it.stream():
-    #         logits = engine.model(sample)
-    #         loss = TextToImageIterator.loss(label, logits)
-    #         counter.update(label.shape[0])
-    #         loss_view = "{:.5f}".format(float(tf.reduce_mean(loss)))
-    #         counter.set_postfix(loss=loss_view)
-    #         pass
+        file_model = args.hybridocr_home/"model.keras"
 
-    strictly_cpu = os.environ.get("CUDA_VISIBLE_DEVICES")
-    strictly_cpu = strictly_cpu is not None and strictly_cpu == -1
+        dist = split_distribution(train_config["split"], len(generator))
+        dataset_range = dist[0]
+        sub_range = (train_config["checkpoint"], dataset_range[1] - dataset_range[0])
+        it = TextToImageIterator(generator, dataset_range, sub_range, train_config["batch_size"], None,
+                                 engine.translate_width, engine.to_label)
 
-    engine.model.compile(optimizer="adam", loss=TextToImageIterator.loss)
-    for epoch in range(5):
-        ds = it.dataset()
-        ds.prefetch(buffer_size=tf.data.AUTOTUNE)
+        # with tqdm(initial=it.local_range[0], total=len(it)) as counter:
+        #     for sample, label in it.stream():
+        #         logits = engine.model(sample)
+        #         loss = TextToImageIterator.loss(label, logits)
+        #         counter.update(label.shape[0])
+        #         loss_view = "{:.5f}".format(float(tf.reduce_mean(loss)))
+        #         counter.set_postfix(loss=loss_view)
+        #         pass
 
-        callbacks = []
-        if not strictly_cpu:
-            callbacks.append(TerminateOnNaN())
-        engine.model.fit(x=ds, y=None, batch_size=batch_size, epochs=1,
-                         steps_per_epoch=int(math.ceil(len(it) / batch_size)),
-                         callbacks=callbacks
-                         )
-        if engine.model.terminated_on_nan:
-            break
-        engine.model.save(file_model)
+        strictly_cpu = os.environ.get("CUDA_VISIBLE_DEVICES")
+        strictly_cpu = strictly_cpu is not None and strictly_cpu == "-1"
 
-        random_bytes = os.urandom(8)
-        seed = struct.unpack("Q", random_bytes)[0]
-        it.set_seed(seed)
+        random.seed(train_config["seed"])
+        seed_list = [None]
+        for _ in range(1, train_config["epoch"][1]):
+            x = random.randint(0, 2**64-1)
+            seed_list.append(x)
 
-    elapsed = time.time() - beg
-    print("total time:", elapsed)
-    print("rate:", float(count) / elapsed)
+        engine.model.compile(optimizer="adam", loss=TextToImageIterator.loss)
+        for epoch in range(*train_config["epoch"]):
+            it.set_seed(seed_list[epoch])
+
+            ds = it.dataset()
+            ds.prefetch(buffer_size=tf.data.AUTOTUNE)
+
+            callbacks = []
+            if not strictly_cpu:
+                callbacks.append(TerminateOnNaN())
+            engine.model.fit(x=ds, y=None, batch_size=train_config["batch_size"], epochs=1,
+                             steps_per_epoch=it.batches(),
+                             callbacks=callbacks
+                             )
+            if engine.model.terminated_on_nan:
+                break
+            engine.model.save(file_model)
+
+        elapsed = time.time() - beg
+        print("total time:", elapsed)
+        print("rate:", float(count) / elapsed)
 
 
 def go1():
