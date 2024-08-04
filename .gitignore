@@ -6,23 +6,23 @@ __pycache__/
 
 ## react files
 # dependencies
-frontend/node_modules/
-frontend/.pnp/
-frontend/.pnp.js
+website/frontend/node_modules/
+website/frontend/.pnp/
+website/frontend/.pnp.js
 
 # testing
-frontend/coverage/
+website/frontend/coverage/
 
 # production
-frontend/build/
+website/frontend/build/
 
 # misc
-frontend/.DS_Store
-frontend/.env.local
-frontend/.env.development.local
-frontend/.env.test.local
-frontend/.env.production.local
+website/frontend/.DS_Store
+website/frontend/.env.local
+website/frontend/.env.development.local
+website/frontend/.env.test.local
+website/frontend/.env.production.local
 
-frontend/npm-debug.log*
-frontend/yarn-debug.log*
-frontend/yarn-error.log*
+website/frontend/npm-debug.log*
+website/frontend/yarn-debug.log*
+website/frontend/yarn-error.log*
