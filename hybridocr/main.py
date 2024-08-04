@@ -100,6 +100,10 @@ def go0():
             x = random.randint(0, 2**64-1)
             seed_list.append(x)
 
+        callbacks = [TimeCheckpoint(train_config)]
+        if not strictly_cpu:
+            callbacks.append(TerminateOnNaN())
+
         engine.model.compile(optimizer="adam", loss=TextToImageIterator.loss)
         for epoch in range(*train_config["epoch"]):
             it.set_seed(seed_list[epoch])
@@ -107,9 +111,6 @@ def go0():
             ds = it.dataset()
             ds.prefetch(buffer_size=tf.data.AUTOTUNE)
 
-            callbacks = []
-            if not strictly_cpu:
-                callbacks.append(TerminateOnNaN())
             engine.model.fit(x=ds, y=None, batch_size=train_config["batch_size"], epochs=1,
                              steps_per_epoch=it.batches(),
                              callbacks=callbacks

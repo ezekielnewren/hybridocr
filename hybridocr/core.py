@@ -1,5 +1,6 @@
 import gzip
 import math
+import time
 import tempfile
 
 import cbor2
@@ -133,4 +134,19 @@ class TerminateOnNaN(Callback):
             print(f'Batch {batch}: Invalid loss, terminating training')
             self.model.stop_training = True
             self.model.terminated_on_nan = True
+
+
+class TimeCheckpoint(Callback):
+    def __init__(self, config, interval=30):
+        self.config = config
+        self.interval = interval
+        self.checkpoint = time.time()
+        pass
+
+    def on_batch_end(self, batch, logs=None):
+        now = time.time()
+        if (now-self.checkpoint) < self.interval:
+            return
+        self.checkpoint = now
+        pass
 
