@@ -26,3 +26,6 @@ website/frontend/.env.production.local
 website/frontend/npm-debug.log*
 website/frontend/yarn-debug.log*
 website/frontend/yarn-error.log*
+
+website/**/*.js
+website/**/*.js.map
