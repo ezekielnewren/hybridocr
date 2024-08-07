@@ -2,10 +2,14 @@
   "compilerOptions": {
     "target": "ES6",
     "module": "commonjs",
-    "outDir": "./backend",
-    "rootDir": "./backend",
+    "outDir": "./",
+    "rootDir": "./",
     "sourceMap": true
   },
-  "include": ["backend/**/*.ts"],
+  "include": [
+    "backend/**/*.ts",
+    "common/**/*.ts",
+    "frontend/**/*.ts"
+  ],
   "exclude": ["node_modules"]
 }

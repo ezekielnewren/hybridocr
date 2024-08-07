@@ -6,7 +6,6 @@ __pycache__/
 
 ## react files
 # dependencies
-website/frontend/node_modules/
 website/frontend/.pnp/
 website/frontend/.pnp.js
 
@@ -26,6 +25,7 @@ website/frontend/.env.production.local
 website/frontend/npm-debug.log*
 website/frontend/yarn-debug.log*
 website/frontend/yarn-error.log*
+website/node_modules
 
 website/**/*.js
 website/**/*.js.map
