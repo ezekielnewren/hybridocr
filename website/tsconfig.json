@@ -3,6 +3,7 @@
     "sourceMap": true,
     "strict": false,
     "esModuleInterop": true,
+    "moduleResolution": "nodenext",
     "target": "es2017",
     "outDir": "./dist",
     "baseUrl": "./src"
