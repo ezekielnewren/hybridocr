@@ -78,7 +78,8 @@ def go0():
 
         dist = split_distribution(train_config["split"], len(generator))
         dataset_range = dist[0]
-        sub_range = (train_config["checkpoint"], dataset_range[1] - dataset_range[0])
+        checkpoint = train_config.get("checkpoint", 0)
+        sub_range = (checkpoint, dataset_range[1] - dataset_range[0])
         it = TextToImageIterator(generator, dataset_range, sub_range, train_config["batch_size"], None,
                                  engine.translate_width, engine.to_label)
 
@@ -96,16 +97,16 @@ def go0():
 
         random.seed(train_config["seed"])
         seed_list = [None]
-        for _ in range(1, train_config["epoch"][1]):
+        for _ in range(1, train_config["epoch"]):
             x = random.randint(0, 2**64-1)
             seed_list.append(x)
 
         callbacks = [TimeCheckpoint(train_config)]
-        if not strictly_cpu:
-            callbacks.append(TerminateOnNaN())
+        # if not strictly_cpu:
+        callbacks.append(TerminateOnNaN())
 
         engine.model.compile(optimizer="adam", loss=TextToImageIterator.loss)
-        for epoch in range(*train_config["epoch"]):
+        for epoch in range(train_config["epoch"]):
             it.set_seed(seed_list[epoch])
 
             ds = it.dataset()
