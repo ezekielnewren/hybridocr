@@ -1,15 +1,16 @@
 {
   "compilerOptions": {
-    "target": "ES6",
-    "module": "commonjs",
-    "outDir": "./",
-    "rootDir": "./",
-    "sourceMap": true
+    "sourceMap": true,
+    "strict": false,
+    "esModuleInterop": true,
+    "target": "es2017",
+    "outDir": "./dist",
+    "baseUrl": "./src"
   },
   "include": [
-    "backend/**/*.ts",
-    "common/**/*.ts",
-    "frontend/**/*.ts"
+    "src/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules"
+  ]
 }
