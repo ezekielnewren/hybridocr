@@ -10,6 +10,9 @@ import tensorflow as tf
 import time
 import os
 
+from PIL import Image, ImageDraw, ImageFont
+import textwrap
+
 
 class TextToImageGenerator:
     def __init__(self, _dir_home, _alphabet, _wordlist, _font_selection: list, _font_height):
@@ -215,3 +218,36 @@ class TextToImageIterator:
             logits_time_major=logits_time_major,
             blank_index=0
         )
+
+
+def text_to_image(text, font_path=None):
+    # Document size (in pixels) proportional to 8.5" x 11" at 300 DPI
+    width_inch = 8.5
+    height_inch = 11
+    dpi = 300
+    width_px = int(width_inch * dpi)
+    height_px = int(height_inch * dpi)
+
+    # Create a blank image with white background
+    image = Image.new('RGB', (width_px, height_px), color='white')
+    draw = ImageDraw.Draw(image)
+
+    # Use a basic font (or load a custom font if font_path is provided)
+    font = ImageFont.load_default() if font_path is None else ImageFont.truetype(font_path, size=40)
+
+    # Set maximum width for text and wrap it accordingly
+    max_width = width_px - 100  # Margin
+    wrapped_text = textwrap.fill(text, width=100)
+
+    # Calculate position to start drawing text (centered vertically)
+    text_height = draw.textsize(wrapped_text, font=font)[1]
+    total_text_height = text_height * len(wrapped_text.split('\n'))
+    y_start = (height_px - total_text_height) // 2
+
+    # Draw the text onto the image
+    draw.text((50, y_start), wrapped_text, fill='black', font=font)
+
+    # Save the image
+    # image.save(output_image_path)
+
+    return image
