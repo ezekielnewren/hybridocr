@@ -17,6 +17,7 @@ dependencies = [
     "PyMuPDF==1.24.0",
     "tqdm==4.66.2",
     "sympy==1.12",
+    "Django==5.1",
 ]
 
 [tool.hatch.metadata]
