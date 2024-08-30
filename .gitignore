@@ -1,31 +1,6 @@
 .venv/
 .idea/
 dist/
-
+node_modules/
 __pycache__/
-
-## react files
-# dependencies
-website/frontend/.pnp/
-website/frontend/.pnp.js
-
-# testing
-website/frontend/coverage/
-
-# production
-website/frontend/build/
-
-# misc
-website/frontend/.DS_Store
-website/frontend/.env.local
-website/frontend/.env.development.local
-website/frontend/.env.test.local
-website/frontend/.env.production.local
-
-website/frontend/npm-debug.log*
-website/frontend/yarn-debug.log*
-website/frontend/yarn-error.log*
-website/node_modules
-
-website/**/*.js
-website/**/*.js.map
+/ignore/
