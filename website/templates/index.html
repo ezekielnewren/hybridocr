@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background: #121212;
+            color: #e0e0e0;
+        }
+        .container {
+            max-width: 1100px;
+            margin: auto;
+            overflow: hidden;
+            padding: 0 20px;
+        }
+        header {
+            background: #333;
+            color: #fff;
+            padding-top: 30px;
+            min-height: 70px;
+            border-bottom: #0779e4 3px solid;
+        }
+        header h1 {
+            text-align: center;
+            margin: 0;
+        }
+        .content {
+            padding: 20px;
+            background: #1e1e1e;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .content h2, .content p {
+            text-align: center;
+        }
+        .bold-text {
+            font-weight: bold;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border: 1px solid #333;
+        }
+        th {
+            background-color: #1f1f1f;
+        }
+        tr:nth-child(even) {
+            background-color: #2a2a2a;
+        }
+        tr:nth-child(odd) {
+            background-color: #1e1e1e;
+        }
+        tr:hover {
+            background-color: #333;
+        }
+        .check-mark {
+            color: #4caf50;
+            font-size: 1.5em;
+        }
+        .infinity {
+            /*display: flex;*/
+            /*justify-content: center;*/
+            /*height: 100vh;*/
+        }
+        .pricing-button {
+            display: inline-block;
+            padding: 12px 24px;
+            margin-top: 10px;
+            font-size: 1em;
+            font-weight: bold;
+            color: #ffffff; /* White text */
+            background-color: #007bff; /* Solid blue button */
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            transition: background-color 0.3s ease;
+        }
+
+        .pricing-button:hover {
+            background-color: #0056b3; /* Darker blue on hover */
+        }
+
+        footer {
+            background-color: #333;
+            color: white;
+            padding: 20px 0;
+            text-align: left;
+            {#position: fixed;#}
+            left: 0;
+            bottom: 0;
+            width: 100%;
+        }
+
+        .footer-container {
+            display: flex;
+            margin: 5px 0;
+            font-size: 14px;
+            justify-content: center;
+        }
+    </style>
+    <title>Pricing Plans</title>
+</head>
+<body>
+
+<div class="container content">
+    <h2>Unlock the Power of Hybrid OCR: Where Cutting-Edge Technology Meets Unmatched Privacy</h2>
+    Welcome to Hybrid OCR, a pioneering platform that transforms the way your documents are digitized. Our unique approach goes beyond the traditional boundaries of OCR technology, merging the precision of human insight with the efficiency of machine learning to deliver unparalleled accuracy. But our innovation doesn't stop there. We understand the importance of your privacy and the confidentiality of your documents. That's why Hybrid OCR is built on two foundational technologies: federated learning and strong encryption, ensuring your documents are not only accurately digitized but also protected with the highest standards of privacy.</br>
+    </br>
+    <span class="bold-text">Federated Learning: Privacy-Preserving Technology Explained</span></br>
+    </br>
+    At the heart of Hybrid OCR's privacy commitment is federated learning, a sophisticated approach to machine learning that keeps your data safe and secure. But what exactly is federated learning, and how does it work to protect your privacy?</br>
+    </br>
+    Federated learning is a revolutionary technology that allows our system to learn from data without ever having to store that data on our servers. Instead of processing and learning from your documents directly, our algorithms are trained right in your browser. This means that the learning process happens locally on your device, utilizing the power of your browser to analyze the document. The insights gained from this process are then shared with our system, but the document itself never leaves your device. This method ensures that our technology continuously improves and becomes more efficient at digitizing documents, all while your information remains private and secure.</br>
+    </br>
+    <span class="bold-text">Encryption: Your Documents, Safeguarded</span></br>
+    </br>
+    Understanding the critical importance of document security, Hybrid OCR employs strong encryption to protect your digitized documents. When you decide to save a document after it has been processed, your browser encrypts this document before it ever reaches our servers. What this means for you is simple yet powerful: only the encrypted version of your document is stored on our servers. This encryption process ensures that your documents are not readable by anyone else - not even the team at Hybrid OCR. Only you have the key to decrypt and access your original document, providing you with complete control and peace of mind.</br>
+    </br>
+    <span class="bold-text">Hybrid OCR: Your Trusted Partner in Document Digitization</span></br>
+    </br>
+    With Hybrid OCR, you're not just using a tool to digitize documents; you're embracing a platform that stands at the forefront of privacy and security. Our commitment to leveraging federated learning and strong encryption is a testament to our dedication to your privacy. We invite you to experience the next generation of document digitization, where technology and privacy converge to offer you a service that's not only efficient and accurate but also respects and protects your data at every step.</br>
+    </br>
+    <span class="bold-text">Welcome to the future of document digitization. Welcome to Hybrid OCR.</span></br>
+</div>
+
+Prices are tax-inclusive
+
+<table>
+    <thead>
+    <tr>
+        <th>Plan</th>
+        <th>Starter</th>
+        <th>Premium</th>
+        <th>Enterprise</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>Price/Month</td>
+        <td>$10</td>
+        <td>$20</td>
+        <td>$50</td>
+    </tr>
+    <tr>
+        <td>OCR Model</td>
+        <td>Latest</td>
+        <td>Latest</td>
+        <td>Latest</td>
+    </tr>
+    <tr>
+        <td>Collaboration with users</td>
+        <td>Only when invited</td>
+        <td>6 free, $2/user</td>
+        <td>20 free, $1/user</td>
+    </tr>
+    <tr>
+        <td>Included Storage</td>
+        <td>1GB</td>
+        <td>100GB</td>
+        <td>1000GB</td>
+    </tr>
+    <tr>
+        <td>Storage Expansion</td>
+        <td></td>
+        <td>$2 per 100GB</td>
+        <td>$1.75 per 100GB</td>
+    </tr>
+    <tr>
+        <td>Scans</td>
+        <td class="infinity">&infin;</td>
+        <td class="infinity">&infin;</td>
+        <td class="infinity">&infin;</td>
+    </tr>
+    <tr>
+        <td>Ask The Community</td>
+        <td class="infinity">&infin;</td>
+        <td class="infinity">&infin;</td>
+        <td class="infinity">&infin;</td>
+    </tr>
+    <tr>
+        <td>Offline Mode</td>
+        <td></td>
+        <td></td>
+        <td class="check-mark">&#10003;</td>
+    </tr>
+    <tr>
+        <td>Choose Plan</td>
+        <td><a href="#" class="pricing-button">Select Starter</a></td>
+        <td><a href="#" class="pricing-button">Select Premium</a></td>
+        <td><a href="#" class="pricing-button">Select Enterprise</a></td>
+    </tr>
+    </tbody>
+</table>
+
+<footer>
+    <div class="footer-container">
+        Hybridocr, LLC<br/>
+        7533 S Center View CT # 4743, West Jordan, UT 84084<br/>
+        Phone: (801) 610-9304 | Email: support@hybridocr.com<br/>
+        <br/>
+    </div>
+</footer>
+
+</body>
+</html>
+
