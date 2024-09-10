@@ -15,7 +15,7 @@ COPY pyproject.toml /app
 RUN hatch dep show requirements | xargs -l pip install
 
 COPY manage.py /app
-COPY website /app/website
+COPY backend /app/backend
 
 EXPOSE 8000
 

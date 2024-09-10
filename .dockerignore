@@ -1,6 +1,6 @@
 *
 !copy/
-!website/
+!backend/
 !hybridocr/
 !manage.py
 !pyproject.toml
