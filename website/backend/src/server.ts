@@ -1,26 +1,18 @@
-import express, { Request, Response } from 'express';
-import path from 'path';
+import express from 'express';
 
-// Create an instance of express
+import { greet } from 'common';
+
+const message = greet('Backend');
+console.log(message);
+
+
 const app = express();
+const port = 3000;
 
-// Define the port
-const PORT = 8000;
-
-// Middleware to parse incoming JSON requests
-app.use(express.json());
-
-// Simple route handler for the root URL
-app.get('/', (req: Request, res: Response) => {
-  res.sendFile(path.join(__dirname, "../static/index.html"))
+app.get('/', (req, res) => {
+  res.send('Hello from the backend!');
 });
 
-// Define a route to handle another request
-app.get('/api/status', (req: Request, res: Response) => {
-  res.json({ message: 'Server is running!', status: 'ok' });
-});
-
-// Start the server
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+app.listen(port, () => {
+  console.log(`Backend listening at http://localhost:${port}`);
 });
