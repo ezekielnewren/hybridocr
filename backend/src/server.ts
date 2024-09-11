@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import path from 'path';
 
 // Create an instance of express
 const app = express();
@@ -11,7 +12,7 @@ app.use(express.json());
 
 // Simple route handler for the root URL
 app.get('/', (req: Request, res: Response) => {
-  res.send('Hello, World! This is an Express server in TypeScript.');
+  res.sendFile(path.join(__dirname, "../static/index.html"))
 });
 
 // Define a route to handle another request
