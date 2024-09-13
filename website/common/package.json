@@ -18,6 +18,7 @@
   "dependencies": {
     "@google-cloud/vision": "^4.3.2",
     "aws-sdk": "^2.1691.0",
+    "jimp": "^1.6.0",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^4.6.82"
   }

@@ -1,29 +1,30 @@
 export const greet = (name: string) => `Hello, ${name}!`;
 
+import {PDFDict, PDFDocument, PDFName, PDFRawStream, PDFStream} from 'pdf-lib';
+import { Jimp } from 'jimp';
 
-import { PDFDocument } from 'pdf-lib';
-import * as fs from 'fs';
+export async function extractImagesFromPDF(pdfBuffer: Uint8Array): Promise<object[]> {
+  let result: object[] = [];
 
-// Load and extract images from the PDF file
-async function extractImagesFromPDF(pdfPath: string): Promise<Buffer[]> {
-  const pdfBytes = fs.readFileSync(pdfPath);
-  const pdfDoc = await PDFDocument.load(pdfBytes);
+  const pdfDoc = await PDFDocument.load(pdfBuffer);
 
-  const imageBuffers: Buffer[] = [];
+  for (let pageIndex = 0; pageIndex < pdfDoc.getPageCount(); pageIndex++) {
+    const page = pdfDoc.getPage(pageIndex);
+    const res = page.node.Resources();
+    if (!res) continue;
+    const xObjects = res.entries();
 
-  for (let i = 0; i < pdfDoc.getPageCount(); i++) {
-    const page = pdfDoc.getPage(i);
-    const images = page.node?.imageResources || [];
-
-    for (const image of images) {
-      // Assuming images can be extracted as JPEG or PNG
-      const imageBuffer = image.toBuffer();
-      imageBuffers.push(imageBuffer);
+    for (const [_, obj] of xObjects) {
+      const objdict = obj as PDFDict;
+      for (const [_, v] of objdict.entries()) {
+        const stream = pdfDoc.context.lookup(v) as PDFRawStream;
+        const blob = stream?.getContents();
+        const image = await Jimp.fromBuffer(blob);
+        result.push(image);
+      }
     }
   }
 
-  return imageBuffers;
+  return result;
 }
-
-
 
