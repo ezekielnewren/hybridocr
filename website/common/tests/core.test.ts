@@ -19,3 +19,9 @@ test('extract images from pdf', async () => {
   expect(arr).toBeDefined()
 })
 
+test('run google ocr', async () => {
+
+})
+
+
+

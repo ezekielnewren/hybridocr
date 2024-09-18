@@ -11,11 +11,15 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@google-cloud/vision": "^4.3.2",
     "express": "^4.20.0"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
+    "@types/jest": "^29.5.13",
     "@types/node": "^22.5.4",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.6.2"
   }
