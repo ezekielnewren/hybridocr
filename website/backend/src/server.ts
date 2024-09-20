@@ -1,13 +1,9 @@
 import express from 'express';
-
-import { greet } from 'common';
-
-const message = greet('Backend');
-console.log(message);
-
+import {openDatabase} from "./backend";
 
 const app = express();
 const port = 8000;
+const db = openDatabase();
 
 app.get('/', (req, res) => {
   res.send('Hello from the backend!');
