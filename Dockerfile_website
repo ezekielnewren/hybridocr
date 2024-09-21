@@ -6,7 +6,10 @@ RUN apk update
 
 COPY website/ /app/website
 
+WORKDIR /app/website
+RUN npm install --workspaces
+RUN npm build
 
+WORKDIR /app/website/backend/dist
 
-
-
+ENTRYPOINT ["node", "./server.js"]

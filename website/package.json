@@ -3,14 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "workspaces": [
-    "frontend",
     "common",
+    "frontend",
     "backend"
   ],
   "scripts": {
-    "start:frontend": "npm run start --workspace=frontend",
-    "start:backend": "npm run start --workspace=backend",
     "build": "npm run build --workspaces",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npm run test --workspaces",
+    "clean": "rm -rf common/dist frontend/dist backend/dist"
   }
 }
