@@ -8,7 +8,7 @@ const db = openDatabase();
 app.set('view engine', 'ejs');
 
 app.get('/', (req, res) => {
-  res.render('index', { username: 'John Doe' }); // Pass data to the template
+  res.render('index', {});
 });
 
 app.listen(port, () => {
