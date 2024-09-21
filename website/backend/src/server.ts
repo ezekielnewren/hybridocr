@@ -17,9 +17,10 @@ async function main() {
 
   app.post('/save-email', async (req, res) => {
     const body = req.body;
+    body.timestamp = Date.now()/1000;
     const colAnalytics = db.collection("analytics");
     const result = await colAnalytics.insertOne(body);
-    res.send("ok");
+    res.send('{"result": "ok"}');
   })
 
   app.listen(port, () => {
