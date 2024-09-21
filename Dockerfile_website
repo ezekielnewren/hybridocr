@@ -2,14 +2,7 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-RUN apk update
+COPY website/backend/dist/ /app/
+RUN npm install --omit=dev
 
-COPY website/ /app/website
-
-WORKDIR /app/website
-RUN npm install --workspaces
-RUN npm build
-
-WORKDIR /app/website/backend/dist
-
-ENTRYPOINT ["node", "./server.js"]
+CMD ["node", "./server.js"]

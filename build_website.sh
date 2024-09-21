@@ -10,6 +10,7 @@ fi
 docker_prefix=$(echo "$config" | jq -r .docker_prefix)
 VERSION=$(git describe --tags --abbrev=0)
 
+cd website && npm run build
 docker build -f Dockerfile_website -t hybridocr_website:$VERSION .
 docker tag hybridocr_website:$VERSION $docker_prefix/hybridocr_website:$VERSION
 echo
