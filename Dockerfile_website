@@ -1,22 +1,12 @@
-FROM python:3.11.7
-
-ENV DEBIAN_FRONTEND=noninteractive
+FROM node:18-alpine
 
 WORKDIR /app
 
-RUN apt-get update -y
-RUN apt-get install -y apt-file
-RUN apt-file update
+RUN apk update
 
-RUN pip install --upgrade pip
-RUN pip install hatch
+COPY website/ /app/website
 
-COPY pyproject.toml /app
-RUN hatch dep show requirements | xargs -l pip install
 
-COPY manage.py /app
-COPY backend /app/backend
 
-EXPOSE 8000
 
-CMD ["python3", "/app/manage.py", "runserver", "0.0.0.0:8000"]
+
