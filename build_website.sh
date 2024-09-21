@@ -10,8 +10,8 @@ fi
 docker_prefix=$(echo "$config" | jq -r .docker_prefix)
 TAG=$(git describe --tags --dirty --always)
 
-cd website && npm run build
-docker build -f Dockerfile_website -t hybridocr_website:$TAG .
-docker tag hybridocr_website:$TAG $docker_prefix/hybridocr_website:$TAG
+pushd website && npm run build && popd || exit 1
+docker build -f Dockerfile_website -t hybridocr_website:$TAG . || exit 1
+docker tag hybridocr_website:$TAG $docker_prefix/hybridocr_website:$TAG || exit 1
 echo
 echo docker push $docker_prefix/hybridocr_website:$TAG
