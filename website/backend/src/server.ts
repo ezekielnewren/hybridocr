@@ -3,8 +3,8 @@ import {getConfig, openDatabase} from "./backend";
 
 async function main() {
   const app = express();
-  const port = 8000;
   const config = await getConfig();
+  const port = config.express.port;
   const dbClient = await openDatabase();
   const db = dbClient.db(config.mongodb.dbname);
 

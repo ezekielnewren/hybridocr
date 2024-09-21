@@ -6,6 +6,7 @@ import fs from "fs";
 
 export interface HybridocrConfigExpress {
     sessionSecret: string
+    port: bigint
 }
 
 export interface HybridocrConfigMongodb {
