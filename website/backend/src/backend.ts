@@ -45,8 +45,6 @@ export async function openDatabase(): Promise<MongoClient> {
         }
     };
 
-    const client = new MongoClient(config.mongodb.uri, opt);
-    client.db(config.mongodb.dbname);
-    return client;
+    return new MongoClient(config.mongodb.uri, opt);
 }
 

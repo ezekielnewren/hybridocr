@@ -110,10 +110,40 @@
             justify-content: center;
         }
     </style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script>
+        $(document).ready(function(){
+            $(".pricing-button").click(function(){
+                $("#email-form").show();
+                // Store the selected plan in a hidden input field
+                $("#selected-plan").val($(this).attr("id"));
+            });
+
+            $("#submit-email").click(function() {
+                var email = $("#email-input").val();
+                var selectedPlan = $("#selected-plan").val();
+
+                $.ajax({
+                    url: '/save-email',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ email: email, plan: selectedPlan }),
+                    success: function(data) {
+                        alert(data.message);
+                        $("#email-form").hide();
+                    },
+                    error: function(error) {
+                        console.error('Error saving email:', error);
+                        // Handle the error appropriately (e.g., display an error message to the user)
+                    }
+                });
+            });
+        });
+    </script>
     <title>Pricing Plans</title>
 </head>
 <body>
-
+<input type="hidden" id="selected-plan">
 <div class="container content">
     <h2>Unlock the Power of Hybrid OCR: Where Cutting-Edge Technology Meets Unmatched Privacy</h2>
     Welcome to Hybrid OCR, a pioneering platform that transforms the way your documents are digitized. Our unique approach goes beyond the traditional boundaries of OCR technology, merging the precision of human insight with the efficiency of machine learning to deliver unparalleled accuracy. But our innovation doesn't stop there. We understand the importance of your privacy and the confidentiality of your documents. That's why Hybrid OCR is built on two foundational technologies: federated learning and strong encryption, ensuring your documents are not only accurately digitized but also protected with the highest standards of privacy.</br>
@@ -197,12 +227,17 @@ Prices are tax-inclusive
     </tr>
     <tr>
         <td>Choose Plan</td>
-        <td><a href="#" class="pricing-button">Select Starter</a></td>
-        <td><a href="#" class="pricing-button">Select Premium</a></td>
-        <td><a href="#" class="pricing-button">Select Enterprise</a></td>
+        <td><a id="starter" class="pricing-button">Select Starter</a></td>
+        <td><a id="premium" class="pricing-button">Select Premium</a></td>
+        <td><a id="enterprise" class="pricing-button">Select Enterprise</a></td>
     </tr>
     </tbody>
 </table>
+
+<div id="email-form" style="display: none;">
+    <input type="email" id="email-input" placeholder="Enter your email">
+    <button id="submit-email">Submit</button>
+</div>
 
 <footer>
     <div class="footer-container">
