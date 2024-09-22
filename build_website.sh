@@ -1,10 +1,14 @@
 #!/bin/bash
 
+if [ "$HYBRIDOCR_CONFIG_FILE" == "" ]; then
+  echo "HYBRIDOCR_CONFIG_FILE is not set"
+  exit 1
+fi
 config=$(jq -cM . $HYBRIDOCR_CONFIG_FILE)
 
 if [ "$config" == "" ]; then
-  echo "HYBRIDOCR_CONFIG_FILE is empty or file does not exist"
-  exit 1
+  echo "$HYBRIDOCR_CONFIG_FILE is empty"
+  exit 2
 fi
 
 docker_prefix=$(echo "$config" | jq -r .docker_prefix)
