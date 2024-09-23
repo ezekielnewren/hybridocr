@@ -31,6 +31,10 @@ async function main(): Promise<bigint> {
     renderit(req, res, 'index');
   });
 
+  app.get('/register', (req, res) => {
+    renderit(req, res, 'register');
+  });
+
   app.get('/about', (req, res) => {
     renderit(req, res, 'about');
   });

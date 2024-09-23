@@ -101,8 +101,8 @@
                     contentType: 'application/json',
                     data: JSON.stringify({ email: email, plan: selectedPlan }),
                     success: function(data) {
-                        alert(data);
                         $("#email-form").hide();
+                        window.location.href = "/register"
                     },
                     error: function(error) {
                         console.error('Error saving email:', error);
@@ -207,7 +207,7 @@
     <input type="hidden" id="selected-plan">
     <div id="email-form" style="display: none;">
         <input type="email" id="email-input" placeholder="Enter your email">
-        <button id="submit-email">Submit</button>
+        <button id="submit-email">Let's go!</button>
     </div>
 </div>
 <%- include('partial/footer.ejs') %>
