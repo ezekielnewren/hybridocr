@@ -27,6 +27,14 @@ async function main(): Promise<bigint> {
     res.render('index', {});
   });
 
+  app.get('/liveness', (req, res) => {
+    res.status(200).send('Alive');
+  });
+
+  app.get('/readiness', (req, res) => {
+    res.status(200).send('Ready');
+  });
+
   app.post('/save-email', async (req, res) => {
     const body = req.body;
     body.timestamp = Date.now()/1000;
