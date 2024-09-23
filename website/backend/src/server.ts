@@ -28,7 +28,9 @@ async function main(): Promise<bigint> {
   app.use(express.json());
 
   app.get('/', (req, res) => {
-    res.render('index', {});
+    const domain = req.hostname;
+    const production = domain in ["hybridocr.com", "www.hybridocr.com"];
+    res.render('index', {production});
   });
 
   app.get('/liveness', (req, res) => {
