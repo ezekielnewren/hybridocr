@@ -9,10 +9,12 @@ async function main(): Promise<bigint> {
   console.log("connected to the mongodb cluster");
   const db = dbClient.db(config.mongodb.dbname);
   console.log("switched to the database");
-  const colLog = db.collection("log")
-  const result = await colLog.insertOne({boot: Date.now()/1000})
-  if (!result) {
-    console.log("unable to insert document into database")
+  const colLog = db.collection("log");
+  const result = await colLog.insertOne({boot: Date.now()/1000});
+  if (result) {
+    console.log("inserted a document");
+  } else {
+    console.log("unable to insert document into database");
     return 1n;
   }
 
@@ -41,3 +43,4 @@ async function main(): Promise<bigint> {
 }
 
 main().finally();
+console.log("done");
