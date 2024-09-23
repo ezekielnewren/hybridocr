@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
+        /* DO NOT CHANGE*/
         body {
             margin: 0;
             padding: 0;
@@ -30,9 +31,87 @@
             /*border: 5px solid black;*/
             margin-top: <%= viewheight %>;
             height: calc(100vh - <%= viewheight %>);
-            margin-bottom: 0;
-            bottom: 0;
-            padding: 1vh;
+        }
+        /* DO NOT CHANGE*/
+
+        h2 {
+            text-align: center;
+            font-size: 2em;
+            margin-bottom: 1em;
+        }
+
+        .bold-text {
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        tbody tr:nth-child(odd) {
+            background-color: #ffffff; /* Light gray for odd rows */
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #e9e9e9; /* White for even rows */
+        }
+
+        th, td {
+            padding: 10px;
+            border: 1px solid #000;
+        }
+
+        th {
+            background-color: #a4a4a4;
+        }
+
+        .infinity {
+            color: black;
+            font-size: 1.5em;
+        }
+
+        .check-mark {
+            color: green;
+            font-size: 1.2em;
+        }
+
+        .pricing-button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: green;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .pricing-button:hover {
+            background-color: darkgreen; /* Change background color on hover */
+            cursor: pointer; /* Ensure pointer is displayed on hover */
+        }
+
+        #email-form {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        #email-input {
+            padding: 10px;
+            font-size: 1em;
+            margin-right: 10px;
+            width: 30%;
+        }
+
+        footer {
+            margin-top: 30px;
+            padding: 20px;
+            text-align: center;
+            background-color: #b4b4b4;
+            border-top: 1px solid #ddd;
         }
     </style>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
@@ -75,7 +154,6 @@
 <% } %>
 
 <div class="content">
-    <input type="hidden" id="selected-plan">
     <h2>Unlock the Power of Hybrid OCR: Where Cutting-Edge Technology Meets Unmatched Privacy</h2>
     Welcome to Hybrid OCR, a pioneering platform that transforms the way your documents are digitized. Our unique approach goes beyond the traditional boundaries of OCR technology, merging the precision of human insight with the efficiency of machine learning to deliver unparalleled accuracy. But our innovation doesn't stop there. We understand the importance of your privacy and the confidentiality of your documents. That's why Hybrid OCR is built on two foundational technologies: federated learning and strong encryption, ensuring your documents are not only accurately digitized but also protected with the highest standards of privacy.</br>
     </br>
@@ -164,6 +242,7 @@
         </tbody>
     </table>
 
+    <input type="hidden" id="selected-plan">
     <div id="email-form" style="display: none;">
         <input type="email" id="email-input" placeholder="Enter your email">
         <button id="submit-email">Submit</button>
