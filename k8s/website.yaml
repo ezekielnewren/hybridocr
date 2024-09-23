@@ -57,8 +57,7 @@ kind: Ingress
 metadata:
   name: hybridocr-website-ingress
   annotations:
-    # networking.gke.io/managed-certificates: "hybridocr-tls"
-    ingress.kubernetes.io/rewrite-target: "/"
+    ingress.kubernetes.io/force-ssl-redirect: "true"
 spec:
   tls:
   - hosts:
