@@ -1,11 +1,15 @@
 import express from 'express';
 import {getConfig, openDatabase} from "./backend";
+import {MongoClient} from "mongodb";
+
+let server: any;
+let dbClient: MongoClient;
 
 async function main(): Promise<bigint> {
   const config = await getConfig();
   console.log("read config");
   const port = config.express.port;
-  const dbClient = await openDatabase();
+  dbClient = await openDatabase();
   console.log("connected to the mongodb cluster");
   const db = dbClient.db(config.mongodb.dbname);
   console.log("switched to the database");
@@ -43,12 +47,23 @@ async function main(): Promise<bigint> {
     res.send('{"result": "ok"}');
   })
 
-  app.listen(port, () => {
+  server = app.listen(port, () => {
     console.log(`Backend listening at http://localhost:${port}`);
+  });
+
+  await new Promise<void>((resolve, reject) => {
+    const shutdown = async () => {
+      server.close();
+      await dbClient.close();
+      resolve();
+    };
+
+    process.on('SIGINT', shutdown);
+    process.on('SIGTERM', shutdown);
   });
 
   return 0n;
 }
 
 main().finally();
-console.log("done");
+console.log("bye");
