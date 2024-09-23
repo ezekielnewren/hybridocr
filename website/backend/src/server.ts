@@ -1,5 +1,5 @@
 import express from 'express';
-import {getConfig, openDatabase} from "./backend";
+import {renderit, getConfig, openDatabase} from "./backend";
 import {MongoClient} from "mongodb";
 
 let server: any;
@@ -24,16 +24,15 @@ async function main(): Promise<bigint> {
 
 
   const app = express();
-  app.set('view engine', 'ejs');
   app.use(express.json());
+  app.set('view engine', 'ejs');
 
   app.get('/', (req, res) => {
-    let target = req.headers.host;
-    if (!target) {
-      target = req.hostname
-    }
-    const production = ["hybridocr.com", "www.hybridocr.com"].includes(target);
-    res.render('index', {production});
+    renderit(req, res, 'index');
+  });
+
+  app.get('/about', (req, res) => {
+    renderit(req, res, 'about');
   });
 
   app.get('/liveness', (req, res) => {
@@ -70,5 +69,7 @@ async function main(): Promise<bigint> {
   return 0n;
 }
 
-main().finally();
-console.log("bye");
+main().finally(() => {
+  console.log("bye");
+});
+

@@ -29,6 +29,20 @@ export async function getConfig(): Promise<HybridocrConfig> {
 }
 
 
+export function renderit(req: any, res: any, view: string, options?: object, callback?: (err: Error, html: string) => void): void {
+    let target = req.headers.host;
+    if (!target) {
+      target = req.hostname
+    }
+    let opt = {production: false};
+    if (options) {
+        // @ts-ignore
+        opt = options;
+    }
+    opt.production = ["hybridocr.com", "www.hybridocr.com"].includes(target);
+    return res.render(view, opt, callback);
+}
+
 export async function performOcr(client: vision.ImageAnnotatorClient, base64Image: string): Promise<any> {
     const [result] = await client.textDetection({ image: { content: base64Image } });
     return result;

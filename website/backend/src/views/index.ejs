@@ -1,39 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <%- include('partial/header.ejs') %>
     <style>
-        /* DO NOT CHANGE*/
-        body {
-            margin: 0;
-            padding: 0;
-            height: 100%; /* Full viewport height */
-        }
-        <% viewheight = production ? "0vh" : "4vh" %>
-        <% if (!production) {%>
-        .banner {
-            background-color: green;
-            color: white;
-            text-align: center;
-            position: fixed;
-            top: 0;
-            bottom: 0;
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 1.5em;
-            height: <%= viewheight %>;
-        }
-        <% } %>
-        .content {
-            /*border: 5px solid black;*/
-            margin-top: <%= viewheight %>;
-            height: calc(100vh - <%= viewheight %>);
-        }
-        /* DO NOT CHANGE*/
-
         h2 {
             text-align: center;
             font-size: 2em;
@@ -114,7 +83,6 @@
             border-top: 1px solid #ddd;
         }
     </style>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script>
         $(document).ready(function(){
             $(".pricing-button").click(function(){
@@ -144,15 +112,9 @@
             });
         });
     </script>
-    <title>Pricing Plans</title>
 </head>
 <body>
-<% if (!production) { %>
-    <div class="banner">
-        not production
-    </div>
-<% } %>
-
+<%- include('partial/banner.ejs') %>
 <div class="content">
     <h2>Unlock the Power of Hybrid OCR: Where Cutting-Edge Technology Meets Unmatched Privacy</h2>
     Welcome to Hybrid OCR, a pioneering platform that transforms the way your documents are digitized. Our unique approach goes beyond the traditional boundaries of OCR technology, merging the precision of human insight with the efficiency of machine learning to deliver unparalleled accuracy. But our innovation doesn't stop there. We understand the importance of your privacy and the confidentiality of your documents. That's why Hybrid OCR is built on two foundational technologies: federated learning and strong encryption, ensuring your documents are not only accurately digitized but also protected with the highest standards of privacy.</br>
@@ -247,17 +209,7 @@
         <input type="email" id="email-input" placeholder="Enter your email">
         <button id="submit-email">Submit</button>
     </div>
-
-    <footer>
-        <div class="footer-container">
-            Hybridocr, LLC<br/>
-            7533 S Center View CT # 4743, West Jordan, UT 84084<br/>
-            Phone: (801) 610-9304 | Email: support@hybridocr.com<br/>
-            <br/>
-        </div>
-    </footer>
 </div>
-
+<%- include('partial/footer.ejs') %>
 </body>
 </html>
-

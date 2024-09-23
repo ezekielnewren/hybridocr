@@ -1,0 +1,40 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+    html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    <% banner_height = production ? "0vh" : "4vh" %>
+    <% if (!production) {%>
+    .banner {
+        background-color: green;
+        color: white;
+        text-align: center;
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 1.5em;
+        height: <%= banner_height %>;
+    }
+    <% } %>
+    .content {
+        /*border: 5px solid black;*/
+        flex: 1;
+        margin-top: <%= banner_height %>;
+        /*height: calc(100% - <%= banner_height %>);*/
+    }
+    footer {
+        text-align: center;
+        background-color: #b4b4b4;
+        /*border-top: 1px solid #ddd;*/
+    }
+</style>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
