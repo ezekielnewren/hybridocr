@@ -1,22 +1,17 @@
-# https://cloud.google.com/kubernetes-engine/docs/how-to/ingress-multi-ssl#specifying_certificates_for_your_ingress
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: hw-{{ required "environment undefined" .Values.environment }}
-  annotations:
-    kubernetes.io/ingress.allow-http: "false"
-    # ingress.kubernetes.io/force-ssl-redirect: "true"
-    # gcloud compute ssl-certificates create hybridocr-tls --private-key=hybridocr.key --certificate=hybridocr.crt
-    ingress.gcp.kubernetes.io/pre-shared-cert: "hybridocr-tls"
+  name: hw-{{ .Release.Namespace }}
 spec:
+  ingressClassName: traefik
   rules:
   - host: {{ required "domain value is required" .Values.domain }}
     http:
       paths:
-      - pathType: Prefix
-        path: /
+      - path: /
+        pathType: Prefix
         backend:
           service:
-            name: hw-{{ required "environment undefined" .Values.environment }}
+            name: hw-{{ .Release.Namespace }}
             port:
               number: 80

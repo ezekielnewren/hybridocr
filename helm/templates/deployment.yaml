@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: hw-{{ required "environment undefined" .Values.environment }}
+  name: hw-{{ .Release.Namespace }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: hw-{{ required "environment undefined" .Values.environment }}
+      app: hw-{{ .Release.Namespace }}
   template:
     metadata:
       labels:
-        app: hw-{{ required "environment undefined" .Values.environment }}
+        app: hw-{{ .Release.Namespace }}
     spec:
       containers:
       - name: hw-{{ .Release.Namespace }}
-        image: {{ required "docker_prefix undefined" .Values.docker_prefix }}hybridocr_website:{{ required "environment undefined" .Values.environment }}
+        image: {{ required "docker_prefix undefined" .Values.docker_prefix }}hybridocr_website:{{ .Release.Namespace }}
         imagePullPolicy: Always
         ports:
         - containerPort: 8000
@@ -48,18 +48,18 @@ spec:
       volumes:
       - name: config-volume
         secret:
-          secretName: config
+          secretName: config-{{ .Release.Namespace }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: hw-{{ required "environment undefined" .Values.environment }}
+  name: hw-{{ .Release.Namespace }}
   labels:
-    app: hw-{{ required "environment undefined" .Values.environment }}
+    app: hw-{{ .Release.Namespace }}
 spec:
   type: ClusterIP
   selector:
-    app: hw-{{ required "environment undefined" .Values.environment }}
+    app: hw-{{ .Release.Namespace }}
   ports:
     - protocol: TCP
       port: 80

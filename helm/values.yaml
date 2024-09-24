@@ -1,3 +1,2 @@
-# environment: "staging"
 # domain: "staging.hybridocr.com"
 # docker_prefix: "us-west3-docker.pkg.dev/ageless-math-433804-h9/hybridocr/"
