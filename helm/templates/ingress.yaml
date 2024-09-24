@@ -2,7 +2,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: hw-{{ .Release.Namespace }}-ingress
+  name: hw-{{ required "environment undefined" .Values.environment }}
   annotations:
     kubernetes.io/ingress.allow-http: "false"
     # ingress.kubernetes.io/force-ssl-redirect: "true"
@@ -17,6 +17,6 @@ spec:
         path: /
         backend:
           service:
-            name: hw-{{ .Release.Namespace }}-service
+            name: hw-{{ required "environment undefined" .Values.environment }}
             port:
               number: 80

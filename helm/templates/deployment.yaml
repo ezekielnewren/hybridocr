@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: hw-{{ .Release.Namespace }}
+  name: hw-{{ required "environment undefined" .Values.environment }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: hw-{{ .Release.Namespace }}
+      app: hw-{{ required "environment undefined" .Values.environment }}
   template:
     metadata:
       labels:
-        app: hw-{{ .Release.Namespace }}
+        app: hw-{{ required "environment undefined" .Values.environment }}
     spec:
       containers:
       - name: hw-{{ .Release.Namespace }}
-        image: us-west3-docker.pkg.dev/ageless-math-433804-h9/hybridocr/hybridocr_website:{{ .Release.Namespace }}
+        image: {{ required "docker_prefix undefined" .Values.docker_prefix }}hybridocr_website:{{ required "environment undefined" .Values.environment }}
         imagePullPolicy: Always
         ports:
         - containerPort: 8000
@@ -49,3 +49,18 @@ spec:
       - name: config-volume
         secret:
           secretName: config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hw-{{ required "environment undefined" .Values.environment }}
+  labels:
+    app: hw-{{ required "environment undefined" .Values.environment }}
+spec:
+  type: ClusterIP
+  selector:
+    app: hw-{{ required "environment undefined" .Values.environment }}
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
