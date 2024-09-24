@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: hybridocr-website
+  name: hw-{{ .Release.Namespace }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: hybridocr-website
+      app: hw-{{ .Release.Namespace }}
   template:
     metadata:
       labels:
-        app: hybridocr-website
+        app: hw-{{ .Release.Namespace }}
     spec:
       containers:
-      - name: hybridocr-website
+      - name: hw-{{ .Release.Namespace }}
         image: us-west3-docker.pkg.dev/ageless-math-433804-h9/hybridocr/hybridocr_website:{{ .Release.Namespace }}
         imagePullPolicy: Always
         ports:
