@@ -1,0 +1,23 @@
+deployment:
+  replicas: 1
+ingressClass:
+  enabled: true
+  isDefaultClass: true
+  name: ""
+ports:
+  web:
+    expose:
+      default: false
+  websecure:
+    asDefault: true
+    protocol: TCP
+    port: 8443
+    targetPort: 8443
+    containerPort: 8443
+    exposedPort: 443
+service:
+  type: LoadBalancer
+  ## these values get filled in by the script deploy_traefik.sh
+  # spec:
+  #   loadBalancerIP: "1.2.3.4"
+  # loadBalancerSourceRanges: []
