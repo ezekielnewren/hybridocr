@@ -4,7 +4,8 @@ kind: Ingress
 metadata:
   name: hw-{{ .Release.Namespace }}-ingress
   annotations:
-    ingress.kubernetes.io/force-ssl-redirect: "true"
+    kubernetes.io/ingress.allow-http: "false"
+    # ingress.kubernetes.io/force-ssl-redirect: "true"
     # gcloud compute ssl-certificates create hybridocr-tls --private-key=hybridocr.key --certificate=hybridocr.crt
     ingress.gcp.kubernetes.io/pre-shared-cert: "hybridocr-tls"
 spec:
