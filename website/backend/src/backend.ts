@@ -3,6 +3,7 @@ import {MongoClient, MongoClientOptions} from "mongodb";
 
 // const fs = require("fs");
 import fs from "fs";
+import * as net from "net";
 
 export interface HybridocrConfigExpress {
     sessionSecret: string
@@ -46,6 +47,23 @@ export function renderit(req: any, res: any, view: string, options?: object, cal
 export async function performOcr(client: vision.ImageAnnotatorClient, base64Image: string): Promise<any> {
     const [result] = await client.textDetection({ image: { content: base64Image } });
     return result;
+}
+
+
+export async function socketWillClose(socket: net.Socket, timeout: number = 5000): Promise<void> {
+  return new Promise((resolve) => {
+    const forceCloseTimeout = setTimeout(() => {
+      if (!socket.destroyed) {
+        socket.destroy();
+      }
+      resolve();
+    }, timeout);
+
+    socket.once('close', () => {
+      clearTimeout(forceCloseTimeout);
+      resolve();
+    });
+  });
 }
 
 

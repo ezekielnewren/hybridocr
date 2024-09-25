@@ -1,14 +1,18 @@
 import express from 'express';
-import {renderit, getConfig, openDatabase} from "./backend";
+import {renderit, getConfig, openDatabase, socketWillClose} from "./backend";
 import {MongoClient} from "mongodb";
+import * as net from "net";
 
 let server: any;
 let dbClient: MongoClient;
 
 async function main(): Promise<bigint> {
+  // read in the config
   const config = await getConfig();
   console.log("read config");
   const port = config.express.port;
+
+  // open the database
   dbClient = await openDatabase();
   console.log("connected to the mongodb cluster");
   const db = dbClient.db(config.mongodb.dbname);
@@ -21,7 +25,6 @@ async function main(): Promise<bigint> {
     console.log("unable to insert document into database");
     return 1n;
   }
-
 
   const app = express();
   app.use(express.json());
@@ -55,13 +58,31 @@ async function main(): Promise<bigint> {
     res.send('{"result": "ok"}');
   })
 
+  // start the server
   server = app.listen(port, () => {
     console.log(`Backend listening at http://localhost:${port}`);
   });
 
+  // track active connections
+  let connections = new Set<net.Socket>();
+
+  server.on('connection', (socket: net.Socket) => {
+    connections.add(socket);
+
+    socket.on('close', () => {
+      connections.delete(socket);
+    });
+  });
+
+  // wait for the server to close
   await new Promise<void>((resolve, reject) => {
     const shutdown = async () => {
       server.close();
+      let waitingPool = new Array<Promise<void>>();
+      for (let socket of connections) {
+        waitingPool.push(socketWillClose(socket, 5000));
+      }
+      await Promise.all<void>(waitingPool);
       await dbClient.close();
       resolve();
     };
