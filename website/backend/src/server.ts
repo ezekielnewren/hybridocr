@@ -27,6 +27,7 @@ async function main(): Promise<bigint> {
   }
 
   const app = express();
+  app.set('trust proxy', true);
   app.use(express.json());
   app.set('view engine', 'ejs');
 
