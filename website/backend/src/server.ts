@@ -32,15 +32,15 @@ async function main(): Promise<bigint> {
   app.set('view engine', 'ejs');
 
   app.get('/', (req, res) => {
-    renderit(req, res, 'index');
+    renderit(config, req, res, 'index');
   });
 
   app.get('/register', (req, res) => {
-    renderit(req, res, 'register');
+    renderit(config, req, res, 'register');
   });
 
   app.get('/about', (req, res) => {
-    renderit(req, res, 'about');
+    renderit(config, req, res, 'about');
   });
 
   app.get('/liveness', (req, res) => {

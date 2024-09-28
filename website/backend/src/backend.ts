@@ -1,5 +1,6 @@
 import * as vision from '@google-cloud/vision';
 import {MongoClient, MongoClientOptions} from "mongodb";
+import {Request, Response} from "express";
 
 // const fs = require("fs");
 import fs from "fs";
@@ -30,17 +31,18 @@ export async function getConfig(): Promise<HybridocrConfig> {
 }
 
 
-export function renderit(req: any, res: any, view: string, options?: object, callback?: (err: Error, html: string) => void): void {
+export function renderit(config: any, req: Request, res: Response, view: string, options?: object, callback?: (err: Error, html: string) => void): void {
     let target = req.headers.host;
     if (!target) {
       target = req.hostname
     }
-    let opt = {production: false};
+    let opt = {production: false, gtag_id: null};
     if (options) {
         // @ts-ignore
         opt = options;
     }
     opt.production = ["hybridocr.com", "www.hybridocr.com"].includes(target);
+    opt.gtag_id = config.express.gtag_id;
     return res.render(view, opt, callback);
 }
 
