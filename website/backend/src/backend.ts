@@ -27,21 +27,21 @@ export async function getConfig(): Promise<HybridocrConfig> {
     const x = process.env.HYBRIDOCR_CONFIG_FILE;
     if (!x) throw Error("HYBRIDOCR_CONFIG_FILE not defined");
     const raw = fs.readFileSync(x);
-    return JSON.parse(raw.toString());
+    let config = JSON.parse(raw.toString());
+    if (!config.express.production) {
+        config.express.production = false;
+    }
+    return config;
 }
 
 
 export function renderit(config: any, req: Request, res: Response, view: string, options?: object, callback?: (err: Error, html: string) => void): void {
-    let target = req.headers.host;
-    if (!target) {
-      target = req.hostname
-    }
     let opt = {production: false, gtag_id: null};
     if (options) {
         // @ts-ignore
         opt = options;
     }
-    opt.production = ["hybridocr.com", "www.hybridocr.com"].includes(target);
+    opt.production = config.express.production;
     opt.gtag_id = config.express.gtag_id;
     return res.render(view, opt, callback);
 }
