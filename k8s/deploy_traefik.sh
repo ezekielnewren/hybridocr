@@ -21,3 +21,4 @@ helm install traefik traefik/traefik \
   --set service.spec.loadBalancerSourceRanges="{$CLOUDFLARE_IP_RANGES}"
 
 kubectl -n $NAMESPACE apply -f traefik-tlsstore.yaml
+kubectl -n $NAMESPACE apply -f traefik-no-www.yaml
