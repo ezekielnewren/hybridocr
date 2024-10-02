@@ -1,3 +1,5 @@
+import { describe, expect, test } from 'vitest'
+
 import * as vision from '@google-cloud/vision';
 import * as backend from "../src/backend";
 import * as assert from "node:assert";

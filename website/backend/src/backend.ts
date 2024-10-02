@@ -47,25 +47,25 @@ export function renderit(config: any, req: Request, res: Response, view: string,
 }
 
 export async function performOcr(client: vision.ImageAnnotatorClient, base64Image: string): Promise<any> {
-    const [result] = await client.textDetection({ image: { content: base64Image } });
+    const [result] = await client.textDetection({image: {content: base64Image}});
     return result;
 }
 
 
 export async function socketWillClose(socket: net.Socket, timeout: number = 5000): Promise<void> {
-  return new Promise((resolve) => {
-    const forceCloseTimeout = setTimeout(() => {
-      if (!socket.destroyed) {
-        socket.destroy();
-      }
-      resolve();
-    }, timeout);
+    return new Promise((resolve) => {
+        const forceCloseTimeout = setTimeout(() => {
+            if (!socket.destroyed) {
+                socket.destroy();
+            }
+            resolve();
+        }, timeout);
 
-    socket.once('close', () => {
-      clearTimeout(forceCloseTimeout);
-      resolve();
+        socket.once('close', () => {
+            clearTimeout(forceCloseTimeout);
+            resolve();
+        });
     });
-  });
 }
 
 

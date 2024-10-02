@@ -6,22 +6,22 @@ import * as fs from 'fs';
 
 // Function to detect text in an image
 async function detectText(imagePath: string) {
-  // Initialize the Vision client with the credentials
-  const client = new vision.ImageAnnotatorClient({
-    keyFilename: 'path-to-your-service-account-file.json',  // Update with the path to your JSON credentials file
-  });
+    // Initialize the Vision client with the credentials
+    const client = new vision.ImageAnnotatorClient({
+        keyFilename: 'path-to-your-service-account-file.json',  // Update with the path to your JSON credentials file
+    });
 
-  // Make an API request for text detection
-  const [result] = await client.textDetection(imagePath);
+    // Make an API request for text detection
+    const [result] = await client.textDetection(imagePath);
 
-  // Extract text annotations (recognized text)
-  const detections = result.textAnnotations;
-  if (detections && detections.length > 0) {
-    console.log('Text found:');
-    detections.forEach(text => console.log(text.description));
-  } else {
-    console.log('No text found in the image.');
-  }
+    // Extract text annotations (recognized text)
+    const detections = result.textAnnotations;
+    if (detections && detections.length > 0) {
+        console.log('Text found:');
+        detections.forEach(text => console.log(text.description));
+    } else {
+        console.log('No text found in the image.');
+    }
 }
 
 // Call the function with the image path
