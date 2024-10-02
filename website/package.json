@@ -1,9 +1,14 @@
 {
   "name": "website",
+  "type": "module",
   "private": true,
+  "moduleResolution": "nodenext",
   "workspaces": [
     "common",
     "frontend",
     "backend"
-  ]
+  ],
+  "scripts": {
+    "test": "vitest"
+  }
 }
