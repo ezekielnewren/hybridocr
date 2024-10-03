@@ -1,8 +1,10 @@
 #!/bin/bash
+DIR=$(dirname ${BASH_SOURCE[0]})
+cd $DIR/../k8s
 
 NAMESPACE=ingress
 
-STATIC_IP=$(gcloud compute addresses describe ingress-ip --region us-west3 --format="get(address)")
+STATIC_IP=$(gcloud compute addresses describe ingress-ip --region us-central1 --format="get(address)")
 if [ "$STATIC_IP" == "" ]; then
   echo "failed to query the static ip address"
   exit 1
@@ -13,6 +15,8 @@ if [ "$CLOUDFLARE_IP_RANGES" == "" ]; then
   echo "failed to query the cloudflare ip ranges"
   exit 2
 fi
+
+kubectl create namespace $NAMESPACE
 
 helm install traefik traefik/traefik \
   --namespace $NAMESPACE \

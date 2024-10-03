@@ -7,7 +7,7 @@ RUN apt-get install -y sudo
 
 RUN mkdir -p /persistent
 
-COPY copy/provision.sh /provision.sh
-COPY copy/sudoers /etc/sudoers
+COPY ../copy/provision.sh /provision.sh
+COPY ../copy/sudoers /etc/sudoers
 
 ENTRYPOINT ["bash", "-c", "/provision.sh"]

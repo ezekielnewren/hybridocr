@@ -1,22 +1,29 @@
 #!/bin/bash
+DIR=$(dirname ${BASH_SOURCE[0]})
+cd $DIR
 
-if [ "$HYBRIDOCR_CONFIG_FILE" == "" ]; then
-  echo "HYBRIDOCR_CONFIG_FILE is not set"
+CONFIG_FILE="$1"
+
+if [ "$CONFIG_FILE" == "" ]; then
+  echo "CONFIG_FILE is not set"
   exit 1
 fi
-config=$(jq -cM . $HYBRIDOCR_CONFIG_FILE)
+config=$(jq -cM . $CONFIG_FILE)
 
 if [ "$config" == "" ]; then
-  echo "$HYBRIDOCR_CONFIG_FILE is empty"
+  echo "$CONFIG_FILE is empty"
   exit 2
 fi
 
-LABEL="$1"
+namespace=$(echo $CONFIG | jq -r .k8s.namespace)
+domain=$(echo $CONFIG | jq -r .express.domain[0])
+docker_prefix=$(echo $CONFIG | jq -r .k8s.docker_prefix)
+
+LABEL="$namespace"
 if [ "$LABEL" == "" ]; then
   LABEL="latest"
 fi
 
-docker_prefix=$(echo "$config" | jq -r .docker_prefix)
 TAG=$(git describe --tags --dirty --always)
 
 pushd website && npm run build && popd || exit 1
