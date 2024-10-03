@@ -7,3 +7,4 @@ __pycache__/
 /ignore/
 
 **/src/*.js
+db.sqlite3
