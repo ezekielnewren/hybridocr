@@ -1,3 +1,4 @@
+# kubectl -n ingress create secret tls hybridocr-tls --key=hybridocr.key --cert=hybridocr.crt
 apiVersion: traefik.io/v1alpha1
 kind: TLSStore
 metadata:
