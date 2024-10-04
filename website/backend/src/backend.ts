@@ -8,6 +8,8 @@ import * as net from "net";
 
 export interface HybridocrConfigExpress {
     sessionSecret: string
+    gtag_id: string
+    production: boolean
     port: bigint
 }
 
@@ -18,16 +20,23 @@ export interface HybridocrConfigMongodb {
     dbname: string
 }
 
+export interface HybridocrConfigRedis {
+    node: {host: string, port: number}[]
+    auth: any
+}
+
 export interface HybridocrConfig {
     express: HybridocrConfigExpress
     mongodb: HybridocrConfigMongodb
+    redis: HybridocrConfigRedis
+    docker_prefix: string
 }
 
 export async function getConfig(): Promise<HybridocrConfig> {
     const x = process.env.HYBRIDOCR_CONFIG_FILE;
     if (!x) throw Error("HYBRIDOCR_CONFIG_FILE not defined");
     const raw = fs.readFileSync(x);
-    let config = JSON.parse(raw.toString());
+    let config: HybridocrConfig = JSON.parse(raw.toString());
     if (!config.express.production) {
         config.express.production = false;
     }
@@ -83,3 +92,18 @@ export async function openDatabase(): Promise<MongoClient> {
     return new MongoClient(config.mongodb.uri, opt);
 }
 
+import { createClient } from 'redis';
+
+export async function openRedis() {
+    const config = await getConfig();
+    // @ts-ignore
+    const client = new createClient({
+        password: config.redis.auth.password,
+        socket: {
+            host: config.redis.node[0].host,
+            port: config.redis.node[0].port
+        }
+    });
+    await client.connect();
+    return client;
+}

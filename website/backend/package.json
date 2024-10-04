@@ -12,7 +12,7 @@
     "@google-cloud/vision": "^4.3.2",
     "ejs": "^3.1.10",
     "express": "^4.21.0",
-    "ioredis": "^5.4.1",
-    "mongodb": "^6.9.0"
+    "mongodb": "^6.9.0",
+    "redis": "^4.7.0"
   }
 }
