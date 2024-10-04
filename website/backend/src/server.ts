@@ -13,7 +13,7 @@ async function main(): Promise<bigint> {
     const port = config.express.port;
 
     // open the database
-    dbClient = await openDatabase();
+    dbClient = await openDatabase(config);
     console.log("connected to the mongodb cluster");
     const db = dbClient.db(config.mongodb.dbname);
     console.log("switched to the database");

@@ -22,12 +22,14 @@ describe("backend", () => {
     })
 
     test("open database", async () => {
-        const db = await backend.openDatabase();
+        const config: backend.HybridocrConfig = await backend.getConfig();
+        const db = await backend.openDatabase(config);
         await db.close();
     })
 
     test("open redis", async () => {
-        const client = await backend.openRedis();
+        const config: backend.HybridocrConfig = await backend.getConfig();
+        const client = await backend.openRedis(config);
         let vector = ["key", "value"];
 
         await client.set(vector[0], vector[1]);

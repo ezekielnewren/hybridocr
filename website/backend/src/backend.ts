@@ -78,9 +78,7 @@ export async function socketWillClose(socket: net.Socket, timeout: number = 5000
 }
 
 
-export async function openDatabase(): Promise<MongoClient> {
-    const config = await getConfig();
-
+export async function openDatabase(config: HybridocrConfig): Promise<MongoClient> {
     const opt: MongoClientOptions = {
         ssl: true,
         auth: {
@@ -94,8 +92,7 @@ export async function openDatabase(): Promise<MongoClient> {
 
 import { createClient } from 'redis';
 
-export async function openRedis() {
-    const config = await getConfig();
+export async function openRedis(config: HybridocrConfig) {
     // @ts-ignore
     const client = new createClient({
         password: config.redis.auth.password,
