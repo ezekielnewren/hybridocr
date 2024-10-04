@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest'
+import { string2bytes, bytes2string, b64encode } from "common";
 
 import * as vision from '@google-cloud/vision';
 import * as backend from "../src/backend";
@@ -36,6 +37,12 @@ describe("backend", () => {
         expect(await client.get(vector[0])).toBe(vector[1]);
 
         await client.disconnect();
+    })
+
+    test("use common", async () => {
+        const actual = b64encode(string2bytes("Man"));
+        const expected = string2bytes("TWFu");
+        expect(actual).toStrictEqual(expected);
     })
 
 })

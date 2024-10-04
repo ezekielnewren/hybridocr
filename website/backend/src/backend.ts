@@ -1,6 +1,7 @@
 import * as vision from '@google-cloud/vision';
 import {MongoClient, MongoClientOptions} from "mongodb";
-import {Request, Response} from "express";
+import {Request, Response, NextFunction} from "express";
+import { RedisClientType, createClient } from 'redis';
 
 // const fs = require("fs");
 import fs from "fs";
@@ -90,9 +91,7 @@ export async function openDatabase(config: HybridocrConfig): Promise<MongoClient
     return new MongoClient(config.mongodb.uri, opt);
 }
 
-import { createClient } from 'redis';
-
-export async function openRedis(config: HybridocrConfig) {
+export async function openRedis(config: HybridocrConfig): Promise<RedisClientType> {
     // @ts-ignore
     const client = new createClient({
         password: config.redis.auth.password,
@@ -104,3 +103,30 @@ export async function openRedis(config: HybridocrConfig) {
     await client.connect();
     return client;
 }
+
+// import express, { Request, Response, NextFunction } from 'express';
+
+export class Session {
+    public static readonly ID = "SESSIONID";
+
+    store: RedisClientType
+
+
+    constructor(_store: RedisClientType) {
+        this.store = _store;
+    }
+
+    public call = async (req: Request, res: Response, next: NextFunction)=> {
+        console.log(req.cookies);
+
+        const id = req.cookies[Session.ID];
+
+        if (!id || !await this.store.exists(Session.ID)) {
+            await this.store.set(Session.ID, "");
+
+        }
+
+        next();
+    }
+}
+

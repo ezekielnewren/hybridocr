@@ -1,6 +1,7 @@
 import express from 'express';
-import {renderit, getConfig, openDatabase, socketWillClose} from "./backend";
+import {renderit, getConfig, openDatabase, socketWillClose, openRedis, Session} from "./backend";
 import {MongoClient} from "mongodb";
+import cookieParser from 'cookie-parser';
 import * as net from "net";
 
 let server: any;
@@ -26,10 +27,15 @@ async function main(): Promise<bigint> {
         return 1n;
     }
 
+    const redis = await openRedis(config);
+    const sess = new Session(redis);
+
     const app = express();
     app.set('trust proxy', true);
     app.use(express.json());
     app.set('view engine', 'ejs');
+    app.use(cookieParser());
+    app.use(sess.call)
 
     app.get('/', (req, res) => {
         renderit(config, req, res, 'index');

@@ -1,6 +1,7 @@
 {
   "name": "backend",
   "devDependencies": {
+    "@types/cookie-parser": "^1.4.7",
     "@types/express": "^5.0.0",
     "@types/ioredis": "^5.0.0",
     "@types/node": "^22.7.4",
@@ -10,6 +11,8 @@
   },
   "dependencies": {
     "@google-cloud/vision": "^4.3.2",
+    "common": "^1.0.0",
+    "cookie-parser": "^1.4.6",
     "ejs": "^3.1.10",
     "express": "^4.21.0",
     "mongodb": "^6.9.0",
