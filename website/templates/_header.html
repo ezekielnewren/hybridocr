@@ -1,11 +1,11 @@
 <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=<%= gtag_id %>"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id={{ gtag_id }}"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
 
-  gtag('config', '<%= gtag_id %>');
+  gtag('config', '{{ gtag_id }}');
 </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,8 +17,8 @@
         display: flex;
         flex-direction: column;
     }
-    <% banner_height = production ? "0vh" : "4vh" %>
-    <% if (!production) {%>
+    {% set banner_height = "0vh" if production else "4vh" %}
+    {% if not production %}
     .banner {
         background-color: green;
         color: white;
@@ -31,13 +31,13 @@
         justify-content: center;
         align-items: center;
         font-size: 1.5em;
-        height: <%= banner_height %>;
+        height: {{ banner_height }};
     }
-    <% } %>
+    {% endif %}
     .content {
         /*border: 5px solid black;*/
         flex: 1;
-        margin-top: <%= banner_height %>;
+        margin-top: {{ banner_height }};
         /*height: calc(100% - <%= banner_height %>);*/
     }
     footer {

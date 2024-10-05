@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <%- include('partial/header.ejs') %>
+    {% include '_header.html' %}
     <style>
         h2 {
             text-align: center;
@@ -114,7 +114,7 @@
     </script>
 </head>
 <body>
-<%- include('partial/banner.ejs') %>
+{% include '_banner.html' %}
 <div class="content">
     <h2>Unlock the Power of Hybrid OCR: Where Cutting-Edge Technology Meets Unmatched Privacy</h2>
     Welcome to Hybrid OCR, a pioneering platform that transforms the way your documents are digitized. Our unique approach goes beyond the traditional boundaries of OCR technology, merging the precision of human insight with the efficiency of machine learning to deliver unparalleled accuracy. But our innovation doesn't stop there. We understand the importance of your privacy and the confidentiality of your documents. That's why Hybrid OCR is built on two foundational technologies: federated learning and strong encryption, ensuring your documents are not only accurately digitized but also protected with the highest standards of privacy.</br>
@@ -210,6 +210,6 @@
         <button id="submit-email">Let's go!</button>
     </div>
 </div>
-<%- include('partial/footer.ejs') %>
+{% include '_footer.html' %}
 </body>
 </html>

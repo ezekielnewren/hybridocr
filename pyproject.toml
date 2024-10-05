@@ -9,6 +9,7 @@ description = "A brief description of your package"
 authors = [{name = "Your Name", email = "you@example.com"}]
 ## hatch dep show requirements | xargs -l pip install
 dependencies = [
+    ## engine
     "tensorflow>=2.15.0",
     "cbor2==5.6.2",
     "matplotlib>=3.7.5",
@@ -17,6 +18,8 @@ dependencies = [
     "PyMuPDF==1.24.0",
     "tqdm==4.66.2",
     "sympy==1.12",
+    ## website
+    "flask>=3.0.3",
 ]
 
 [tool.hatch.metadata]
