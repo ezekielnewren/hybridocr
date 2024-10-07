@@ -1,7 +1,8 @@
-from flask import Flask, request, render_template
+# from flask import Flask, request, render_template
 
-import time
-import os
+from fastapi import FastAPI, Request
+from fastapi.templating import Jinja2Templates
+
 import json
 
 from website import common
@@ -9,42 +10,47 @@ from website import common
 config = common.get_config()
 client, db = common.open_database(config)
 rd = common.open_redis(config)
-
-app = Flask(__name__)
-
-
-@app.route('/')
-def home():
-    return render_template('index.html',
-                           production=config["production"],
-                           gtag_id=config["flask"]["gtag_id"],
-                           )
+templates = Jinja2Templates(directory="templates")
 
 
-@app.route('/register')
-def register():
-    return render_template('register.html',
-                           production=config["production"],
-                           gtag_id=config["flask"]["gtag_id"],
-                           )
+app = FastAPI()
 
 
-@app.route('/about')
-def about():
-    return render_template('about.html',
-                           production=config["production"],
-                           gtag_id=config["flask"]["gtag_id"],
-                           )
+@app.get('/')
+# async def root():
+#     return "hello world"
+
+async def home(request: Request):
+    return templates.TemplateResponse('index.html', {
+        "request": request,
+        "production": config["production"],
+        "gtag_id": config["flask"]["gtag_id"],
+    })
 
 
-@app.route('/save-email', methods=['POST'])
-def save_email():
-    body = json.loads(request.data)
+@app.get('/register')
+async def register(request: Request):
+    return templates.TemplateResponse('register.html', {
+        "request": request,
+        "production": config["production"],
+        "gtag_id": config["flask"]["gtag_id"],
+    })
+
+
+@app.get('/about')
+async def about(request: Request):
+    return templates.TemplateResponse('about.html', {
+        "request": request,
+        "production": config["production"],
+        "gtag_id": config["flask"]["gtag_id"],
+    })
+
+
+@app.post('/save-email')
+async def save_email(request: Request):
+    body = json.loads(await request.body())
     body["timestamp"] = common.unixtime()
     col_analytics = db.get_collection("analytics")
     col_analytics.insert_one(body)
     return json.dumps({"result": "ok"})
 
-
-if __name__ == "__main__":
-    app.run(port=config["flask"]["port"], debug=True)
