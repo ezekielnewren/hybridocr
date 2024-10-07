@@ -22,11 +22,9 @@ async def lifespan(_: FastAPI):
     config = common.get_config()
     client, db = await common.open_database(config)
     rd = await common.open_redis(config)
-    print("done with startup")
     yield
-    print("begin cleanup...", end="")
-    await asyncio.sleep(2)
-    print("done", end="")
+    client.close()
+    await rd.close()
 
 app = FastAPI(lifespan=lifespan)
 
