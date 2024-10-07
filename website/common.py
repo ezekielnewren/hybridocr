@@ -1,5 +1,6 @@
 import os, json
 import time
+import cbor2
 
 
 def unixtime():
@@ -27,15 +28,20 @@ async def open_database(config):
     return client, db
 
 
-async def open_redis(config):
+def open_redis(config):
     import redis.asyncio as aioredis
     node = config["redis"]["node"][0]
-    client = aioredis.Redis(
+    return aioredis.Redis(
         host=node["host"],
         port=node["port"],
         password=config["redis"]["auth"]["password"],
         encoding="utf-8",
     )
-    await client.set("test", "test")
-    await client.delete("test")
-    return client
+
+
+def to_cbor(data):
+    return cbor2.dumps(data)
+
+
+def from_cbor(data):
+    return cbor2.loads(data)

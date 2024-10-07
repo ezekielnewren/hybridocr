@@ -1,5 +1,4 @@
 ## python3 -m fastapi dev server.py
-import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -8,32 +7,37 @@ from fastapi.templating import Jinja2Templates
 import json
 from pathlib import Path
 
-from website import common
+from starlette.middleware import Middleware
 
-config = common.get_config()
-client, db, rd = None, None, None
+from website import common
+from website.session import SessionMiddleware
 
 templates = Jinja2Templates(directory=Path(__file__).parent/"templates")
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
-    global config, client, db, rd
-    config = common.get_config()
-    client, db = await common.open_database(config)
-    rd = await common.open_redis(config)
+async def lifespan(_app: FastAPI):
+    app.state.config = common.get_config()
+    v = await common.open_database(app.state.config)
+    app.state.client = v[0]
+    app.state.db = v[1]
     yield
-    client.close()
-    await rd.close()
+    app.state.client.close()
 
-app = FastAPI(lifespan=lifespan)
+
+middleware = [
+    Middleware(SessionMiddleware)
+]
+
+app = FastAPI(lifespan=lifespan, middleware=middleware)
+
 
 @app.get('/')
 async def home(request: Request):
     return templates.TemplateResponse('index.html', {
         "request": request,
-        "production": config["production"],
-        "gtag_id": config["flask"]["gtag_id"],
+        "production": app.state.config["production"],
+        "gtag_id": app.state.config["flask"]["gtag_id"],
     })
 
 
@@ -41,8 +45,8 @@ async def home(request: Request):
 async def register(request: Request):
     return templates.TemplateResponse('register.html', {
         "request": request,
-        "production": config["production"],
-        "gtag_id": config["flask"]["gtag_id"],
+        "production": app.state.config["production"],
+        "gtag_id": app.state.config["flask"]["gtag_id"],
     })
 
 
@@ -50,8 +54,8 @@ async def register(request: Request):
 async def about(request: Request):
     return templates.TemplateResponse('about.html', {
         "request": request,
-        "production": config["production"],
-        "gtag_id": config["flask"]["gtag_id"],
+        "production": app.state.config["production"],
+        "gtag_id": app.state.config["flask"]["gtag_id"],
     })
 
 
@@ -59,7 +63,6 @@ async def about(request: Request):
 async def save_email(request: Request):
     body = json.loads(await request.body())
     body["timestamp"] = common.unixtime()
-    col_analytics = db.get_collection("analytics")
+    col_analytics = app.state.db.get_collection("analytics")
     col_analytics.insert_one(body)
     return json.dumps({"result": "ok"})
-
