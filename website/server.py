@@ -1,4 +1,6 @@
 ## python3 -m fastapi dev server.py
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.templating import Jinja2Templates
 
@@ -8,12 +10,20 @@ from pathlib import Path
 from website import common
 
 config = common.get_config()
-client, db = common.open_database(config)
-rd = common.open_redis(config)
+client, db, rd = None, None, None
+
+
 templates = Jinja2Templates(directory=Path(__file__).parent/"templates")
-
-
 app = FastAPI()
+
+
+@app.on_event("startup")
+async def lifespan():
+    global config, client, db, rd
+    config = common.get_config()
+    client, db = await common.open_database(config)
+    rd = await common.open_redis(config)
+    print("done with startup")
 
 
 @app.get('/')

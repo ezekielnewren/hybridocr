@@ -1,6 +1,3 @@
-from pymongo import MongoClient
-import redis
-
 import os, json
 import time
 
@@ -16,26 +13,29 @@ def get_config():
     return config
 
 
-def open_database(config):
-    client = MongoClient(
+async def open_database(config):
+    from motor.motor_asyncio import AsyncIOMotorClient
+    client = AsyncIOMotorClient(
         host=config["mongodb"]["uri"],
         username=config["mongodb"]["username"],
         password=config["mongodb"]["password"],
     )
 
-    db = client.get_database(config["mongodb"]["dbname"])
+    db = client[config["mongodb"]["dbname"]]
     col_log = db.get_collection("log")
-    col_log.insert_one({"boot": unixtime()})
+    await col_log.insert_one({"boot": unixtime()})
     return client, db
 
 
-def open_redis(config):
+async def open_redis(config):
+    import redis.asyncio as aioredis
     node = config["redis"]["node"][0]
-    client = redis.Redis(
+    client = aioredis.Redis(
         host=node["host"],
         port=node["port"],
         password=config["redis"]["auth"]["password"],
+        encoding="utf-8",
     )
-    client.set("test", "test")
-    client.delete("test")
+    await client.set("test", "test")
+    await client.delete("test")
     return client
