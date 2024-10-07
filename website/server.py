@@ -1,4 +1,5 @@
 ## python3 -m fastapi dev server.py
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -12,19 +13,22 @@ from website import common
 config = common.get_config()
 client, db, rd = None, None, None
 
-
 templates = Jinja2Templates(directory=Path(__file__).parent/"templates")
-app = FastAPI()
 
 
-@app.on_event("startup")
-async def lifespan():
+@asynccontextmanager
+async def lifespan(_: FastAPI):
     global config, client, db, rd
     config = common.get_config()
     client, db = await common.open_database(config)
     rd = await common.open_redis(config)
     print("done with startup")
+    yield
+    print("begin cleanup...", end="")
+    await asyncio.sleep(2)
+    print("done", end="")
 
+app = FastAPI(lifespan=lifespan)
 
 @app.get('/')
 async def home(request: Request):
