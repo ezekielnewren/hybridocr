@@ -1,25 +1,21 @@
-# from flask import Flask, request, render_template
-
 from fastapi import FastAPI, Request
 from fastapi.templating import Jinja2Templates
 
 import json
+from pathlib import Path
 
 from website import common
 
 config = common.get_config()
 client, db = common.open_database(config)
 rd = common.open_redis(config)
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory=Path(__file__).parent/"templates")
 
 
 app = FastAPI()
 
 
 @app.get('/')
-# async def root():
-#     return "hello world"
-
 async def home(request: Request):
     return templates.TemplateResponse('index.html', {
         "request": request,
