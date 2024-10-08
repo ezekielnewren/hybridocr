@@ -39,7 +39,7 @@ async def home(request: Request):
     return templates.TemplateResponse('index.html', {
         "request": request,
         "production": app.state.config["production"],
-        "gtag_id": app.state.config["flask"]["gtag_id"],
+        "gtag_id": app.state.config["webserver"]["gtag_id"],
     })
 
 
@@ -48,12 +48,22 @@ async def ip(request: Request):
     return Response(request.client.host, media_type="text/plain")
 
 
+@app.get("/liveness")
+async def liveness(request: Request):
+    return Response("Alive!", media_type="text/plain")
+
+
+@app.get("/readiness")
+async def readiness(request: Request):
+    return Response("Ready!", media_type="text/plain")
+
+
 @app.get('/register')
 async def register(request: Request):
     return templates.TemplateResponse('register.html', {
         "request": request,
         "production": app.state.config["production"],
-        "gtag_id": app.state.config["flask"]["gtag_id"],
+        "gtag_id": app.state.config["webserver"]["gtag_id"],
     })
 
 
@@ -62,7 +72,7 @@ async def about(request: Request):
     return templates.TemplateResponse('about.html', {
         "request": request,
         "production": app.state.config["production"],
-        "gtag_id": app.state.config["flask"]["gtag_id"],
+        "gtag_id": app.state.config["webserver"]["gtag_id"],
     })
 
 

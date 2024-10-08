@@ -1,6 +1,6 @@
 #!/bin/bash
 DIR=$(dirname ${BASH_SOURCE[0]})
-cd $DIR
+cd $DIR/..
 
 CONFIG_FILE="$1"
 
@@ -15,9 +15,9 @@ if [ "$config" == "" ]; then
   exit 2
 fi
 
-namespace=$(echo $CONFIG | jq -r .k8s.namespace)
-domain=$(echo $CONFIG | jq -r .express.domain[0])
-docker_prefix=$(echo $CONFIG | jq -r .k8s.docker_prefix)
+namespace=$(echo "$config" | jq -r .k8s.namespace)
+domain=$(echo "$config" | jq -r .webserver.domain[0])
+docker_prefix=$(echo "$config" | jq -r .k8s.docker_prefix)
 
 LABEL="$namespace"
 if [ "$LABEL" == "" ]; then
@@ -26,10 +26,12 @@ fi
 
 TAG=$(git describe --tags --dirty --always)
 
-pushd website && npm run build && popd || exit 1
-docker build -f Dockerfile_website -t hybridocr_website:$TAG . || exit 1
+#pushd website && npm run build && popd || exit 1
+docker build -f script/Dockerfile_website -t hybridocr_website:$TAG . || exit 1
 docker tag hybridocr_website:$TAG ${docker_prefix}hybridocr_website:$TAG || exit 1
+docker tag hybridocr_website:$TAG hybridocr_website:$LABEL || exit 1
 docker tag hybridocr_website:$TAG ${docker_prefix}hybridocr_website:$LABEL || exit 1
 echo
+# docker image ls | grep hybridocr_website | awk '{ print $3 }' | xargs -l docker rmi -f
 echo "# gcloud container images delete ${docker_prefix}hybridocr_website:$TAG"
 echo docker push ${docker_prefix}hybridocr_website:$TAG

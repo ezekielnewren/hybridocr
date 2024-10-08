@@ -15,9 +15,9 @@ if [ "$config" == "" ]; then
   exit 2
 fi
 
-namespace=$(echo $config | jq -r .k8s.namespace)
-domain=$(echo $config | jq -r .express.domain[0])
-docker_prefix=$(echo $config | jq -r .k8s.docker_prefix)
+namespace=$(echo "$config" | jq -r .k8s.namespace)
+domain=$(echo "$config" | jq -r .webserver.domain[0])
+docker_prefix=$(echo "$config" | jq -r .k8s.docker_prefix)
 
 kubectl create namespace $namespace 2>/dev/null
 kubectl -n $namespace get secret config-$namespace > /dev/null 2>&1; ec=$?
