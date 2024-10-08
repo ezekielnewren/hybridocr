@@ -23,12 +23,14 @@ class SessionMiddleware(BaseHTTPMiddleware):
 
         raw0 = await self.redis.get(sid)
         request.state.session = common.from_cbor(raw0)
+        request.state.session["ip"] = request.client.host
+
         response: Response = await call_next(request)
         if new_session:
             response.set_cookie(SESSION_ID, sid, httponly=True, max_age=self.timeout)
 
         raw1 = common.to_cbor(request.state.session)
         if raw0 != raw1:
-            self.redis.set(sid, raw1)
+            await self.redis.set(sid, raw1)
 
         return response

@@ -1,13 +1,14 @@
 ## python3 -m fastapi dev server.py
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.templating import Jinja2Templates
 
 import json
 from pathlib import Path
 
 from starlette.middleware import Middleware
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from website import common
 from website.session import SessionMiddleware
@@ -26,7 +27,8 @@ async def lifespan(_app: FastAPI):
 
 
 middleware = [
-    Middleware(SessionMiddleware)
+    Middleware(ProxyHeadersMiddleware, trusted_hosts=["*"]),
+    Middleware(SessionMiddleware),
 ]
 
 app = FastAPI(lifespan=lifespan, middleware=middleware)
@@ -39,6 +41,11 @@ async def home(request: Request):
         "production": app.state.config["production"],
         "gtag_id": app.state.config["flask"]["gtag_id"],
     })
+
+
+@app.get("/ip")
+async def ip(request: Request):
+    return Response(request.client.host, media_type="text/plain")
 
 
 @app.get('/register')
