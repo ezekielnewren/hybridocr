@@ -3,9 +3,13 @@ FROM python:3.11.7-slim
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /app
 
+RUN apt-get update
+RUN apt-get install -y dumb-init
 RUN pip install gunicorn
+RUN apt-get install -y procps curl
 COPY website/requirements.txt /app
 RUN pip install -r /app/requirements.txt
 COPY website/ /app/website
 
+ENTRYPOINT ["dumb-init"]
 CMD ["python3", "-m", "gunicorn", "-w", "1", "-k", "uvicorn.workers.UvicornWorker", "website.server:app", "--bind", "0.0.0.0:8000"]
