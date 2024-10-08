@@ -16,4 +16,4 @@ RUN pip install -r /app/requirements.txt
 COPY website/ /app/website
 
 ENTRYPOINT ["dumb-init"]
-CMD ["python3", "-m", "gunicorn", "-w", "1", "-k", "uvicorn.workers.UvicornWorker", "website.server:app", "--bind", "0.0.0.0:8000", "--forwarded-allow-ips", "*"]
+CMD ["/home/docker/.local/bin/uvicorn", "website.server:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*"]

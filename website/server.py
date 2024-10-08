@@ -1,4 +1,4 @@
-## python3 -m fastapi dev server.py
+## python3 -m uvicorn website.server:app --reload --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips '*'
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, Response
@@ -8,8 +8,6 @@ import json
 from pathlib import Path
 
 from starlette.middleware import Middleware
-from starlette.middleware.trustedhost import TrustedHostMiddleware
-from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from website import common
 from website.session import SessionMiddleware
@@ -28,8 +26,6 @@ async def lifespan(_app: FastAPI):
 
 
 middleware = [
-    Middleware(TrustedHostMiddleware, allowed_hosts=["*"]),
-    Middleware(ProxyHeadersMiddleware, trusted_hosts=["*"]),
     Middleware(SessionMiddleware),
 ]
 
