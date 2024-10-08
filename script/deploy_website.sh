@@ -26,4 +26,4 @@ if [ $ec -eq 0 ]; then
   sleep 1
 fi
 kubectl -n $namespace create secret generic config-$namespace --from-file=config.json=$CONFIG_FILE
-helm install hw-$namespace ../helm --namespace $namespace --set domain=$domain --set docker_prefix=${docker_prefix}
+helm upgrade --install hw-$namespace ../helm --namespace $namespace --set domain=$domain --set docker_prefix=${docker_prefix}
