@@ -11,6 +11,7 @@ from starlette.middleware import Middleware
 
 from website import common
 from website.session import SessionMiddleware
+import os
 
 templates = Jinja2Templates(directory=Path(__file__).parent/"templates")
 
@@ -54,6 +55,15 @@ async def liveness(request: Request):
 @app.get("/readiness")
 async def readiness(request: Request):
     return Response("Ready!", media_type="text/plain")
+
+
+@app.get("/info")
+async def info(request: Request):
+    if app.state.config["production"]:
+        return Response("", media_type="text/plain")
+    name = os.environ.get("POD_NAME")
+    namespace = os.environ.get("POD_NAMESPACE")
+    return Response(f"name: {name}\nnamespace: {namespace}", media_type="text/plain")
 
 
 @app.get('/register')
