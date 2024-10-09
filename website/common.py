@@ -36,6 +36,7 @@ def open_redis(config):
         port=node["port"],
         password=config["redis"]["auth"]["password"],
         encoding="utf-8",
+        db=config["redis"]["db"],
     )
 
 
