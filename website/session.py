@@ -14,6 +14,9 @@ class SessionMiddleware(BaseHTTPMiddleware):
         self.timeout = 2*86400
 
     async def dispatch(self, request: Request, call_next):
+        if request.url.path.startswith("/status"):
+            return await call_next(request)
+
         new_session = False
         sid = request.cookies.get(SESSION_ID)
         if not sid or not await self.redis.exists("/session/"+sid):

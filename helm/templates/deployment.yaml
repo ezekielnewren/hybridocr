@@ -20,13 +20,13 @@ spec:
         - containerPort: 8000
         livenessProbe:
           httpGet:
-            path: /liveness
+            path: /status/alive
             port: 8000
           initialDelaySeconds: 5
           periodSeconds: 10
         readinessProbe:
           httpGet:
-            path: /readiness
+            path: /status/ready
             port: 8000
           initialDelaySeconds: 5
           periodSeconds: 10

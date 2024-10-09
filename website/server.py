@@ -42,18 +42,18 @@ async def home(request: Request):
     })
 
 
-@app.get("/ip")
+@app.get("/status/ip")
 async def ip(request: Request):
     return Response(request.client.host, media_type="text/plain")
 
 
-@app.get("/liveness")
-async def liveness(request: Request):
+@app.get("/status/alive")
+async def alive(request: Request):
     return Response("Alive!", media_type="text/plain")
 
 
-@app.get("/readiness")
-async def readiness(request: Request):
+@app.get("/status/ready")
+async def ready(request: Request):
     return Response("Ready!", media_type="text/plain")
 
 
