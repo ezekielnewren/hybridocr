@@ -16,12 +16,12 @@ class SessionMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         new_session = False
         sid = request.cookies.get(SESSION_ID)
-        if not sid or not await self.redis.exists(sid):
+        if not sid or not await self.redis.exists("/session/"+sid):
             new_session = True
             sid = str(uuid4())
-            await self.redis.set(sid, common.to_cbor({}), ex=self.timeout)
+            await self.redis.set("/session/"+sid, common.to_cbor({}), ex=self.timeout)
 
-        raw0 = await self.redis.get(sid)
+        raw0 = await self.redis.get("/session/"+sid)
         request.state.session = common.from_cbor(raw0)
         request.state.session["ip"] = request.client.host
 
@@ -31,6 +31,6 @@ class SessionMiddleware(BaseHTTPMiddleware):
 
         raw1 = common.to_cbor(request.state.session)
         if raw0 != raw1:
-            await self.redis.set(sid, raw1)
+            await self.redis.set("/session/"+sid, raw1)
 
         return response
