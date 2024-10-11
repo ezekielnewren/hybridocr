@@ -1,4 +1,4 @@
-from io import BytesIO
+import rdhelper
 from typing import List
 
 from fastapi import APIRouter, UploadFile, File
@@ -23,13 +23,13 @@ async def upload_image(request: Request, files: List[UploadFile] = File(...)):
     if not ctx.config["production"]:
         for name, v in batch.items():
             put = True
-            if await common.redis_file_exists(ctx.redis, name):
-                meta, data = await common.redis_get_file(ctx.redis, name)
+            if await rdhelper.file_exists(ctx.redis, name):
+                meta, data = await rdhelper.file_get(ctx.redis, name)
                 put = meta["hash"] != common.compute_hash(v)
 
             if put:
-                await common.redis_put_file(ctx.redis, name, v)
+                await rdhelper.file_put(ctx.redis, name, v)
             else:
-                await common.redis_touch_file(ctx.redis, name)
+                await rdhelper.file_touch(ctx.redis, name)
 
     return {"received": [str(v) for v in batch.keys()]}

@@ -12,6 +12,7 @@ from starlette.middleware import Middleware
 
 from website import common
 from website.session import SessionMiddleware, get_session
+import rdhelper
 import os
 
 
@@ -22,7 +23,7 @@ templates = Jinja2Templates(directory=Path(__file__).parent/"templates")
 async def lifespan(app: FastAPI):
     ctx = get_session(app)
     col_log = ctx.db.get_collection("log")
-    t = await common.get_time(ctx.redis)
+    t = await rdhelper.get_time(ctx.redis)
     await col_log.insert_one({"boot": t})
     yield
     ctx.client.close()
