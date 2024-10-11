@@ -95,10 +95,23 @@ async def redis_get_file(rd: Redis, path):
 
     meta = from_cbor(await rd.hget(full_path, "meta"))
     data = from_cbor(await rd.hget(full_path, "data"))
-    await rd.zadd("/file", mapping={full_path: await get_time(rd)})
+    await redis_touch_file(rd, path)
+
+    return meta, data
+
+
+async def redis_touch_file(rd: Redis, path):
+    prefix = Path("/file")
+    full_path = str((prefix/path).absolute())
+
+    if not await rd.exists(full_path):
+        return None
+
+    meta = from_cbor(await rd.hget(full_path, "meta"))
+    meta["access"] = await get_time(rd)
+    await rd.hset(full_path, "meta", to_cbor(meta))
+    await rd.zadd("/file", mapping={full_path: meta["access"]})
 
     expire = meta.get("expire")
     if expire:
         await rd.expire(full_path, expire)
-
-    return meta, data

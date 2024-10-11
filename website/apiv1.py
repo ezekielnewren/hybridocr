@@ -29,5 +29,7 @@ async def upload_image(request: Request, files: List[UploadFile] = File(...)):
 
             if put:
                 await common.redis_put_file(ctx.redis, name, v)
+            else:
+                await common.redis_touch_file(ctx.redis, name)
 
     return {"received": [str(v) for v in batch.keys()]}
