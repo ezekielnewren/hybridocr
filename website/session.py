@@ -11,6 +11,9 @@ class SessionMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         self.config = common.get_config()
         self.redis = common.open_redis(self.config)
+        v = common.open_database(self.config)
+        self.client = v[0]
+        self.db = v[1]
         self.timeout = 2*86400
 
     async def dispatch(self, request: Request, call_next):
@@ -37,3 +40,13 @@ class SessionMiddleware(BaseHTTPMiddleware):
             await self.redis.set("/session/"+sid, raw1)
 
         return response
+
+
+def get_session(app: FastAPI):
+    v = app.middleware_stack
+    while True:
+        if isinstance(v, SessionMiddleware):
+            return v
+        if not hasattr(v, "app"):
+            break
+        v = v.app

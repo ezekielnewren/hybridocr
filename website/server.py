@@ -8,30 +8,22 @@ import json
 from pathlib import Path
 
 from apiv1 import router as apiv1_router
-from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from starlette.middleware import Middleware
 
 from website import common
-from website.session import SessionMiddleware
+from website.session import SessionMiddleware, get_session
 import os
 
 
-class Context:
-    config: dict
-    client: AsyncIOMotorClient
-    db: AsyncIOMotorDatabase
-
-
 templates = Jinja2Templates(directory=Path(__file__).parent/"templates")
-ctx = Context()
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
-    ctx.config = common.get_config()
-    v = await common.open_database(ctx.config)
-    ctx.client = v[0]
-    ctx.db = v[1]
+async def lifespan(app: FastAPI):
+    ctx = get_session(app)
+    col_log = ctx.db.get_collection("log")
+    t = await common.get_time(ctx.redis)
+    await col_log.insert_one({"boot": t})
     yield
     ctx.client.close()
 
@@ -46,6 +38,7 @@ app.include_router(apiv1_router, prefix="/api/v1")
 
 @app.get('/')
 async def home(request: Request):
+    ctx = get_session(app)
     return templates.TemplateResponse('index.html', {
         "request": request,
         "production": ctx.config["production"],
@@ -55,6 +48,7 @@ async def home(request: Request):
 
 @app.get("/upload")
 async def upload(request: Request):
+    ctx = get_session(app)
     return templates.TemplateResponse('upload.html', {
         "request": request,
         "production": ctx.config["production"],
@@ -79,6 +73,7 @@ async def ready(request: Request):
 
 @app.get("/info")
 async def info(request: Request):
+    ctx = get_session(app)
     if ctx.config["production"]:
         return Response("", media_type="text/plain")
     name = os.environ.get("POD_NAME")
@@ -88,6 +83,7 @@ async def info(request: Request):
 
 @app.get('/register')
 async def register(request: Request):
+    ctx = get_session(app)
     return templates.TemplateResponse('register.html', {
         "request": request,
         "production": ctx.config["production"],
@@ -97,6 +93,7 @@ async def register(request: Request):
 
 @app.get('/about')
 async def about(request: Request):
+    ctx = get_session(app)
     return templates.TemplateResponse('about.html', {
         "request": request,
         "production": ctx.config["production"],
@@ -106,6 +103,7 @@ async def about(request: Request):
 
 @app.post('/save-email')
 async def save_email(request: Request):
+    ctx = get_session(app)
     body = json.loads(await request.body())
     body["timestamp"] = common.unixtime()
     col_analytics = ctx.db.get_collection("analytics")
