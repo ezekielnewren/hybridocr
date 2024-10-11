@@ -7,6 +7,7 @@ from fastapi.templating import Jinja2Templates
 import json
 from pathlib import Path
 
+from apiv1 import router as apiv1_router
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from starlette.middleware import Middleware
 
@@ -40,11 +41,21 @@ middleware = [
 ]
 
 app = FastAPI(lifespan=lifespan, middleware=middleware)
+app.include_router(apiv1_router, prefix="/api/v1")
 
 
 @app.get('/')
 async def home(request: Request):
     return templates.TemplateResponse('index.html', {
+        "request": request,
+        "production": ctx.config["production"],
+        "gtag_id": ctx.config["webserver"]["gtag_id"],
+    })
+
+
+@app.get("/upload")
+async def upload(request: Request):
+    return templates.TemplateResponse('upload.html', {
         "request": request,
         "production": ctx.config["production"],
         "gtag_id": ctx.config["webserver"]["gtag_id"],

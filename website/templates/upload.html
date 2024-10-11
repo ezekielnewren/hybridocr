@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% include '_header.html' %}
+</head>
+<body>
+{% include '_banner.html' %}
+<div class="content">
+    <form action="/api/v1/upload/" enctype="multipart/form-data" method="post">
+        <input type="file" name="files" multiple>
+        <input type="submit" value="Upload">
+    </form>
+</div>
+{% include '_footer.html' %}
+</body>
+</html>
