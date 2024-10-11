@@ -21,14 +21,13 @@ async def upload_image(request: Request, files: List[UploadFile] = File(...)):
         batch[f.filename] = await f.read()
 
     if not ctx.config["production"]:
-        for name in batch:
-            v = batch[name]
+        for name, v in batch.items():
+            put = True
             if await common.redis_file_exists(ctx.redis, name):
                 meta, data = await common.redis_get_file(ctx.redis, name)
-                h = common.compute_hash(v)
-                if h != meta["hash"]:
-                    await common.redis_put_file(ctx.redis, name, v)
-            else:
+                put = meta["hash"] != common.compute_hash(v)
+
+            if put:
                 await common.redis_put_file(ctx.redis, name, v)
 
     return {"received": [str(v) for v in batch.keys()]}
