@@ -98,5 +98,5 @@ async def save_email(request: Request):
     body = json.loads(await request.body())
     body["timestamp"] = common.unixtime()
     col_analytics = ctx.db.get_collection("analytics")
-    col_analytics.insert_one(body)
+    await col_analytics.insert_one(body)
     return json.dumps({"result": "ok"})
