@@ -34,7 +34,8 @@ def open_redis(config):
     return Redis(
         host=node["host"],
         port=node["port"],
-        password=config["redis"]["auth"]["password"],
+        username=config["redis"]["auth"].get("username"),
+        password=config["redis"]["auth"].get("password"),
         encoding="utf-8",
         db=config["redis"]["db"],
     )
