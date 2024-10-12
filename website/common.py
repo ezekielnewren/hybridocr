@@ -48,8 +48,6 @@ def from_cbor(data):
 
 
 def compute_hash(data):
-    b = hashlib.sha256()
-    b.update(data)
-    return b.digest()
+    return hashlib.sha256(data).digest()
 
 
