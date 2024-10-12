@@ -1,3 +1,4 @@
+from google.cloud.vision_v1 import AnnotateImageResponse
 from redis.asyncio import Redis
 import os, json
 import hashlib
@@ -38,6 +39,15 @@ def open_redis(config):
         db=config["redis"]["db"],
     )
 
+
+from google.cloud import vision
+from google.auth import default
+
+def google_ocr(image) -> AnnotateImageResponse:
+    cred, proj = default()
+    client = vision.ImageAnnotatorClient(credentials=cred)
+    img = vision.Image(content=image)
+    return client.text_detection(image=img)
 
 def to_cbor(data):
     return cbor2.dumps(data)
