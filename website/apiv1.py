@@ -1,3 +1,5 @@
+import asyncio
+
 from google.cloud.vision_v1 import AnnotateImageResponse
 
 import rdhelper
@@ -26,7 +28,8 @@ async def upload_image(request: Request, file: UploadFile = File(...)):
         name = Path(common.compute_hash(c).hex())
         v = await rdhelper.file_get(ctx.redis, name)
         if v is None:
-            answer = common.google_ocr(c)
+            loop = asyncio.get_running_loop()
+            answer = await loop.run_in_executor(None, common.google_ocr, c)
             await rdhelper.file_put(ctx.redis, name, answer, expire=30*86400)
 
         v = await rdhelper.file_get(ctx.redis, name)
