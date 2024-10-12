@@ -43,11 +43,12 @@ def open_redis(config):
 from google.cloud import vision
 from google.auth import default
 
-def google_ocr(image) -> AnnotateImageResponse:
+def google_ocr(image) -> bytes:
     cred, proj = default()
     client = vision.ImageAnnotatorClient(credentials=cred)
     img = vision.Image(content=image)
-    return client.text_detection(image=img)
+    answer = client.text_detection(image=img)
+    return compact_json(AnnotateImageResponse.to_json(answer)).encode("utf-8")
 
 def to_cbor(data):
     return cbor2.dumps(data)
@@ -61,3 +62,5 @@ def compute_hash(data):
     return hashlib.sha256(data).digest()
 
 
+def compact_json(data):
+    return json.dumps(json.loads(data), separators=(',', ':'))

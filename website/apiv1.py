@@ -27,15 +27,13 @@ async def upload_image(request: Request, file: UploadFile = File(...)):
         v = await rdhelper.file_get(ctx.redis, name)
         if v is None:
             answer = common.google_ocr(c)
-            ser = AnnotateImageResponse.to_json(answer).encode("utf-8")
-            await rdhelper.file_put(ctx.redis, name, ser, expire=30*86400)
+            await rdhelper.file_put(ctx.redis, name, answer, expire=30*86400)
 
         v = await rdhelper.file_get(ctx.redis, name)
         if v is None:
             raise ValueError("file must have been deleted or expired")
-        meta, data = v
-        answer = AnnotateImageResponse.from_json(data)
+        _, answer = v
     else:
         answer = common.google_ocr(c)
 
-    return Response(AnnotateImageResponse.to_json(answer).encode("utf-8"), media_type="application/json")
+    return Response(answer, media_type="application/json")
