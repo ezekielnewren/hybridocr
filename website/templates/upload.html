@@ -2,15 +2,144 @@
 <html lang="en">
 <head>
     {% include '_header.html' %}
+    <style>
+
+        #drop-area {
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            width: 300px;
+            margin: auto;
+            cursor: pointer;
+        }
+
+        #drop-area img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        #text-output {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+
+        #loading {
+            display: none;
+            font-style: italic;
+            color: #555;
+        }
+    </style>
 </head>
 <body>
 {% include '_banner.html' %}
 <div class="content">
-    <form action="/api/v1/upload/" enctype="multipart/form-data" method="post">
-        <input type="file" name="file">
-        <input type="submit" value="Upload">
-    </form>
+    <div id="drop-area">
+        <p>Drag & drop an image here or click to select</p>
+        <img id="uploaded-image" alt="Your Image Will Appear Here">
+    </div>
+
+    <input type="file" id="file-input" style="display: none;">
+    <button id="recognize-btn" disabled>Recognize Text</button>
+
+    <div id="loading">Recognizing text, please wait...</div>
+    <div id="text-output"></div>
 </div>
 {% include '_footer.html' %}
+<script>
+    const dropArea = document.getElementById('drop-area');
+    const fileInput = document.getElementById('file-input');
+    const uploadedImage = document.getElementById('uploaded-image');
+    const recognizeBtn = document.getElementById('recognize-btn');
+    const textOutput = document.getElementById('text-output');
+    const loadingMessage = document.getElementById('loading');
+
+    // Handle drag-and-drop
+    dropArea.addEventListener('dragover', (event) => {
+        event.preventDefault();
+        dropArea.style.borderColor = 'green';
+    });
+
+    dropArea.addEventListener('dragleave', () => {
+        dropArea.style.borderColor = '#ccc';
+    });
+
+    dropArea.addEventListener('drop', (event) => {
+        event.preventDefault();
+        dropArea.style.borderColor = '#ccc';
+        const file = event.dataTransfer.files[0];
+        handleFile(file);
+    });
+
+    // Handle click to select image
+    dropArea.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    fileInput.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        handleFile(file);
+    });
+
+    // Handle file input and display the image
+    function handleFile(file) {
+        if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                uploadedImage.src = e.target.result;
+                recognizeBtn.disabled = false; // Enable the "Recognize" button
+                textOutput.innerHTML = ''; // Clear any previous output
+            };
+            reader.readAsDataURL(file);
+        } else {
+            alert('Please upload an image file.');
+        }
+    }
+
+
+    // Extract the recognized text and format into HTML
+    function formatOcrTextToHtml(ocrData) {
+        const htmlContent = `<pre>${ocrData.fullTextAnnotation.text}</pre>`;
+        return htmlContent;
+    }
+
+    recognizeBtn.addEventListener('click', async () => {
+        const file = fileInput.files[0];
+        if (!file) {
+            alert('Please upload an image file.');
+            return;
+        }
+
+        try {
+            loadingMessage.style.display = 'block';
+
+            // Read the file as an ArrayBuffer (binary data)
+            const arrayBuffer = await file.arrayBuffer();
+
+            // Send the binary data using fetch API
+            const response = await fetch('/api/v1/ocr', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/octet-stream',  // Indicate binary data
+                },
+                body: arrayBuffer,  // Send raw binary data
+            });
+
+            // Check for response success
+            if (response.ok) {
+                const ocrData = await response.json();
+                textOutput.innerHTML = formatOcrTextToHtml(ocrData);  // Display recognized text
+            } else {
+                const errorText = await response.text();
+                textOutput.innerHTML = `<p>Error: ${errorText}</p>`;
+            }
+        } catch (error) {
+            textOutput.innerHTML = `<p>Error: ${error.message}</p>`;
+        } finally {
+            loadingMessage.style.display = 'none';
+        }
+    });
+</script>
+
 </body>
 </html>

@@ -9,12 +9,15 @@ SESSION_ID = "SESSION_ID"
 class SessionMiddleware(BaseHTTPMiddleware):
     def __init__(self, app: FastAPI):
         super().__init__(app)
-        self.config = common.get_config()
-        self.redis = common.open_redis(self.config)
-        v = common.open_database(self.config)
-        self.client = v[0]
-        self.db = v[1]
-        self.timeout = 2*86400
+        try:
+            self.config = common.get_config()
+            v = common.open_database(self.config)
+            self.client = v[0]
+            self.db = v[1]
+            self.redis = common.open_redis(self.config)
+            self.timeout = 2*86400
+        except Exception as e:
+            raise e
 
     async def dispatch(self, request: Request, call_next):
         if request.url.path.startswith("/status"):

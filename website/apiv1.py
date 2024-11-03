@@ -18,18 +18,18 @@ router = APIRouter()
 from google.protobuf import json_format
 
 
-@router.post("/upload/")
-async def upload_image(request: Request, file: UploadFile = File(...)):
+@router.post("/ocr")
+async def ocr(request: Request):
     ctx = get_session(request.app)
 
-    c = await file.read()
+    image = await request.body()
 
     if not ctx.config["production"]:
-        name = Path(common.compute_hash(c).hex())
+        name = Path(common.compute_hash(image).hex())
         v = await rdhelper.file_get(ctx.redis, name)
         if v is None:
             loop = asyncio.get_running_loop()
-            answer = await loop.run_in_executor(None, common.google_ocr, c)
+            answer = await loop.run_in_executor(None, common.google_ocr, image)
             await rdhelper.file_put(ctx.redis, name, answer, expire=30*86400)
 
         v = await rdhelper.file_get(ctx.redis, name)
@@ -37,6 +37,6 @@ async def upload_image(request: Request, file: UploadFile = File(...)):
             raise ValueError("file must have been deleted or expired")
         _, answer = v
     else:
-        answer = common.google_ocr(c)
+        answer = common.google_ocr(image)
 
     return Response(answer, media_type="application/json")
