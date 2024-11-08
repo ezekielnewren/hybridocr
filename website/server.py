@@ -26,6 +26,7 @@ async def lifespan(app: FastAPI):
     col_log = ctx.db.get_collection("log")
     t = await rdhelper.get_time(ctx.redis)
     await col_log.insert_one({"boot": t})
+    common.init_gmail_api()
     yield
     ctx.client.close()
 
