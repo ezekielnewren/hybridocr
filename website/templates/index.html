@@ -93,7 +93,19 @@
 
             $("#submit-email").click(function() {
                 var email = $("#email-input").val();
+                const emailError = document.getElementById("email-error");
                 var selectedPlan = $("#selected-plan").val();
+
+                // const email = emailInput.value;
+
+                // Regular expression to validate email format
+                const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+                // Check if email matches the pattern
+                if (!emailPattern.test(email)) {
+                    emailError.style.display = "block";
+                    return;
+                }
 
                 $.ajax({
                     url: '/save-email',
@@ -207,7 +219,8 @@
     <input type="hidden" id="selected-plan">
     <div id="email-form" style="display: none;">
         <input type="email" id="email-input" placeholder="Enter your email">
-        <button id="submit-email">Let's go!</button>
+        <button id="submit-email">Get 10 free scans.</button>
+        <span id="email-error" style="color: red; display: none;">Please enter a valid email address.</span>
     </div>
 </div>
 {% include '_footer.html' %}
