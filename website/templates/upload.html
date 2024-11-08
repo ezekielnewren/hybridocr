@@ -4,14 +4,16 @@
     {% include '_header.html' %}
     <style>
 
+        #drop-area, #text-output {
+            flex: 1;
+        }
+
         #drop-area {
             border: 2px dashed #ccc;
             border-radius: 10px;
             padding: 20px;
-            margin-bottom: 20px;
-            width: 300px;
-            margin: auto;
             cursor: pointer;
+            margin: auto auto 20px;
         }
 
         #drop-area img {
@@ -29,21 +31,28 @@
             font-style: italic;
             color: #555;
         }
+
+        #side-by-side {
+            display: flex;
+        }
+
     </style>
 </head>
 <body>
 {% include '_banner.html' %}
 <div class="content">
-    <div id="drop-area">
-        <p>Drag & drop an image here or click to select</p>
-        <img id="uploaded-image" alt="Your Image Will Appear Here">
+    <div id="side-by-side">
+        <div id="drop-area">
+            <p>Drag & drop an image here or click to select</p>
+            <img id="uploaded-image" alt="Your Image Will Appear Here">
+        </div>
+        <div id="text-output"></div>
     </div>
 
     <input type="file" id="file-input" style="display: none;">
     <button id="recognize-btn" disabled>Recognize Text</button>
 
     <div id="loading">Recognizing text, please wait...</div>
-    <div id="text-output"></div>
 </div>
 {% include '_footer.html' %}
 <script>
