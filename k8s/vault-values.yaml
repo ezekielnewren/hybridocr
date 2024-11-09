@@ -14,6 +14,13 @@ server:
         pathType: Prefix
         paths:
          - "/"
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "100Mi"
+    limits:
+      cpu: "1"
+      memory: "1Gi"
   readinessProbe:
     enabled: true
     port: 8200
@@ -30,7 +37,7 @@ server:
     enabled: false
   ha:
     enabled: true
-    replicas: 3
+    replicas: 1
     apiAddr: "https://vault.hybridocr.com"
     clusterAddr:  ## let helm fill it in
     config: |
