@@ -18,7 +18,7 @@ fi
 
 kubectl create namespace $NAMESPACE
 
-helm install traefik traefik/traefik \
+helm upgrade --install traefik traefik/traefik \
   --namespace $NAMESPACE \
   -f traefik-values.yaml \
   --set service.spec.loadBalancerIP="$STATIC_IP" \
@@ -26,3 +26,4 @@ helm install traefik traefik/traefik \
 
 kubectl -n $NAMESPACE apply -f traefik-tlsstore.yaml
 kubectl -n $NAMESPACE apply -f traefik-no-www.yaml
+

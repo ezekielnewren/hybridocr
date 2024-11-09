@@ -21,6 +21,13 @@ ports:
       insecure: true
 service:
   type: LoadBalancer
+resources:
+  requests:
+    cpu: "1m"
+    memory: "32m"
+  limits:
+    cpu: "1"
+    memory: "1Gi"
   ## these values get filled in by the script deploy_traefik.sh
   # spec:
   #   loadBalancerIP: "1.2.3.4"
