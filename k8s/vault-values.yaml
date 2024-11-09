@@ -65,11 +65,4 @@ server:
   serviceAccount:
     create: false
     name: "vault-ksa"
-ui:
-  enabled: true
-  publishNotReadyAddresses: true
-  activeVaultPodOnly: false
-  serviceType: "ClusterIP"
-  serviceNodePort: null
-  externalPort: 8200
-  targetPort: 8200
+
