@@ -11,9 +11,9 @@ class TestWebsite(unittest.IsolatedAsyncioTestCase):
 
     async def test_gmail_read(self):
         config = await common.get_config()
-        common.list_email(config, "noreply")
+        result = await common.list_email(config, "noreply")
 
-        pass
+        self.assertIsNotNone(result)
 
 
 

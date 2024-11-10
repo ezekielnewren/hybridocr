@@ -20,9 +20,9 @@ async def get_config():
         config = json.loads(fd.read())
     vault = VaultClient(config["vault"]["VAULT_ADDR"], config["vault"]["VAULT_TOKEN"])
 
-    result = await vault.read("auth/token/lookup-self")
+    result = await vault.read(Path("auth/token/lookup-self"))
     env = result["data"]["meta"]["env"]
-    config = await vault.kv_get("kv/env/" + env)
+    config = await vault.kv_get(Path("kv/env/"+env))
     config["production"] = config["webserver"].get("production") or False
     return config
 
@@ -74,54 +74,50 @@ def compute_hash(data):
 
 
 def compact_json(data):
-    return json.dumps(json.loads(data), separators=(',', ':'))
+    if isinstance(data, str) or isinstance(data, bytes):
+        data = json.loads(data)
+    return json.dumps(data, separators=(',', ':'))
 
 
-
-
-
-def get_service_gmail(config):
+async def get_service_gmail(config):
     from google.auth.transport.requests import Request
     from google.oauth2.credentials import Credentials
     from google_auth_oauthlib.flow import InstalledAppFlow
     from googleapiclient.discovery import build
-    from googleapiclient.errors import HttpError
 
-    # SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
     SCOPES = ["https://mail.google.com/"]
-    parent = Path(os.environ["HYBRIDOCR_CONFIG_FILE"]).parent
 
-    creds = None
-    # The file token.json stores the user's access and refresh tokens, and is
-    # created automatically when the authorization flow completes for the first
-    # time.
-    file_token = parent/"token.json"
-    file_cred = parent/"gmail2.json"
-    if file_token.exists():
-        creds = Credentials.from_authorized_user_file(str(file_token), SCOPES)
-    # If there are no (valid) credentials available, let the user log in.
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                str(file_cred), SCOPES
-            )
-            creds = flow.run_local_server(port=6324)
-        # Save the credentials for the next run
-        with open(file_token, "w") as token:
-            token.write(creds.to_json())
+    vault = VaultClient.from_config(config)
 
-    service = build("gmail", "v1", credentials=creds)
+    cred_gmail = vault.kv_get("kv/oauth_cred/gmail")
+
+    token_gmail = None
+    try:
+        t = await vault.kv_get("kv/oauth_token/gmail")
+        token_gmail = Credentials.from_authorized_user_info(t, SCOPES)
+        if not token_gmail.valid:
+            token_gmail.refresh(Request())
+            await vault.kv_put("kv/oauth_token/gmail", token_gmail.to_json())
+    except ValueError as e:
+        flow = InstalledAppFlow.from_client_config(cred_gmail, SCOPES)
+        token_gmail = flow.run_local_server(port=6324)
+        vault.kv_put("kv/oauth_token/gmail", token_gmail.to_json())
+
+    service = build("gmail", "v1", credentials=token_gmail)
     return service
 
 
-def list_email(config, inbox):
-    service = get_service_gmail(config)
+async def list_email(config, inbox):
+    service = await get_service_gmail(config)
 
     results = service.users().messages().list(userId=inbox+"@hybridocr.com").execute()
 
     return results
+
+
+def check_type(obj, t_type):
+    if not isinstance(obj, t_type):
+        raise TypeError("expected type: "+str(t_type)+" but got "+str(type(obj)))
 
 
 def exists(data, path):

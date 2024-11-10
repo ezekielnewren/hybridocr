@@ -2,7 +2,7 @@ import unittest
 
 from website import common
 from website.hcvault import VaultClient
-
+from pathlib import Path
 
 class TestHcvault(unittest.IsolatedAsyncioTestCase):
 
@@ -20,3 +20,15 @@ class TestHcvault(unittest.IsolatedAsyncioTestCase):
 
         self.assertIsNotNone(config)
 
+
+    async def test_kv_put(self):
+        config = await common.get_config()
+
+        vault = VaultClient.from_config(config)
+
+        obj = {"key": "value"}
+        await vault.kv_put(Path("kv/oauth_token/test"), obj)
+
+        r = await vault.kv_get(Path("kv/oauth_token/test"))
+
+        self.assertEqual(obj, r)
