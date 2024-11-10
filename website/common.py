@@ -15,14 +15,9 @@ def unixtime():
     return time.time()
 
 
-def get_config():
+async def get_config():
     with open(os.environ["HYBRIDOCR_CONFIG_FILE"], "r") as fd:
         config = json.loads(fd.read())
-    return config
-
-
-async def get_full_config():
-    config = get_config()
     vault = VaultClient(config["vault"]["VAULT_ADDR"], config["vault"]["VAULT_TOKEN"])
 
     result = await vault.read("auth/token/lookup-self")
