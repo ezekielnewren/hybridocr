@@ -1,6 +1,7 @@
 import unittest
 
 from website import common
+from website.gmail import GmailClient
 
 
 class TestWebsite(unittest.IsolatedAsyncioTestCase):
@@ -11,7 +12,8 @@ class TestWebsite(unittest.IsolatedAsyncioTestCase):
 
     async def test_gmail_read(self):
         config = await common.get_config()
-        result = await common.list_email(config, "noreply")
+        gmail = GmailClient(config)
+        result = await gmail.list_email("noreply")
 
         self.assertIsNotNone(result)
 
