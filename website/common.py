@@ -8,19 +8,28 @@ import time
 import cbor2
 from pathlib import Path
 
+from website.hcvault import VaultClient
+
+
 def unixtime():
     return time.time()
 
 
 def get_config():
-    parent = Path(os.environ["HYBRIDOCR_CONFIG_FILE"]).parent
     with open(os.environ["HYBRIDOCR_CONFIG_FILE"], "r") as fd:
         config = json.loads(fd.read())
     return config
-    # config["production"] = config["webserver"].get("production", False)
-    # with open(parent/config["cred"], "r") as fd:
-    #     config["cred"] = json.loads(fd.read())
-    # return config
+
+
+async def get_full_config():
+    config = get_config()
+    vault = VaultClient(config["vault"]["VAULT_ADDR"], config["vault"]["VAULT_TOKEN"])
+
+    result = await vault.read("auth/token/lookup-self")
+    env = result["data"]["meta"]["env"]
+    config = await vault.kv_get("kv/env/" + env)
+    config["production"] = config["webserver"].get("production") or False
+    return config
 
 
 def open_database(config):

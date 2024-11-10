@@ -23,3 +23,11 @@ class VaultClient:
 
     async def read(self, path, **kwargs):
         return await self._request("GET", path, **kwargs)
+
+    async def kv_get(self, path):
+        t: list = path.split("/")
+        t.insert(-1, "data")
+        u = "/".join(t)
+
+        r = await self.read(u)
+        return r["data"]["data"]

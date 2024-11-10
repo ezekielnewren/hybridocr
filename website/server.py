@@ -23,10 +23,10 @@ templates = Jinja2Templates(directory=Path(__file__).parent/"templates")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     ctx = get_session(app)
+    await ctx.init()
     col_log = ctx.db.get_collection("log")
     t = await rdhelper.get_time(ctx.redis)
     await col_log.insert_one({"boot": t})
-    common.init_gmail_api()
     yield
     ctx.client.close()
 

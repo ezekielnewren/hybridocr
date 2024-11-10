@@ -22,6 +22,9 @@ class TestHcvault(unittest.IsolatedAsyncioTestCase):
         result = await vault.read("auth/token/lookup-self")
 
         self.assertTrue(common.exists(result, ["data", "meta", "env"]))
+        env = result["data"]["meta"]["env"]
+
+        result = await vault.kv_get("kv/env/"+env)
 
         self.assertIsNotNone(result)
 
