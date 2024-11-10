@@ -2,7 +2,7 @@ import unittest
 
 from website import common
 from website.gmail import GmailClient
-
+from datetime import datetime
 
 class TestGmail(unittest.IsolatedAsyncioTestCase):
 
@@ -12,3 +12,13 @@ class TestGmail(unittest.IsolatedAsyncioTestCase):
         result = await gmail.list_email("noreply")
 
         self.assertIsNotNone(result)
+
+    async def test_send_email(self):
+        config = await common.get_config()
+
+        gmail = GmailClient(config)
+        sender = "noreply"
+        recipient = f"{sender}@{common.DOMAIN}"
+        subject = "Test subject"
+        body = str(datetime.now())
+        await gmail.send_email(sender, recipient, subject, body)
