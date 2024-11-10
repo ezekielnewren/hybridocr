@@ -15,4 +15,13 @@ class TestHcvault(unittest.IsolatedAsyncioTestCase):
 
         self.assertIsNotNone(result)
 
+    async def test_get_config(self):
+        config = common.get_config()
+        vault = VaultClient(config["vault"]["VAULT_ADDR"], config["vault"]["VAULT_TOKEN"])
+
+        result = await vault.read("auth/token/lookup-self")
+
+        self.assertTrue(common.exists(result, ["data", "meta", "env"]))
+
+        self.assertIsNotNone(result)
 

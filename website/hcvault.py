@@ -1,6 +1,5 @@
-from pathlib import Path
 import aiohttp
-import asyncio
+import json
 
 
 class VaultClient:
@@ -20,7 +19,7 @@ class VaultClient:
 
         prefix = self.addr+"/"+VaultClient.API_VERSION+"/"
         async with aiohttp.request(request_type, prefix+path, **kwargs) as response:
-            return await response.text()
+            return json.loads(await response.text())
 
     async def read(self, path, **kwargs):
         return await self._request("GET", path, **kwargs)

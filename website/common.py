@@ -118,3 +118,18 @@ def list_email(config, inbox):
     results = service.users().messages().list(userId=inbox+"@hybridocr.com").execute()
 
     return results
+
+
+def exists(data, path):
+    if data is None:
+        return False
+    if not isinstance(data, dict):
+        raise TypeError("data must be a dict")
+    if not isinstance(path, list):
+        raise TypeError("path must be a list")
+    cur = data
+    for i in range(len(path)):
+        if path[i] not in cur:
+            return False
+        cur = cur[path[i]]
+    return True
