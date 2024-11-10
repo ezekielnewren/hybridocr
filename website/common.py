@@ -9,6 +9,9 @@ from pathlib import Path
 from website.hcvault import VaultClient
 
 
+DOMAIN = "hybridocr.com"
+
+
 def unixtime():
     return time.time()
 
