@@ -7,6 +7,12 @@ from aiohttp import ClientResponse
 from website import common
 
 
+class ResponseWithContent:
+    def __init__(self, response: ClientResponse, content: bytes):
+        self.response = response
+        self.content = content
+
+
 class VaultClient:
     API_VERSION = "v1"
 
@@ -16,18 +22,17 @@ class VaultClient:
 
     @staticmethod
     async def _check_response(r: ClientResponse, error_on_warnings=False, raw=False):
+        content = await r.content.read()
         if r.status // 100 != 2:
-            message = str(r.url) + " " + str(await r.content.read(), "utf-8")
-            raise IOError(r, message)
+            message = str(r.url) + " " + str(content, "utf-8")
+            raise IOError(ResponseWithContent(r, content), message)
         if r.status == 204:
             return None
-        if raw:
-            content = await r.content.read()
-        else:
+        if not raw:
             try:
-                content = json.loads(await r.content.read())
+                content = json.loads(content)
             except json.decoder.JSONDecodeError as e:
-                return await r.content.read()
+                return content
             if "errors" in content:
                 raise IOError(r, content["errors"])
             if error_on_warnings and content["warnings"] is not None:
@@ -60,8 +65,15 @@ class VaultClient:
 
     async def kv_get(self, path: Path):
         u = path.parent/"data"/path.name
-        r = await self.read(u)
-        return r["data"]["data"]
+        try:
+            r = await self.read(u)
+            return r["data"]["data"]
+        except IOError as e:
+            r: ResponseWithContent = e.errno
+            c = json.loads(r.content)
+            if r.response.status == 404 and "errors" in c and len(c["errors"]) == 0:
+                raise KeyError(str(path.name))
+            raise e
 
     async def kv_put(self, path, data):
         u = path.parent/"data"/path.name

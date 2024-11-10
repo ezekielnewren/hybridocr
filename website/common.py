@@ -1,5 +1,6 @@
 import base64
 
+from aiohttp import ClientResponse
 from google.cloud.vision_v1 import AnnotateImageResponse
 from redis.asyncio import Redis
 import os, json
@@ -8,7 +9,7 @@ import time
 import cbor2
 from pathlib import Path
 
-from website.hcvault import VaultClient
+from website.hcvault import VaultClient, ResponseWithContent
 
 
 def unixtime():
@@ -89,19 +90,19 @@ async def get_service_gmail(config):
 
     vault = VaultClient.from_config(config)
 
-    cred_gmail = vault.kv_get("kv/oauth_cred/gmail")
+    cred_gmail = await vault.kv_get(Path("kv/oauth_cred/gmail"))
 
-    token_gmail = None
+    saveit = lambda v: vault.kv_put(Path("kv/oauth_token/gmail"), json.loads(v.to_json()))
     try:
-        t = await vault.kv_get("kv/oauth_token/gmail")
+        t = await vault.kv_get(Path("kv/oauth_token/gmail"))
         token_gmail = Credentials.from_authorized_user_info(t, SCOPES)
         if not token_gmail.valid:
             token_gmail.refresh(Request())
-            await vault.kv_put("kv/oauth_token/gmail", token_gmail.to_json())
-    except ValueError as e:
+            await saveit(token_gmail)
+    except KeyError:
         flow = InstalledAppFlow.from_client_config(cred_gmail, SCOPES)
         token_gmail = flow.run_local_server(port=6324)
-        vault.kv_put("kv/oauth_token/gmail", token_gmail.to_json())
+        await saveit(token_gmail)
 
     service = build("gmail", "v1", credentials=token_gmail)
     return service
