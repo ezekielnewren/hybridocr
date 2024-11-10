@@ -1,6 +1,3 @@
-import base64
-
-from aiohttp import ClientResponse
 from google.cloud.vision_v1 import AnnotateImageResponse
 from redis.asyncio import Redis
 import os, json
@@ -9,7 +6,7 @@ import time
 import cbor2
 from pathlib import Path
 
-from website.hcvault import VaultClient, ResponseWithContent
+from website.hcvault import VaultClient
 
 
 def unixtime():
@@ -78,46 +75,6 @@ def compact_json(data):
     if isinstance(data, str) or isinstance(data, bytes):
         data = json.loads(data)
     return json.dumps(data, separators=(',', ':'))
-
-
-async def update_token_gmail(config, interactive=False):
-    from google.auth.transport.requests import Request
-    from google.oauth2.credentials import Credentials
-    from google_auth_oauthlib.flow import InstalledAppFlow
-
-    SCOPES = ["https://mail.google.com/"]
-
-    vault = VaultClient.from_config(config)
-
-    cred_gmail = await vault.kv_get(Path("kv/oauth_cred/gmail"))
-
-    saveit = lambda v: vault.kv_put(Path("kv/oauth_token/gmail"), json.loads(v.to_json()))
-    try:
-        t = await vault.kv_get(Path("kv/oauth_token/gmail"))
-        token_gmail = Credentials.from_authorized_user_info(t, SCOPES)
-        if not token_gmail.valid:
-            token_gmail.refresh(Request())
-            await saveit(token_gmail)
-    except KeyError:
-        if not interactive:
-            raise IOError("unable to update gmail token")
-        flow = InstalledAppFlow.from_client_config(cred_gmail, SCOPES)
-        token_gmail = flow.run_local_server(port=6324)
-        await saveit(token_gmail)
-    return token_gmail
-
-
-async def init_gmail(token_gmail):
-    from googleapiclient.discovery import build
-    return build("gmail", "v1", credentials=token_gmail)
-
-
-async def list_email(config, inbox):
-    service = await update_token_gmail(config)
-
-    results = service.users().messages().list(userId=inbox+"@hybridocr.com").execute()
-
-    return results
 
 
 def check_type(obj, t_type):
