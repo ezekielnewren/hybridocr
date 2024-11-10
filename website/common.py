@@ -16,10 +16,11 @@ def get_config():
     parent = Path(os.environ["HYBRIDOCR_CONFIG_FILE"]).parent
     with open(os.environ["HYBRIDOCR_CONFIG_FILE"], "r") as fd:
         config = json.loads(fd.read())
-    config["production"] = config["webserver"].get("production", False)
-    with open(parent/config["cred"], "r") as fd:
-        config["cred"] = json.loads(fd.read())
     return config
+    # config["production"] = config["webserver"].get("production", False)
+    # with open(parent/config["cred"], "r") as fd:
+    #     config["cred"] = json.loads(fd.read())
+    # return config
 
 
 def open_database(config):
