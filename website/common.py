@@ -80,11 +80,10 @@ def compact_json(data):
     return json.dumps(data, separators=(',', ':'))
 
 
-async def get_service_gmail(config):
+async def update_token_gmail(config, interactive=False):
     from google.auth.transport.requests import Request
     from google.oauth2.credentials import Credentials
     from google_auth_oauthlib.flow import InstalledAppFlow
-    from googleapiclient.discovery import build
 
     SCOPES = ["https://mail.google.com/"]
 
@@ -100,16 +99,21 @@ async def get_service_gmail(config):
             token_gmail.refresh(Request())
             await saveit(token_gmail)
     except KeyError:
+        if not interactive:
+            raise IOError("unable to update gmail token")
         flow = InstalledAppFlow.from_client_config(cred_gmail, SCOPES)
         token_gmail = flow.run_local_server(port=6324)
         await saveit(token_gmail)
+    return token_gmail
 
-    service = build("gmail", "v1", credentials=token_gmail)
-    return service
+
+async def init_gmail(token_gmail):
+    from googleapiclient.discovery import build
+    return build("gmail", "v1", credentials=token_gmail)
 
 
 async def list_email(config, inbox):
-    service = await get_service_gmail(config)
+    service = await update_token_gmail(config)
 
     results = service.users().messages().list(userId=inbox+"@hybridocr.com").execute()
 
