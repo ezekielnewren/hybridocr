@@ -18,7 +18,7 @@ class GmailClient:
         self.service = None
 
     async def init(self, interactive=False):
-        if not self.__init:
+        if not self.__init or (self.token is not None and not self.token.valid):
             self.__init = True
             await self.update_token(interactive)
             from googleapiclient.discovery import build
