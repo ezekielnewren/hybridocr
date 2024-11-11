@@ -1,9 +1,8 @@
+import os
 import aiohttp
 import json
 from pathlib import Path
-
 from aiohttp import ClientResponse
-
 from website import common
 
 
@@ -83,3 +82,15 @@ class VaultClient:
     @classmethod
     def from_config(cls, config):
         return VaultClient(config["vault"]["VAULT_ADDR"], config["vault"]["VAULT_TOKEN"])
+
+
+async def get_config():
+    with open(os.environ["HYBRIDOCR_CONFIG_FILE"], "r") as fd:
+        config = json.loads(fd.read())
+    vault = VaultClient(config["vault"]["VAULT_ADDR"], config["vault"]["VAULT_TOKEN"])
+
+    result = await vault.read(Path("auth/token/lookup-self"))
+    env = result["data"]["meta"]["env"]
+    config = await vault.kv_get(Path("kv/env/"+env))
+    config["production"] = config["webserver"].get("production") or False
+    return config

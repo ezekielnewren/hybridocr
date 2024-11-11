@@ -1,20 +1,21 @@
 import unittest
 
 from website import common
+from website.hcvault import get_config
 from website.gmail import GmailClient
 from datetime import datetime
 
 class TestGmail(unittest.IsolatedAsyncioTestCase):
 
     async def test_list(self):
-        config = await common.get_config()
+        config = await get_config()
         gmail = GmailClient(config)
         result = await gmail.list_email("noreply")
 
         self.assertIsNotNone(result)
 
     async def test_send_email(self):
-        config = await common.get_config()
+        config = await get_config()
 
         gmail = GmailClient(config)
         sender = "noreply"

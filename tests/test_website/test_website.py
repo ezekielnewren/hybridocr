@@ -1,12 +1,11 @@
 import unittest
 
 from website import common
-from website.gmail import GmailClient
-
+from website.hcvault import get_config
 
 class TestWebsite(unittest.IsolatedAsyncioTestCase):
 
     async def test_config(self):
-        config = await common.get_config()
+        config = await get_config()
         self.assertIsNotNone(config)
 

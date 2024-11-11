@@ -1,7 +1,7 @@
 import asyncio
 import argparse
 
-from website import common
+from website.hcvault import get_config
 import sys
 
 from website.gmail import GmailClient
@@ -11,7 +11,7 @@ async def main(argv):
     parser = argparse.ArgumentParser(description="Run updates for: Gmail")
     parser.add_argument('--update', action='store_true', help="Runs updates for: Gmail")
     args = parser.parse_args(argv[1:])
-    config = await common.get_config()
+    config = await get_config()
 
     if args.update:
         gmail = GmailClient(config)

@@ -5,6 +5,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from website import common, rdhelper
 from website.gmail import GmailClient
+from website.hcvault import get_config
 
 SESSION_ID = "SESSION_ID"
 class SessionMiddleware(BaseHTTPMiddleware):
@@ -22,7 +23,7 @@ class SessionMiddleware(BaseHTTPMiddleware):
         if not self._init:
             self._init = True
             try:
-                self.config = await common.get_config()
+                self.config = await get_config()
                 v = common.open_database(self.config)
                 self.client = v[0]
                 self.db = v[1]
