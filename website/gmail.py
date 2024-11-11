@@ -17,7 +17,7 @@ class GmailClient:
         self.token = None
         self.service = None
 
-    async def _init(self, interactive=False):
+    async def init(self, interactive=False):
         if not self.__init:
             self.__init = True
             await self.update_token(interactive)
@@ -50,12 +50,12 @@ class GmailClient:
             await saveit(self.token)
 
     async def list_email(self, inbox):
-        await self._init()
+        await self.init()
 
         return self.service.users().messages().list(userId=inbox + "@"+common.DOMAIN).execute()
 
     async def send_email(self, sender, recipient, subject, body):
-        await self._init()
+        await self.init()
 
         message = MIMEMultipart()
         message['to'] = recipient

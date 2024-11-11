@@ -4,6 +4,7 @@ from fastapi import FastAPI, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from website import common, rdhelper
+from website.gmail import GmailClient
 
 SESSION_ID = "SESSION_ID"
 class SessionMiddleware(BaseHTTPMiddleware):
@@ -14,6 +15,7 @@ class SessionMiddleware(BaseHTTPMiddleware):
         self.client = None
         self.db = None
         self.redis = None
+        self.gmail = None
         self.timeout = None
 
     async def init(self):
@@ -25,11 +27,13 @@ class SessionMiddleware(BaseHTTPMiddleware):
                 self.client = v[0]
                 self.db = v[1]
                 self.redis = common.open_redis(self.config)
+                self.gmail = GmailClient(self.config)
                 self.timeout = 2*86400
 
                 col_log = self.db.get_collection("log")
                 t = await rdhelper.get_time(self.redis)
                 await col_log.insert_one({"boot": t})
+                await self.gmail.init()
             except Exception as e:
                 raise e
 
