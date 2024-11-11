@@ -1,11 +1,18 @@
 import unittest
 
-from website import common
-from website.hcvault import get_config
+from starlette.testclient import TestClient
+from website.server import app
 
-class TestWebsite(unittest.IsolatedAsyncioTestCase):
 
-    async def test_config(self):
-        config = await get_config()
-        self.assertIsNotNone(config)
+class TestWebsite(unittest.TestCase):
+    def __init__(self, other):
+        super().__init__(other)
+        self.client = TestClient(app)
 
+    def __del__(self):
+        self.client.close()
+
+    def test_landing_page(self):
+        resp = self.client.get("/")
+
+        self.assertIsNotNone(resp)

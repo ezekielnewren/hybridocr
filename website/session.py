@@ -61,7 +61,7 @@ class SessionMiddleware(BaseHTTPMiddleware):
 
         response: Response = await call_next(request)
         if new_session:
-            response.set_cookie(SESSION_ID, sid, httponly=True, secure=True, samesite='strict', max_age=self.timeout)
+            response.set_cookie(SESSION_ID, sid, httponly=True, secure=True, samesite='strict', max_age=self.ctx.timeout)
 
         raw1 = common.to_cbor(request.state.session)
         if raw0 != raw1:

@@ -7,10 +7,10 @@ from fastapi.templating import Jinja2Templates
 import json
 from pathlib import Path
 
-from apiv1 import router as apiv1_router
+from website.apiv1 import router as apiv1_router
 from starlette.middleware import Middleware
 
-from website import common
+from website import common, rdhelper
 from website.session import SessionMiddleware, get_context
 import os
 
@@ -103,7 +103,7 @@ async def about(request: Request):
 async def save_email(request: Request):
     ctx = get_context(app)
     body = json.loads(await request.body())
-    body["timestamp"] = common.unixtime()
+    body["timestamp"] = await rdhelper.get_time(ctx.redis)
     col_analytics = ctx.db.get_collection("analytics")
     await col_analytics.insert_one(body)
     return json.dumps({"result": "ok"})
