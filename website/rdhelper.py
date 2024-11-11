@@ -1,7 +1,7 @@
 from redis.asyncio import Redis
 from pathlib import Path
 
-import common
+from website import common
 
 
 async def get_time(rd):

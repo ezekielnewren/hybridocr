@@ -1,26 +1,21 @@
 import asyncio
 
-from google.cloud.vision_v1 import AnnotateImageResponse
-
 import rdhelper
-from typing import List
 from pathlib import Path
 
-from fastapi import APIRouter, UploadFile, File
-from fastapi import FastAPI, Request, Response
+from fastapi import APIRouter
+from fastapi import Request, Response
 
-from website.session import SessionMiddleware, get_session
+from website.session import get_context
 
 import common
 
 router = APIRouter()
 
-from google.protobuf import json_format
-
 
 @router.post("/ocr")
 async def ocr(request: Request):
-    ctx = get_session(request.app)
+    ctx = get_context(request.app)
 
     image = await request.body()
 
