@@ -1,15 +1,17 @@
 import asyncio
-from pathlib import Path
 
 import pytest
-from httpx import Response, Cookies
-from starlette.testclient import TestClient
+from pathlib import Path
 
+import pytest_asyncio
+from httpx import AsyncClient, ASGITransport
+
+from website import rdhelper
+from website.hcvault import get_config
 from website.server import app
 from website.session import get_context
 
-
-def save_cookies(user: dict, client: TestClient):
+def save_cookies(user: dict, client: AsyncClient):
     if "cookie" not in user or user["cookie"] is None:
         user["cookie"] = dict()
     user["cookie"].clear()
@@ -17,34 +19,37 @@ def save_cookies(user: dict, client: TestClient):
         user["cookie"][k] = v
 
 
-def load_cookies(user: dict, client: TestClient):
+def load_cookies(user: dict, client: AsyncClient):
     if "cookie" in user and user["cookie"] is not None:
         for k, v in user["cookie"].items():
             client.cookies.set(k, v)
 
 
-@pytest.fixture(scope="module")
+@pytest_asyncio.fixture
 async def test_context():
-    client = TestClient(app):
-    client.get("/status/ready")
-    ctx = get_context(app)
-    username = "noreply"
-    user = await ctx.vault.kv_get(Path(f"kv/user/{username}"))
-    if user is not None:
-        load_cookies(user, client.cookies)
+    alias = "noreply"
+    config = await get_config()
+    base_url = f'https://{config["webserver"]["domain"][0]}'
+    async with AsyncClient(transport=ASGITransport(app=app), base_url=base_url) as client:
+        await client.get("/status/ready")
+        ctx = get_context(app)
+        user = await ctx.vault.kv_get(Path(f"kv/user/{alias}"))
+        if user is not None:
+            load_cookies(user, client)
 
-    yield client, user
-
-    save_cookies(user, client)
-    await ctx.vault.kv_put(Path(f"kv/user/{username}"), user)
-    client.close()
+        yield client, user
+        save_cookies(user, client)
+        await ctx.vault.kv_put(Path(f"kv/user/{alias}"), user)
 
 
 @pytest.mark.asyncio
 async def test_landing_page(test_context):
-    client, user = await anext(test_context)
-    client: TestClient = client
+    client, user = test_context
+    ctx = get_context(app)
+    try:
+        await rdhelper.get_time(ctx.redis)
+        resp = await client.get("/")
+        assert resp is not None
+    except Exception as e:
+        raise e
 
-    resp: Response = client.get("/")
-
-    assert resp is not None
