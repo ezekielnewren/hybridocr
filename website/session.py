@@ -5,7 +5,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from website import common, rdhelper, dbhelper
 from website.gmail import GmailClient
-from website.hcvault import get_config
+from website.hcvault import get_config, VaultClient
+
 
 class Context:
     def __init__(self):
@@ -14,6 +15,7 @@ class Context:
         self.client = None
         self.db = None
         self.redis = None
+        self.vault = None
         self.gmail = None
         self.timeout = None
 
@@ -24,6 +26,7 @@ class Context:
                 self.config = await get_config()
                 self.client, self.db = common.open_database(self.config)
                 self.redis = common.open_redis(self.config)
+                self.vault = VaultClient.from_config(self.config)
                 self.gmail = GmailClient(self.config)
                 self.timeout = 2*86400
 
@@ -78,3 +81,4 @@ def get_context(app: FastAPI):
         if not hasattr(v, "app"):
             break
         v = v.app
+    raise ValueError("unable to get context")
