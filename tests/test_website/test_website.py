@@ -1,37 +1,27 @@
 import asyncio
-import unittest
 from pathlib import Path
 
+import pytest
 from starlette.testclient import TestClient
 
-from website.hcvault import get_config, VaultClient
 from website.server import app
 from website.session import get_context
 
+@pytest.fixture(scope="module")
+async def test_context():
+    with TestClient(app) as client:
+        client.get("/status/ready")
+        ctx = get_context(app)
+        user = await ctx.vault.kv_get(Path(f"kv/user/noreply"))
+        if user is not None and "cookie" in user and isinstance(user["cookie"], dict):
+            for k, v in user.items():
+                client.cookies.set(k, v)
+        yield client, user
 
 
-class TestWebsite(unittest.IsolatedAsyncioTestCase):
-    async def asyncSetUp(self):
-        await self.init()
+@pytest.mark.asyncio
+async def test_landing_page(test_context):
+    client, user = await anext(test_context)
+    resp = client.get("/")
 
-    async def init(self):
-        self.user = "noreply"
-        config = await get_config()
-        vault = VaultClient.from_config(config)
-        self.user: dict = await vault.kv_get(Path(f"kv/user/{self.user}"))
-
-        self.client = TestClient(app)
-        self.client.get("/status/ready")
-        self.ctx = get_context(app)
-        await self.ctx.init()
-        if self.user is not None and "cookie" in self.user and isinstance(self.user["cookie"], dict):
-            for k, v in self.user.items():
-                self.client.cookies.set(k, v)
-
-    def tearDown(self):
-        self.client.close()
-
-    def test_landing_page(self):
-        resp = self.client.get("/")
-
-        self.assertIsNotNone(resp)
+    assert resp is not None

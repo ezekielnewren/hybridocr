@@ -18,6 +18,7 @@ class Context:
         self.vault = None
         self.gmail = None
         self.timeout = None
+        self.user = None
 
     async def init(self):
         if not self._init:
