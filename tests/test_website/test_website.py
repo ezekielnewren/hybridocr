@@ -34,12 +34,14 @@ async def test_context():
         await client.get("/status/ready")
         ctx = get_context(app)
         user = await ctx.vault.kv_get(Path(f"kv/user/{alias}"))
+        before = user.copy()
         if user is not None:
             load_cookies(user, client)
 
         yield client, user
         save_cookies(user, client)
-        await ctx.vault.kv_put(Path(f"kv/user/{alias}"), user)
+        if before != user:
+            await ctx.vault.kv_put(Path(f"kv/user/{alias}"), user)
 
 
 @pytest.mark.asyncio
