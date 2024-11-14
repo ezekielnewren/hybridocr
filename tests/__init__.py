@@ -4,7 +4,7 @@ from pathlib import Path
 dir_test_file_base = Path(__file__).resolve().parent / "file"
 
 def open_test_file(path):
-    return open(dir_test_file_base / path, "r")
+    return open(dir_test_file_base / path, "rb")
 
 
 def list_test_files():
