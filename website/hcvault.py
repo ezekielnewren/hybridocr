@@ -70,7 +70,7 @@ class VaultClient:
         except IOError as e:
             r: ResponseWithContent = e.errno
             c = json.loads(r.content)
-            if r.response.status == 404 and "errors" in c and len(c["errors"]) == 0:
+            if r.response.status == 404 or ("errors" in c and len(c["errors"]) == 0):
                 raise KeyError(str(path.name))
             raise e
 
