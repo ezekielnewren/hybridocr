@@ -4,6 +4,9 @@ from pymongo import ReturnDocument
 
 from website import common, rdhelper
 
+PROCEED = 0
+CONTENTION = 1
+EMPTY = 2
 
 async def init(db: AsyncIOMotorDatabase, t):
     col_log = db.get_collection("log")
@@ -69,11 +72,11 @@ async def inc_scan_p1(db: AsyncIOMotorDatabase, _id: ObjectId, time: float):
 
     if a + b >= c:
         if b > 0:
-            return {"contention": True}
+            return {"state": CONTENTION}
         else:
-            return None
+            return {"state": EMPTY}
     else:
-        ticket["contention"] = False
+        ticket["state"] = PROCEED
         return ticket
 
 
