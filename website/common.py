@@ -92,3 +92,8 @@ def exists(data, path):
             return False
         cur = cur[path[i]]
     return True
+
+def generate_alphanumeric(count):
+    import secrets
+    import string
+    return ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(count))
