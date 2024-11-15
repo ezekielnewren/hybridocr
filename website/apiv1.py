@@ -22,8 +22,7 @@ async def ocr(request: Request):
         name = Path(common.compute_hash(image).hex())
         v = await rdhelper.file_get(ctx.redis, name)
         if v is None:
-            loop = asyncio.get_running_loop()
-            answer = await loop.run_in_executor(None, common.google_ocr, image)
+            answer = await ctx.gocr.ocr(image)
             await rdhelper.file_put(ctx.redis, name, answer, expire=30*86400)
 
         v = await rdhelper.file_get(ctx.redis, name)

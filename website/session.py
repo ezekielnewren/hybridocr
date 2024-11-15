@@ -5,6 +5,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from website import common, rdhelper, dbhelper
 from website.gmail import GmailClient
+from website.gocr import GOCR
 from website.hcvault import get_config, VaultClient
 
 
@@ -17,6 +18,7 @@ class Context:
         self.redis = None
         self.vault = None
         self.gmail = None
+        self.gocr = None
         self.timeout = None
         self.user = None
 
@@ -30,10 +32,12 @@ class Context:
                 self.vault = VaultClient.from_config(self.config)
                 self.gmail = GmailClient(self.config)
                 self.timeout = 2*86400
+                self.gocr = GOCR(self.config)
 
                 t = await rdhelper.get_time(self.redis)
                 await dbhelper.init(self.db, t)
                 await self.gmail.init()
+                await self.gocr.init()
             except Exception as e:
                 raise e
 
