@@ -1,4 +1,6 @@
 from google.cloud.vision_v1 import AnnotateImageResponse
+from pymongo import WriteConcern, ReadPreference
+from pymongo.read_concern import ReadConcern
 from redis.asyncio import Redis
 import os, json
 import hashlib
@@ -19,9 +21,16 @@ def open_database(config):
         host=config["mongodb"]["uri"],
         username=config["mongodb"]["username"],
         password=config["mongodb"]["password"],
+        w="majority",
+        journal=True
     )
 
-    db = client[config["mongodb"]["dbname"]]
+    db = client.get_database(
+        config["mongodb"]["dbname"],
+        write_concern=WriteConcern("majority"),
+        read_concern=ReadConcern("majority"),
+        read_preference=ReadPreference.PRIMARY
+    )
     return client, db
 
 
