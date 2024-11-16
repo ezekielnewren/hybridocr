@@ -16,6 +16,9 @@ router = APIRouter()
 async def ocr(request: Request):
     ctx = get_context(request.app)
 
+    _id = request.query_params.get("_id")
+    challenge = request.query_params.get("challenge")
+
     image = await request.body()
 
     if not ctx.config["production"]:

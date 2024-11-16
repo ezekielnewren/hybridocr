@@ -45,25 +45,34 @@ async def get_user_by_username(db: AsyncIOMotorDatabase, username: str):
 async def get_user_by_id(db: AsyncIOMotorDatabase, _id: ObjectId):
     return await db.user.find_one({"_id": _id})
 
-async def inc_scan_p1(db: AsyncIOMotorDatabase, _id: ObjectId, time: float):
+async def inc_scan_p1(db: AsyncIOMotorDatabase, _id: ObjectId, time: float, challenge=None):
+    if challenge is None:
+        challenge = common.generate_alphanumeric(32)
     ticket = {
-        "challenge": common.generate_alphanumeric(32),
+        "challenge": challenge,
         "expire": time + 300
     }
 
     result = await db.user.find_one_and_update(
-        {
-            "_id": _id,
-            "$expr": {
-                "$lt": [
-                    {"$add": ["$scan.google.count", {"$size": "$scan.google.pending"}]},
-                    "$scan.google.limit"
-                ]
+        {"_id": _id},
+        [
+            {
+                "$set": {
+                    "scan.google.pending": {
+                        "$cond": {
+                            "if": {
+                                "$lt": [
+                                    {"$add": ["$scan.google.count", {"$size": "$scan.google.pending"}]},
+                                    "$scan.google.limit"
+                                ]
+                            },
+                            "then": {"$concatArrays": ["$scan.google.pending", [ticket]]},
+                            "else": "$scan.google.pending"
+                        }
+                    }
+                }
             }
-        },
-        {
-            "$push": {"scan.google.pending": ticket}
-        },
+        ],
         return_document=ReturnDocument.AFTER)
 
     a = result["scan"]["google"]["count"]

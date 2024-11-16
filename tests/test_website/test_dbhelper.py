@@ -23,16 +23,37 @@ class TestDBHelper(unittest.IsolatedAsyncioTestCase):
 
         t = await rdhelper.get_time(ctx.redis)
 
-        for success in [True, False]:
-            ticket = await dbhelper.inc_scan_p1(ctx.db, dbuser["_id"], t)
-            if ticket is None:
-                print("no more scans left")
-            elif ticket and ticket["contention"]:
-                print("last scan(s) contention, retry")
-            else:
-                print("proceed with scan")
+
+
+        scenario = [
+            [dbhelper.PROCEED,    {"count": 0, "limit": 10, "pending": []}],
+            [dbhelper.CONTENTION, {"count": 9, "limit": 10, "pending": [{"challenge": "abc123", "expire": t+300}]}],
+            [dbhelper.EMPTY,      {"count": 10, "limit": 10, "pending": [{"challenge": "abc123", "expire": t-10}]}],
+            [dbhelper.PROCEED,    {"count": 9, "limit": 10, "pending": [{"challenge": "abc123", "expire": t - 10}]}],
+        ]
+
+        for v in scenario:
+            expected = v[0]
+            source = v[1]
+            for success in [True, False]:
+                await ctx.db.user.find_one_and_update(
+                    {"_id": dbuser["_id"]},
+                    {"$set": {"scan.google": source}},
+                    return_document=False
+                )
+
                 t = await rdhelper.get_time(ctx.redis)
-                await dbhelper.inc_scan_p2(ctx.db, dbuser["_id"], t, ticket["challenge"], success)
+                ticket = await dbhelper.inc_scan_p1(ctx.db, dbuser["_id"], t)
+                assert ticket is not None
+                assert expected == ticket["state"]
+
+                if ticket["state"] == dbhelper.PROCEED:
+                    t = await rdhelper.get_time(ctx.redis)
+                    await dbhelper.inc_scan_p2(ctx.db, dbuser["_id"], t, ticket["challenge"], success)
+                elif ticket["state"] == dbhelper.CONTENTION:
+                    assert True
+                elif ticket["state"] == dbhelper.EMPTY:
+                    assert True
 
         pass
 
