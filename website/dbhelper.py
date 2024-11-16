@@ -46,6 +46,17 @@ async def get_user_by_id(db: AsyncIOMotorDatabase, _id: ObjectId):
     return await db.user.find_one({"_id": _id})
 
 async def inc_scan_p1(db: AsyncIOMotorDatabase, _id: ObjectId, time: float, challenge=None):
+    await db.user.update_one(
+        {"_id": _id},
+        {
+            "$pull": {
+                "scan.google.pending": {
+                    "expire": {"$lt": time}
+                }
+            }
+        }
+    )
+
     if challenge is None:
         challenge = common.generate_alphanumeric(32)
     ticket = {
@@ -73,18 +84,18 @@ async def inc_scan_p1(db: AsyncIOMotorDatabase, _id: ObjectId, time: float, chal
                 }
             }
         ],
-        return_document=ReturnDocument.AFTER)
+        return_document=ReturnDocument.BEFORE)
 
     a = result["scan"]["google"]["count"]
     b = len(result["scan"]["google"]["pending"])
     c = result["scan"]["google"]["limit"]
 
-    if a + b >= c:
-        if b > 0:
-            return {"state": CONTENTION}
-        else:
-            return {"state": EMPTY}
+    if a >= c:
+        return {"state": EMPTY}
+    elif a + b >= c and result["scan"]["google"]["pending"]:
+        return {"state": CONTENTION}
     else:
+        assert a + b < c
         ticket["state"] = PROCEED
         return ticket
 
@@ -110,17 +121,6 @@ async def inc_scan_p2(db: AsyncIOMotorDatabase, _id: ObjectId, time: float, chal
                 "$pull": {"scan.google.pending": {"challenge": challenge}}
             }
         )
-
-    await db.user.update_one(
-        {"_id": _id},
-        {
-            "$pull": {
-                "scan.google.pending": {
-                    "expire": {"$lt": time}
-                }
-            }
-        }
-    )
 
     return result
 

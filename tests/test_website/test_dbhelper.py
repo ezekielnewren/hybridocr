@@ -26,10 +26,10 @@ class TestDBHelper(unittest.IsolatedAsyncioTestCase):
 
 
         scenario = [
+            [dbhelper.PROCEED,    {"count": 9, "limit": 10, "pending": [{"challenge": "abc123", "expire": t-10}]}],
+            [dbhelper.EMPTY,      {"count": 10, "limit": 10, "pending": [{"challenge": "abc123", "expire": t-10}]}],
             [dbhelper.PROCEED,    {"count": 0, "limit": 10, "pending": []}],
             [dbhelper.CONTENTION, {"count": 9, "limit": 10, "pending": [{"challenge": "abc123", "expire": t+300}]}],
-            [dbhelper.EMPTY,      {"count": 10, "limit": 10, "pending": [{"challenge": "abc123", "expire": t-10}]}],
-            [dbhelper.PROCEED,    {"count": 9, "limit": 10, "pending": [{"challenge": "abc123", "expire": t - 10}]}],
         ]
 
         for v in scenario:
@@ -52,8 +52,10 @@ class TestDBHelper(unittest.IsolatedAsyncioTestCase):
                     await dbhelper.inc_scan_p2(ctx.db, dbuser["_id"], t, ticket["challenge"], success)
                 elif ticket["state"] == dbhelper.CONTENTION:
                     assert True
+                    break
                 elif ticket["state"] == dbhelper.EMPTY:
                     assert True
+                    break
 
         pass
 
