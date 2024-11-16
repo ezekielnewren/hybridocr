@@ -102,26 +102,18 @@ async def inc_scan_p1(db: AsyncIOMotorDatabase, _id: ObjectId, time: float, chal
 
 async def inc_scan_p2(db: AsyncIOMotorDatabase, _id: ObjectId, time: float, challenge, commit):
     if commit:
-        result = await db.user.find_one_and_update(
-            {
-                "_id": _id
-            },
+        await db.user.find_one_and_update(
+            {"_id": _id},
             {
                 "$inc": {"scan.google.count": 1},
                 "$pull": {"scan.google.pending": {"challenge": challenge}}
-            },
-            return_document=ReturnDocument.AFTER
+            }
         )
     else:
-        result = await db.user.find_one_and_update(
-            {
-                "_id": _id
-            },
+        await db.user.find_one_and_update(
+            {"_id": _id},
             {
                 "$pull": {"scan.google.pending": {"challenge": challenge}}
-            },
-            return_document=ReturnDocument.AFTER
+            }
         )
-
-    return result
 

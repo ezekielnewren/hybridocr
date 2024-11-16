@@ -49,16 +49,22 @@ class TestDBHelper(unittest.IsolatedAsyncioTestCase):
 
                 if ticket["state"] == dbhelper.PROCEED:
                     t = await rdhelper.get_time(ctx.redis)
-                    result = await dbhelper.inc_scan_p2(ctx.db, dbuser["_id"], t, ticket["challenge"], success)
+                    await dbhelper.inc_scan_p2(ctx.db, dbuser["_id"], t, ticket["challenge"], success)
+                    result = await ctx.db.user.find_one({"_id": dbuser["_id"]})
                     assert 0 == len(result["scan"]["google"]["pending"])
                     copy = source.copy()
                     assert copy["count"] + (1 if success else 0) == result["scan"]["google"]["count"]
                 elif ticket["state"] == dbhelper.CONTENTION:
-                    assert True
+                    result = await ctx.db.user.find_one({"_id": dbuser["_id"]})
+                    c = result["scan"]["google"]["count"]
+                    l = result["scan"]["google"]["limit"]
+                    assert 0 <= c < l
+                    assert l-c == len(result["scan"]["google"]["pending"])
                     break
                 elif ticket["state"] == dbhelper.EMPTY:
-                    assert True
+                    result = await ctx.db.user.find_one({"_id": dbuser["_id"]})
+                    c = result["scan"]["google"]["count"]
+                    l = result["scan"]["google"]["limit"]
+                    assert c == l
+                    assert 0 == len(result["scan"]["google"]["pending"])
                     break
-
-        pass
-
