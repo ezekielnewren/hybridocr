@@ -110,7 +110,7 @@ async def inc_scan_p2(db: AsyncIOMotorDatabase, _id: ObjectId, time: float, chal
                 "$inc": {"scan.google.count": 1},
                 "$pull": {"scan.google.pending": {"challenge": challenge}}
             },
-            return_document=True
+            return_document=ReturnDocument.AFTER
         )
     else:
         result = await db.user.find_one_and_update(
@@ -119,7 +119,8 @@ async def inc_scan_p2(db: AsyncIOMotorDatabase, _id: ObjectId, time: float, chal
             },
             {
                 "$pull": {"scan.google.pending": {"challenge": challenge}}
-            }
+            },
+            return_document=ReturnDocument.AFTER
         )
 
     return result

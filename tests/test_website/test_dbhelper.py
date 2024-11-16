@@ -49,7 +49,10 @@ class TestDBHelper(unittest.IsolatedAsyncioTestCase):
 
                 if ticket["state"] == dbhelper.PROCEED:
                     t = await rdhelper.get_time(ctx.redis)
-                    await dbhelper.inc_scan_p2(ctx.db, dbuser["_id"], t, ticket["challenge"], success)
+                    result = await dbhelper.inc_scan_p2(ctx.db, dbuser["_id"], t, ticket["challenge"], success)
+                    assert 0 == len(result["scan"]["google"]["pending"])
+                    copy = source.copy()
+                    assert copy["count"] + (1 if success else 0) == result["scan"]["google"]["count"]
                 elif ticket["state"] == dbhelper.CONTENTION:
                     assert True
                     break
