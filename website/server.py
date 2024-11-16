@@ -112,10 +112,12 @@ async def save_email(request: Request):
 
     ## 10 free scans
     result = await dbhelper.upsert_user(ctx.db, body["email"])
-    challenge = common.generate_alphanumeric(32)
     _id = str(result["_id"])
-    key = str(Path(f"/user/{_id}/{challenge}"))
-    await ctx.redis.set(key, 1)
+    key = str(Path(f"/user/{_id}/challenge"))
+    challenge = await ctx.redis.get(key)
+    if challenge is None:
+        challenge = common.generate_alphanumeric(32)
+        await ctx.redis.set(key, challenge, ex=30*60)
 
     link = "https://"+ctx.config["webserver"]["domain"][0]+f"/upload?_id={_id}&challenge={challenge}"
     email_body = "here is your link for 10 free scans "+link
