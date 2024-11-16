@@ -1,25 +1,26 @@
 from uuid import uuid4
 
 from fastapi import FastAPI, Request, Response
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from website import common, rdhelper, dbhelper
 from website.gmail import GmailClient
 from website.gocr import GOCR
 from website.hcvault import get_config, VaultClient
-
+from redis.asyncio import Redis
 
 class Context:
     def __init__(self):
-        self._init = False
-        self.config = None
-        self.client = None
-        self.db = None
-        self.redis = None
-        self.vault = None
-        self.gmail = None
-        self.gocr = None
-        self.timeout = None
+        self._init: bool = False
+        self.config: dict | None = None
+        self.client: AsyncIOMotorClient | None = None
+        self.db: AsyncIOMotorDatabase | None = None
+        self.redis: Redis | None = None
+        self.vault: VaultClient | None = None
+        self.gmail: GmailClient | None = None
+        self.gocr: GOCR | None = None
+        self.timeout: int = 2*86400
         self.user = None
 
     async def init(self):
@@ -31,7 +32,6 @@ class Context:
                 self.redis = common.open_redis(self.config)
                 self.vault = VaultClient.from_config(self.config)
                 self.gmail = GmailClient(self.config)
-                self.timeout = 2*86400
                 self.gocr = GOCR(self.config)
 
                 t = await rdhelper.get_time(self.redis)

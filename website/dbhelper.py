@@ -15,12 +15,9 @@ async def init(db: AsyncIOMotorDatabase, t):
     col_user = db.get_collection("user")
     await col_user.create_index("username", unique=True)
 
-async def upsert_user(db: AsyncIOMotorDatabase, username: str):
-    challenge = common.generate_alphanumeric(32)
+async def upsert_user(db: AsyncIOMotorDatabase, username: str, plan: str = "trial"):
     user_data = {
-        "auth": {
-            "challenge": challenge
-        },
+        "plan": plan,
         "scan": {
             "google": {
                 "count": 0,
@@ -31,19 +28,22 @@ async def upsert_user(db: AsyncIOMotorDatabase, username: str):
     }
 
     result = await db.user.find_one_and_update(
-        {"username": username},  # Query to match the user
-        {"$set": user_data},  # Update the user data
-        upsert=True,  # Insert a new document if it doesn't exist
-        return_document=True  # Return the updated document
+        {"username": username},
+        {"$set": user_data},
+        upsert=True,
+        return_document=True
     )
 
     return result
 
+
 async def get_user_by_username(db: AsyncIOMotorDatabase, username: str):
     return await db.user.find_one({"username": username})
 
+
 async def get_user_by_id(db: AsyncIOMotorDatabase, _id: ObjectId):
     return await db.user.find_one({"_id": _id})
+
 
 async def inc_scan_p1(db: AsyncIOMotorDatabase, _id: ObjectId, time: float, challenge=None):
     await db.user.update_one(

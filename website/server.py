@@ -1,6 +1,7 @@
 ## python3 -m uvicorn website.server:app --reload --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips '*'
 from contextlib import asynccontextmanager
 
+from bson import ObjectId
 from fastapi import FastAPI, Request, Response
 from fastapi.templating import Jinja2Templates
 
@@ -10,7 +11,7 @@ from pathlib import Path
 from website.apiv1 import router as apiv1_router
 from starlette.middleware import Middleware
 
-from website import common, rdhelper
+from website import common, rdhelper, dbhelper
 from website.session import SessionMiddleware, get_context
 import os
 
@@ -104,6 +105,19 @@ async def save_email(request: Request):
     ctx = get_context(app)
     body = json.loads(await request.body())
     body["timestamp"] = await rdhelper.get_time(ctx.redis)
+
+    ## analytics
     col_analytics = ctx.db.get_collection("analytics")
     await col_analytics.insert_one(body)
+
+    ## 10 free scans
+    result = await dbhelper.upsert_user(ctx.db, body["email"])
+    challenge = common.generate_alphanumeric(32)
+    _id = str(result["_id"])
+    key = str(Path(f"/user/{_id}/{challenge}"))
+    await ctx.redis.set(key, 1)
+
+    link = "https://"+ctx.config["webserver"]["domain"][0]+f"/upload?_id={_id}&challenge={challenge}"
+    email_body = "here is your link for 10 free scans "+link
+    await ctx.gmail.send_email("noreply@hybridocr.com", body["email"], "10 free scans link", email_body)
     return json.dumps({"result": "ok"})

@@ -122,14 +122,16 @@
         try {
             loadingMessage.style.display = 'block';
 
-            // Read the file as an ArrayBuffer (binary data)
-            const arrayBuffer = await file.arrayBuffer();
+            const url = new URL(window.location.href);
+            const p = new URLSearchParams(url.search);
+            const authorization = p.get('_id')+":"+p.get('challenge')
 
-            // Send the binary data using fetch API
+            const arrayBuffer = await file.arrayBuffer();
             const response = await fetch('/api/v1/ocr', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/octet-stream',  // Indicate binary data
+                    'Content-Type': 'application/octet-stream',
+                    'Authorization': authorization,
                 },
                 body: arrayBuffer,  // Send raw binary data
             });
