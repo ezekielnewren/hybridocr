@@ -2,6 +2,7 @@ import asyncio
 import json
 from pathlib import Path
 
+from google.api_core.exceptions import Unauthenticated
 from google.auth.transport.requests import Request
 from google.cloud.vision_v1 import AnnotateImageResponse
 from google.oauth2 import service_account
@@ -20,8 +21,8 @@ class GOCR(Credentials):
         self.vault = VaultClient.from_config(config)
         self.cred = None
 
-    async def init(self, req: Request = None):
-        if self.cred is not None and self.cred.valid:
+    async def init(self, force_new_token = False, req: Request = None):
+        if not force_new_token and self.cred is not None and self.cred.valid:
             return
 
         t0 = await self.vault.kv_get(Path("kv/oauth_cred")/GOCR.ALIAS)
@@ -32,7 +33,7 @@ class GOCR(Credentials):
         except KeyError:
             pass
 
-        if cred.token is None or (cred.token is not None and not cred.valid):
+        if force_new_token or cred.token is None or (cred.token is not None and not cred.valid):
             if req is None:
                 req = Request()
             cred.refresh(req)
@@ -41,7 +42,7 @@ class GOCR(Credentials):
         self.cred = cred
 
     def refresh(self, req: Request):
-        asyncio.get_event_loop().run_until_complete(self.init(req))
+        asyncio.get_event_loop().run_until_complete(self.init(False, req))
 
     @property
     def token(self):
@@ -56,5 +57,12 @@ class GOCR(Credentials):
     async def ocr(self, image):
         client = vision.ImageAnnotatorClient(credentials=self)
         img = vision.Image(content=image)
-        answer = client.text_detection(image=img)
-        return common.compact_json(AnnotateImageResponse.to_json(answer)).encode("utf-8")
+        e = None
+        for _ in range(3):
+            try:
+                answer = client.text_detection(image=img)
+                return common.compact_json(AnnotateImageResponse.to_json(answer)).encode("utf-8")
+            except Unauthenticated as ex:
+                e = ex
+                await self.init(force_new_token=True, req=Request())
+        raise e
