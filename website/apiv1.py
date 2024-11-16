@@ -28,7 +28,7 @@ async def ocr(request: Request):
     _id = m.group(1)
     challenge = m.group(2)
 
-    r = await ctx.redis.get(str(Path(f"/user/{_id}/challenge")))
+    r = str(await ctx.redis.get(str(Path(f"/user/{_id}/challenge"))), "utf-8")
     if r != challenge:
         return not_authorized
 
@@ -38,6 +38,10 @@ async def ocr(request: Request):
 
     _id = ObjectId(_id)
     ticket = await dbhelper.inc_scan_p1(ctx.db, _id, t)
+    if ticket["state"] == dbhelper.EMPTY:
+        return Response(common.compact_json({"errors": ["no more scans left"]}), media_type="application/json")
+    elif ticket["state"] == dbhelper.CONTENTION:
+        return Response(common.compact_json({"errors": ["try again later"]}), media_type="application/json")
     try:
         if not ctx.config["production"]:
             name = Path(common.compute_hash(image).hex())
@@ -56,7 +60,7 @@ async def ocr(request: Request):
         await dbhelper.inc_scan_p2(ctx.db, _id, ticket["challenge"], True)
         return Response(answer, media_type="application/json")
     except Exception as e:
-        await dbhelper.inc_scan_p2(ctx.db, _id, ticket["challenge"], False)
+        await dbhelper.inc_scan_p2(ctx.db, _id, ticket.get("challenge"), False)
         return Response(common.compact_json({"errors": ["error when running ocr"]}), media_type="application/json")
 
 
