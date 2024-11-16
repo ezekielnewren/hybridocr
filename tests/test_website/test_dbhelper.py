@@ -48,8 +48,7 @@ class TestDBHelper(unittest.IsolatedAsyncioTestCase):
                 assert expected == ticket["state"]
 
                 if ticket["state"] == dbhelper.PROCEED:
-                    t = await rdhelper.get_time(ctx.redis)
-                    await dbhelper.inc_scan_p2(ctx.db, dbuser["_id"], t, ticket["challenge"], success)
+                    await dbhelper.inc_scan_p2(ctx.db, dbuser["_id"], ticket["challenge"], success)
                     result = await ctx.db.user.find_one({"_id": dbuser["_id"]})
                     assert 0 == len(result["scan"]["google"]["pending"])
                     copy = source.copy()

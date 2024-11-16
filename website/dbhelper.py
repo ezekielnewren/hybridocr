@@ -100,7 +100,7 @@ async def inc_scan_p1(db: AsyncIOMotorDatabase, _id: ObjectId, time: float, chal
         return ticket
 
 
-async def inc_scan_p2(db: AsyncIOMotorDatabase, _id: ObjectId, time: float, challenge, commit):
+async def inc_scan_p2(db: AsyncIOMotorDatabase, _id: ObjectId, challenge, commit):
     if commit:
         await db.user.find_one_and_update(
             {"_id": _id},
