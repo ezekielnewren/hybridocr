@@ -15,9 +15,10 @@ async def init(db: AsyncIOMotorDatabase, t):
     col_user = db.get_collection("user")
     await col_user.create_index("username", unique=True)
 
-async def ensure_user_exists(db: AsyncIOMotorDatabase, username: str, plan: str = "trial"):
+async def ensure_user_exists(db: AsyncIOMotorDatabase, t: float, username: str, plan: str = "trial"):
     user_data = {
         "username": username,
+        "created": t,
         "plan": plan,
         "scan": {
             "google": {

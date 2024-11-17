@@ -18,11 +18,9 @@ class TestDBHelper(unittest.IsolatedAsyncioTestCase):
         user = await ctx.vault.kv_get(Path("kv/user")/alias)
 
 
-        await dbhelper.ensure_user_exists(ctx.db, user["username"])
-        dbuser = await dbhelper.get_user_by_username(ctx.db, user["username"])
-
         t = await rdhelper.get_time(ctx.redis)
-
+        await dbhelper.ensure_user_exists(ctx.db, t, user["username"])
+        dbuser = await dbhelper.get_user_by_username(ctx.db, user["username"])
 
 
         scenario = [
