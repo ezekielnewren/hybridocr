@@ -111,7 +111,7 @@ async def save_email(request: Request):
     await col_analytics.insert_one(body)
 
     ## 10 free scans
-    result = await dbhelper.upsert_user(ctx.db, body["email"])
+    result = await dbhelper.ensure_user_exists(ctx.db, body["email"])
     _id = str(result["_id"])
     key = str(Path(f"/user/{_id}/challenge"))
     challenge = await ctx.redis.get(key)

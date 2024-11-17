@@ -15,8 +15,9 @@ async def init(db: AsyncIOMotorDatabase, t):
     col_user = db.get_collection("user")
     await col_user.create_index("username", unique=True)
 
-async def upsert_user(db: AsyncIOMotorDatabase, username: str, plan: str = "trial"):
+async def ensure_user_exists(db: AsyncIOMotorDatabase, username: str, plan: str = "trial"):
     user_data = {
+        "username": username,
         "plan": plan,
         "scan": {
             "google": {
@@ -29,7 +30,7 @@ async def upsert_user(db: AsyncIOMotorDatabase, username: str, plan: str = "tria
 
     result = await db.user.find_one_and_update(
         {"username": username},
-        {"$set": user_data},
+        {"$setOnInsert": user_data},
         upsert=True,
         return_document=True
     )

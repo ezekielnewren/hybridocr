@@ -10,7 +10,7 @@ class TestDBHelper(unittest.IsolatedAsyncioTestCase):
         ctx = Context()
         await ctx.init()
 
-    async def test_user_upsert(self):
+    async def test_ensure_user_exists(self):
         ctx = Context()
         await ctx.init()
 
@@ -18,7 +18,7 @@ class TestDBHelper(unittest.IsolatedAsyncioTestCase):
         user = await ctx.vault.kv_get(Path("kv/user")/alias)
 
 
-        await dbhelper.upsert_user(ctx.db, user["username"])
+        await dbhelper.ensure_user_exists(ctx.db, user["username"])
         dbuser = await dbhelper.get_user_by_username(ctx.db, user["username"])
 
         t = await rdhelper.get_time(ctx.redis)
