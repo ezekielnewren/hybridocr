@@ -28,7 +28,7 @@ async def ocr(request: Request):
     _id = m.group(1)
     challenge = m.group(2)
 
-    r = str(await ctx.redis.get(str(Path(f"/user/{_id}/challenge"))), "utf-8")
+    r = await rdhelper.get_str(ctx.redis, str(Path(f"/user/{_id}/challenge")))
     if r != challenge:
         return not_authorized
 

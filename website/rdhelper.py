@@ -16,6 +16,13 @@ def _normalize_path(path: Path):
     return str((prefix / path).absolute())
 
 
+async def get_str(rd: Redis, key):
+    value = await rd.get(key)
+    if isinstance(value, bytes):
+        value = str(value, "utf-8")
+    return value
+
+
 async def file_exists(rd: Redis, path):
     full_path = _normalize_path(path)
     return await rd.exists(full_path)

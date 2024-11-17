@@ -114,7 +114,7 @@ async def save_email(request: Request):
     result = await dbhelper.ensure_user_exists(ctx.db, body["email"])
     _id = str(result["_id"])
     key = str(Path(f"/user/{_id}/challenge"))
-    challenge = await ctx.redis.get(key)
+    challenge = await rdhelper.get_str(ctx.redis, key)
     if challenge is None:
         challenge = common.generate_alphanumeric(32)
         await ctx.redis.set(key, challenge, ex=30*60)
