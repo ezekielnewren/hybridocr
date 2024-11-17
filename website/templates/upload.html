@@ -63,6 +63,8 @@
     const textOutput = document.getElementById('text-output');
     const loadingMessage = document.getElementById('loading');
 
+    let inputImage = null;
+
     // Handle drag-and-drop
     dropArea.addEventListener('dragover', (event) => {
         event.preventDefault();
@@ -76,8 +78,8 @@
     dropArea.addEventListener('drop', (event) => {
         event.preventDefault();
         dropArea.style.borderColor = '#ccc';
-        const file = event.dataTransfer.files[0];
-        handleFile(file);
+        inputImage = event.dataTransfer.files[0];
+        handleFile(inputImage);
     });
 
     // Handle click to select image
@@ -86,8 +88,8 @@
     });
 
     fileInput.addEventListener('change', (event) => {
-        const file = event.target.files[0];
-        handleFile(file);
+        inputImage = event.target.files[0];
+        handleFile(inputImage);
     });
 
     // Handle file input and display the image
@@ -113,8 +115,7 @@
     }
 
     recognizeBtn.addEventListener('click', async () => {
-        const file = fileInput.files[0];
-        if (!file) {
+        if (!inputImage) {
             alert('Please upload an image file.');
             return;
         }
@@ -126,7 +127,7 @@
             const p = new URLSearchParams(url.search);
             const authorization = p.get('_id')+":"+p.get('challenge')
 
-            const arrayBuffer = await file.arrayBuffer();
+            const arrayBuffer = await inputImage.arrayBuffer();
             const response = await fetch('/api/v1/ocr', {
                 method: 'POST',
                 headers: {
