@@ -36,6 +36,8 @@ async def ocr(request: Request):
 
     t = await rdhelper.get_time(ctx.redis)
 
+    run_ocr = lambda _image: ctx.gocr.ocr(_image)
+
     _id = ObjectId(_id)
     ticket = await dbhelper.inc_scan_p1(ctx.db, _id, t)
     if ticket["state"] == dbhelper.EMPTY:
@@ -47,7 +49,7 @@ async def ocr(request: Request):
             name = Path(common.compute_hash(image).hex())
             v = await rdhelper.file_get(ctx.redis, name)
             if v is None:
-                answer = await ctx.gocr.ocr(image)
+                answer = await run_ocr(image)
                 await rdhelper.file_put(ctx.redis, name, answer, expire=30*86400)
 
             v = await rdhelper.file_get(ctx.redis, name)
@@ -55,7 +57,7 @@ async def ocr(request: Request):
                 raise ValueError("file must have been deleted or expired")
             _, answer = v
         else:
-            answer = common.google_ocr(image)
+            answer = await run_ocr(image)
 
         await dbhelper.inc_scan_p2(ctx.db, _id, ticket["challenge"], True)
         return Response(answer, media_type="application/json")
