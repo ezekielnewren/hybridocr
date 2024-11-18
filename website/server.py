@@ -8,16 +8,18 @@ from fastapi.templating import Jinja2Templates
 import json
 from pathlib import Path
 
+from starlette.staticfiles import StaticFiles
+
 from website.apiv1 import router as apiv1_router
 from starlette.middleware import Middleware
 
 from website import common, rdhelper, dbhelper
-from website.middleware import SessionMiddleware, get_context
+from website.middleware import SessionMiddleware, get_context, StaticMiddleware
 import os
 
 
 templates = Jinja2Templates(directory=Path(__file__).parent/"templates")
-
+dir_static = Path(__file__).parent/"static"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -29,11 +31,12 @@ async def lifespan(app: FastAPI):
 
 middleware = [
     Middleware(SessionMiddleware),
+    Middleware(StaticMiddleware),
 ]
 
 app = FastAPI(lifespan=lifespan, middleware=middleware)
 app.include_router(apiv1_router, prefix="/api/v1")
-
+app.mount("/static", StaticFiles(directory=dir_static), name="static")
 
 @app.get('/')
 async def home(request: Request):

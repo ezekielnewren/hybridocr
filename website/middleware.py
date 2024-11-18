@@ -87,3 +87,23 @@ def get_context(app: FastAPI):
             break
         v = v.app
     raise ValueError("unable to get context")
+
+
+class StaticMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app: FastAPI):
+        super().__init__(app)
+        self.__init = False
+        self.app = app
+        self.config = None
+
+    async def init(self):
+        if not self.__init:
+            self.__init = True
+            self.config = await get_config()
+
+    async def dispatch(self, request: Request, call_next):
+        await self.init()
+        response: Response = await call_next(request)
+        if request.url.path.startswith("/static") and not self.config["production"]:
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+        return response
