@@ -19,7 +19,7 @@ async def ocr(request: Request):
     auth = request.headers.get("Authorization")
     p = re.compile("^([^:]+):([^:]+)$")
 
-    not_authorized = Response(common.compact_json({"errors": ["error when running ocr"]}), status_code=400, media_type="application/json")
+    not_authorized = Response(common.compact_json({"errors": ["unauthorized"]}), status_code=400, media_type="application/json")
 
     m = p.match(auth)
     if not bool(m):
