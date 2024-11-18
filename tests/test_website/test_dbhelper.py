@@ -2,7 +2,7 @@ import unittest
 from pathlib import Path
 
 from website import dbhelper, rdhelper
-from website.session import Context
+from website.middleware import Context
 
 class TestDBHelper(unittest.IsolatedAsyncioTestCase):
 

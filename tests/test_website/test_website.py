@@ -9,7 +9,7 @@ from httpx import AsyncClient, ASGITransport
 from website import rdhelper
 from website.hcvault import get_config
 from website.server import app
-from website.session import get_context
+from website.middleware import get_context
 
 def save_cookies(user: dict, client: AsyncClient):
     if "cookie" not in user or user["cookie"] is None:

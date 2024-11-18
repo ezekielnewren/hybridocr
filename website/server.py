@@ -12,7 +12,7 @@ from website.apiv1 import router as apiv1_router
 from starlette.middleware import Middleware
 
 from website import common, rdhelper, dbhelper
-from website.session import SessionMiddleware, get_context
+from website.middleware import SessionMiddleware, get_context
 import os
 
 
