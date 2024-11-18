@@ -41,6 +41,17 @@
 <body>
 {% include '_banner.html' %}
 <div class="content">
+{% if need_email or need_challenge %}
+    <!-- get email if needed and a button to send a new link -->
+    {% if need_email %}
+    <input type="email" id="email" placeholder="Your email address">
+    <button id="submit-email-btn">Get some free scans</button>
+    {% elif need_challenge %}
+    <button id="send-new-link-btn">Email a new link.</button>
+    {% else %}
+    <p>nonsensical combination of need_email and need_challenge</p>
+    {% endif %}
+{% else %}
     <div id="side-by-side">
         <div id="drop-area">
             <p>Drag & drop an image here or click to select</p>
@@ -53,6 +64,7 @@
     <button id="recognize-btn" disabled>Recognize Text</button>
 
     <div id="loading">Recognizing text, please wait...</div>
+{% endif %}
 </div>
 {% include '_footer.html' %}
 <script>
@@ -62,6 +74,66 @@
     const recognizeBtn = document.getElementById('recognize-btn');
     const textOutput = document.getElementById('text-output');
     const loadingMessage = document.getElementById('loading');
+
+    {% if need_email %}
+        // Handle email submission
+        const emailInput = document.getElementById('email');
+        const submitEmailBtn = document.getElementById('submit-email-btn');
+
+        submitEmailBtn.addEventListener('click', async () => {
+            const email = emailInput.value.trim();
+
+            if (!email) {
+                alert('Please enter a valid email address.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email }),
+                });
+
+                if (response.ok) {
+                    alert('Email submitted successfully.');
+                } else {
+                    const error = await response.text();
+                    alert(`Failed to submit email: ${error}`);
+                }
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
+        });
+    {% endif %}
+
+    {% if need_challenge %}
+        // Handle sending a new link
+        const sendNewLinkBtn = document.getElementById('send-new-link-btn');
+
+        sendNewLinkBtn.addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/v1/send-new-link', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({}),
+                });
+
+                if (response.ok) {
+                    alert('New link sent successfully.');
+                } else {
+                    const error = await response.text();
+                    alert(`Failed to send new link: ${error}`);
+                }
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
+        });
+    {% endif %}
 
     let inputImage = null;
 

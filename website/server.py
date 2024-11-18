@@ -1,6 +1,7 @@
 ## python3 -m uvicorn website.server:app --reload --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips '*'
 from contextlib import asynccontextmanager
 
+from bson import ObjectId
 from fastapi import FastAPI, Request, Response
 from fastapi.templating import Jinja2Templates
 
@@ -47,10 +48,21 @@ async def home(request: Request):
 @app.get("/tryitout")
 async def tryitout(request: Request):
     ctx = get_context(app)
+    _id = request.query_params.get("_id")
+    need_email = _id is None or not await dbhelper.user_exists(ctx.db, ObjectId(bytes.fromhex(_id)))
+    challenge = request.query_params.get("challenge")
+    if challenge is None:
+        need_challenge = True
+    else:
+        r = await rdhelper.get_str(ctx.redis, f"/user/{_id}/challenge")
+        need_challenge = r is None or r != challenge
+    need_challenge = need_challenge or need_email
     return templates.TemplateResponse('tryitout.html', {
         "request": request,
         "production": ctx.config["production"],
         "gtag_id": ctx.config["webserver"]["gtag_id"],
+        "need_email": need_email,
+        "need_challenge": need_challenge,
     })
 
 

@@ -119,3 +119,6 @@ async def inc_scan_p2(db: AsyncIOMotorDatabase, _id: ObjectId, challenge, commit
             }
         )
 
+
+async def user_exists(db, _id):
+    return await db.user.find_one({"_id": _id}) is not None
