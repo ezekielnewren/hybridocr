@@ -1,7 +1,6 @@
 ## python3 -m uvicorn website.server:app --reload --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips '*'
 from contextlib import asynccontextmanager
 
-from bson import ObjectId
 from fastapi import FastAPI, Request, Response
 from fastapi.templating import Jinja2Templates
 
@@ -45,10 +44,10 @@ async def home(request: Request):
     })
 
 
-@app.get("/upload")
-async def upload(request: Request):
+@app.get("/tryitout")
+async def tryitout(request: Request):
     ctx = get_context(app)
-    return templates.TemplateResponse('upload.html', {
+    return templates.TemplateResponse('tryitout.html', {
         "request": request,
         "production": ctx.config["production"],
         "gtag_id": ctx.config["webserver"]["gtag_id"],
@@ -80,10 +79,10 @@ async def info(request: Request):
     return Response(f"name: {name}\nnamespace: {namespace}", media_type="text/plain")
 
 
-@app.get('/register')
-async def register(request: Request):
+@app.get('/check-your-email')
+async def check_your_email(request: Request):
     ctx = get_context(app)
-    return templates.TemplateResponse('register.html', {
+    return templates.TemplateResponse('check-your-email.html', {
         "request": request,
         "production": ctx.config["production"],
         "gtag_id": ctx.config["webserver"]["gtag_id"],
@@ -100,19 +99,14 @@ async def about(request: Request):
     })
 
 
-@app.post('/save-email')
-async def save_email(request: Request):
+@app.post('/register')
+async def register(request: Request):
     ctx = get_context(app)
     body = json.loads(await request.body())
     body["timestamp"] = await rdhelper.get_time(ctx.redis)
 
-    ## analytics
-    col_analytics = ctx.db.get_collection("analytics")
-    await col_analytics.insert_one(body)
-
     ## 10 free scans
-    t = await rdhelper.get_time(ctx.redis)
-    result = await dbhelper.ensure_user_exists(ctx.db, t, body["email"])
+    result = await dbhelper.ensure_user_exists(ctx.db, body["timestamp"], body["email"])
     _id = str(result["_id"])
     key = str(Path(f"/user/{_id}/challenge"))
     challenge = await rdhelper.get_str(ctx.redis, key)
@@ -120,7 +114,7 @@ async def save_email(request: Request):
         challenge = common.generate_alphanumeric(32)
         await ctx.redis.set(key, challenge, ex=30*60)
 
-    link = "https://"+ctx.config["webserver"]["domain"][0]+f"/upload?_id={_id}&challenge={challenge}"
+    link = "https://"+ctx.config["webserver"]["domain"][0]+f"/tryitout?_id={_id}&challenge={challenge}"
     email_body = "here is your link for 10 free scans "+link
     await ctx.gmail.send_email("noreply@hybridocr.com", body["email"], "10 free scans link", email_body)
     return json.dumps({"result": "ok"})
