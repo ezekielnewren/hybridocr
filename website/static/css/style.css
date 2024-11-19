@@ -10,14 +10,11 @@
 .showcase textarea {
   width: 100%; /* Match the width of the image */
   height: auto; /* Adjust height dynamically */
-  min-height: 15vh; /* Ensure a minimum height */
-  resize: none; /* Disable resizing */
+  min-height: 20vh; /* Ensure a minimum height */
   border: 1px solid #ccc; /* Add a border for better visibility */
-  border-radius: .25rem; /* Slightly rounded corners */
-  padding: 1rem; /* Add padding for better text readability */
   font-family: inherit; /* Match the page's font */
-  font-size: 1em; /* Adjust font size for readability */
-  box-sizing: border-box; /* Ensure padding doesn't affect width */
+  font-size: 1.5em; /* Adjust font size for readability */
+  margin-bottom: 2rem;
 }
 
 .showcase {
