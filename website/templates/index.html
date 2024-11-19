@@ -115,26 +115,55 @@
                 });
             });
         });
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const tabButton = document.querySelectorAll(".tab-button");
+            const tabContent = document.querySelectorAll(".tab-content");
+
+            tabButton.forEach(v => {
+                v.addEventListener("click", () => {
+                    tabButton.forEach(btn => btn.classList.remove("active"));
+                    v.classList.add("active");
+                    tabContent.forEach(v1 => v1.classList.remove("active"));
+                    const tabId = v.getAttribute("data-tab");
+                    document.querySelector(`#${tabId}`).classList.add("active");
+                })
+            });
+        });
+
+
     </script>
 </head>
 <body>
 {% include '_banner.html' %}
 <div class="content">
-<p>
-    Hybrid OCR offers top-tier document digitization with a focus on privacy.
-    Your scans and text are securely encrypted in your browser, ensuring they
-    stay private and protected. While we currently send your scans to Google’s
-    highly accurate OCR, we’re developing our own engine that will run entirely
-    within your browser—meaning your documents will never leave your device.
-    With Hybrid OCR, you can digitize your documents confidently, knowing that
-    privacy is always a key focus.
-</p>
+    <p>
+        Hybrid OCR offers top-tier document digitization with a focus on privacy.
+        Your scans and text are securely encrypted in your browser, ensuring they
+        stay private and protected. While we currently send your scans to Google’s
+        highly accurate OCR, we’re developing our own engine that will run entirely
+        within your browser—meaning your documents will never leave your device.
+        With Hybrid OCR, you can digitize your documents confidently, knowing that
+        privacy is always a key focus.
+    </p>
 
-    <img src="/static/image/machine_print.jpg" alt="machine print example">
-    <img src="/static/image/block_letters.jpg" alt="block letters example">
-    <img src="/static/image/cursive.jpg" alt="cursive example">
+    <div>
+        <img src="/static/image/machine_print.jpg" alt="machine print example">
+        <div>
+            <button class="tab-button active" data-tab="tab1-1">Text</button>
+            <button class="tab-button" data-tab="tab1-2">Json</button>
+        </div>
+        <div>
+            <div id="tab1-1" class="tab-content active">
+                text
+            </div>
+            <div id="tab1-2" class="tab-content">
+                json
+            </div>
+        </div>
+    </div>
 
-    Try it yourself.
+    <p>Try it yourself.</p>
 
     <div id="email-form">
         <input type="email" id="email-input" placeholder="Enter your email">
