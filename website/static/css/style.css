@@ -1,12 +1,14 @@
 .showcase img {
-  width: 80%; /* Ensure all images are the same width */
+  width: 100%; /* Ensure all images are the same width */
   height: auto; /* Maintain aspect ratio */
-  display: block; /* Ensure no extra spacing below the image */
-  margin: 0 auto; /* Center align the images */
+  display: flex; /* Ensure no extra spacing below the image */
+  align-items: flex-start;
+  /*margin: 0 auto; !* Center align the images *!*/
+  margin-bottom: .5rem;
 }
 
 .showcase textarea {
-  width: 80%; /* Match the width of the image */
+  width: 100%; /* Match the width of the image */
   height: auto; /* Adjust height dynamically */
   min-height: 15vh; /* Ensure a minimum height */
   resize: none; /* Disable resizing */
@@ -20,32 +22,61 @@
 
 .showcase {
   display: flex;
+  width: 80%;
   flex-direction: column;
-  align-items: center;
-  gap: 1.5rem; /* Add spacing between elements */
+  align-items: flex-start;
+  margin: 0 auto;
+  padding: 1rem;
+  /*gap: 1.5rem; !* Add spacing between elements *!*/
 }
 
 .tab-button-container {
   display: flex;
-  justify-content: left;
-  align-items: center;
-  gap: 0.5rem;
+  justify-content: flex-start; /* Align tabs to the left */
+  align-items: flex-end;
+  gap: 0; /* Remove gaps between tabs */
+  margin: 0;
+  /*position: relative; !* Allow fine control over layout if needed *!*/
 }
 
 .tab-button {
-  background-color: #28a745;
-  color: white;
-  border: none;
+  /*background-color: #28a745;*/
+  background-color: white;
+  color: black;
+  border: 1px solid #ccc; /* Add border for better definition */
+  border-bottom: none; /* Remove bottom border to merge with the textarea */
   cursor: pointer;
+  padding: 0.5rem 1rem; /* Adjust padding for better spacing */
   transition: background-color 0.3s ease, transform 0.2s ease;
+  margin: 0; /* Remove margin for a seamless appearance */
+  border-radius: 0.25rem 0.25rem 0 0; /* Rounded top corners for tab shape */
+  position: relative;
 }
 
 .tab-button:hover {
-  background-color: #218838;
+  background-color: #218838; /* Darker green on hover */
+}
+
+.tab-button.active {
+  background-color: white; /* Make the active tab match the textarea */
+  color: black;
+  font-weight: bold;
+  border-bottom: 3px solid #28a745;
+  position: relative;
+  z-index: 2; /* Bring the active tab above the textarea */
 }
 
 .tab-display {
-  display: flex;
+  width: 100%; /* Match width of the container */
+  /*max-width: 40rem; !* Optional: Limit width *!*/
+  min-height: 15vw; /* Dynamic height based on viewport */
+  border: 1px solid #ccc; /* Match tab borders */
+  border-radius: 0 0 0.25rem 0.25rem; /* Rounded bottom corners */
+  box-sizing: border-box; /* Include padding and borders in size */
+  margin-top: -1px; /* Avoid gaps between tabs and textarea */
+  padding: 1rem;
+  resize: none;
+  font-size: 1rem;
 }
 
 .tab-content {
