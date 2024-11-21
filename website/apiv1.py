@@ -6,7 +6,7 @@ from fastapi import Request, Response
 
 from website.middleware import get_context
 from website import rdhelper, dbhelper
-from website import common
+from website import util
 import re
 
 router = APIRouter()
@@ -19,7 +19,7 @@ async def ocr(request: Request):
     auth = request.headers.get("Authorization")
     p = re.compile("^([^:]+):([^:]+)$")
 
-    not_authorized = Response(common.compact_json({"errors": ["unauthorized"]}), status_code=400, media_type="application/json")
+    not_authorized = Response(util.compact_json({"errors": ["unauthorized"]}), status_code=400, media_type="application/json")
 
     m = p.match(auth)
     if not bool(m):
@@ -41,12 +41,12 @@ async def ocr(request: Request):
     _id = ObjectId(_id)
     ticket = await dbhelper.inc_scan_p1(ctx.db, _id, t)
     if ticket["state"] == dbhelper.EMPTY:
-        return Response(common.compact_json({"errors": ["no more scans left"]}), status_code=400, media_type="application/json")
+        return Response(util.compact_json({"errors": ["no more scans left"]}), status_code=400, media_type="application/json")
     elif ticket["state"] == dbhelper.CONTENTION:
-        return Response(common.compact_json({"errors": ["try again later"]}), status_code=400, media_type="application/json")
+        return Response(util.compact_json({"errors": ["try again later"]}), status_code=400, media_type="application/json")
     try:
         if not ctx.config["production"]:
-            name = Path(common.compute_hash(image).hex())
+            name = Path(util.compute_hash(image).hex())
             v = await rdhelper.file_get(ctx.redis, name)
             if v is None:
                 answer = await run_ocr(image)
@@ -63,6 +63,6 @@ async def ocr(request: Request):
         return Response(answer, media_type="application/json")
     except Exception as e:
         await dbhelper.inc_scan_p2(ctx.db, _id, ticket.get("challenge"), False)
-        return Response(common.compact_json({"errors": ["error when running ocr"]}), status_code=500, media_type="application/json")
+        return Response(util.compact_json({"errors": ["error when running ocr"]}), status_code=500, media_type="application/json")
 
 

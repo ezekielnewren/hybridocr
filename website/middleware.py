@@ -4,7 +4,7 @@ from fastapi import FastAPI, Request, Response
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from website import common, rdhelper, dbhelper
+from website import util, rdhelper, dbhelper
 from website.gmail import GmailClient
 from website.gocr import GOCR
 from website.hcvault import get_config, VaultClient
@@ -28,8 +28,8 @@ class Context:
             self._init = True
             try:
                 self.config = await get_config()
-                self.client, self.db = common.open_database(self.config)
-                self.redis = common.open_redis(self.config)
+                self.client, self.db = util.open_database(self.config)
+                self.redis = util.open_redis(self.config)
                 self.vault = VaultClient.from_config(self.config)
                 self.gmail = GmailClient(self.config)
                 self.gocr = GOCR(self.config)
@@ -61,17 +61,17 @@ class SessionMiddleware(BaseHTTPMiddleware):
         if not sid or not await self.ctx.redis.exists("/session/"+sid):
             new_session = True
             sid = str(uuid4())
-            await self.ctx.redis.set("/session/"+sid, common.to_cbor({}), ex=self.ctx.timeout)
+            await self.ctx.redis.set("/session/"+sid, util.to_cbor({}), ex=self.ctx.timeout)
 
         raw0 = await self.ctx.redis.get("/session/"+sid)
-        request.state.session = common.from_cbor(raw0)
+        request.state.session = util.from_cbor(raw0)
         request.state.session["ip"] = request.client.host
 
         response: Response = await call_next(request)
         if new_session:
             response.set_cookie(SESSION_ID, sid, httponly=True, secure=True, samesite='strict', max_age=self.ctx.timeout)
 
-        raw1 = common.to_cbor(request.state.session)
+        raw1 = util.to_cbor(request.state.session)
         if raw0 != raw1:
             await self.ctx.redis.set("/session/"+sid, raw1)
 

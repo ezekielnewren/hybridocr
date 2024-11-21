@@ -1,6 +1,6 @@
 import unittest
 
-from website import common
+from website import util
 from website.hcvault import get_config
 from website.gmail import GmailClient
 from datetime import datetime
@@ -19,7 +19,7 @@ class TestGmail(unittest.IsolatedAsyncioTestCase):
 
         gmail = GmailClient(config)
         sender = "noreply"
-        recipient = f"{sender}@{common.DOMAIN}"
+        recipient = f"{sender}@{util.DOMAIN}"
         subject = "Test subject"
         body = str(datetime.now())
         await gmail.send_email(sender, recipient, subject, body)

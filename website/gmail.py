@@ -4,7 +4,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from pathlib import Path
 
-from website import common
+from website import util
 from website.hcvault import VaultClient
 
 
@@ -52,14 +52,14 @@ class GmailClient:
     async def list_email(self, inbox):
         await self.init()
 
-        return self.service.users().messages().list(userId=inbox + "@"+common.DOMAIN).execute()
+        return self.service.users().messages().list(userId=inbox + "@"+util.DOMAIN).execute()
 
     async def send_email(self, sender, recipient, subject, body):
         await self.init()
 
         message = MIMEMultipart()
         message['to'] = recipient
-        message['from'] = f"{sender}@{common.DOMAIN}"
+        message['from'] = f"{sender}@{util.DOMAIN}"
         message['subject'] = subject
         message.attach(MIMEText(body, 'plain'))
 

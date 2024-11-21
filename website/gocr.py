@@ -9,7 +9,7 @@ from google.oauth2 import service_account
 from google.cloud import vision
 from google.auth.credentials import Credentials
 
-from website import common
+from website import util
 from website.hcvault import VaultClient
 
 
@@ -61,7 +61,7 @@ class GOCR(Credentials):
         for _ in range(3):
             try:
                 answer = client.text_detection(image=img)
-                return common.compact_json(AnnotateImageResponse.to_json(answer)).encode("utf-8")
+                return util.compact_json(AnnotateImageResponse.to_json(answer)).encode("utf-8")
             except Unauthenticated as ex:
                 e = ex
                 await self.init(force_new_token=True, req=Request())

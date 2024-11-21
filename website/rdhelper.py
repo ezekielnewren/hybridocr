@@ -1,7 +1,7 @@
 from redis.asyncio import Redis
 from pathlib import Path
 
-from website import common
+from website import util
 
 
 async def get_time(rd):
@@ -36,9 +36,9 @@ async def file_put(rd: Redis, path, data, expire=None):
     meta["access"] = await get_time(rd)
     if expire:
         meta["expire"] = expire
-    meta["hash"] = common.compute_hash(data)
+    meta["hash"] = util.compute_hash(data)
 
-    payload = common.to_cbor(meta)
+    payload = util.to_cbor(meta)
 
     await rd.hset(full_path, mapping={"meta": payload, "data": data})
     if expire:
@@ -52,7 +52,7 @@ async def file_get(rd: Redis, path):
     if not await rd.exists(full_path):
         return None
 
-    meta = common.from_cbor(await rd.hget(full_path, "meta"))
+    meta = util.from_cbor(await rd.hget(full_path, "meta"))
     data = await rd.hget(full_path, "data")
     await file_touch(rd, path)
 
@@ -62,7 +62,7 @@ async def file_get(rd: Redis, path):
 async def file_get_meta(rd: Redis, path):
     full_path = _normalize_path(path)
 
-    meta = common.from_cbor(await rd.hget(full_path, "meta"))
+    meta = util.from_cbor(await rd.hget(full_path, "meta"))
     await file_touch(rd, path)
 
     return meta
@@ -74,9 +74,9 @@ async def file_touch(rd: Redis, path):
     if await rd.exists(full_path) == 0:
         return None
 
-    meta = common.from_cbor(await rd.hget(full_path, "meta"))
+    meta = util.from_cbor(await rd.hget(full_path, "meta"))
     meta["access"] = await get_time(rd)
-    await rd.hset(full_path, "meta", common.to_cbor(meta))
+    await rd.hset(full_path, "meta", util.to_cbor(meta))
     await rd.zadd("/file", mapping={full_path: meta["access"]})
 
     expire = meta.get("expire")

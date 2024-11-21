@@ -3,7 +3,7 @@ import aiohttp
 import json
 from pathlib import Path
 from aiohttp import ClientResponse
-from website import common
+from website import util
 
 
 class ResponseWithContent:
@@ -39,14 +39,14 @@ class VaultClient:
         return content
 
     async def _request(self, request_type, path, body, raw=False):
-        common.check_type(path, Path)
+        util.check_type(path, Path)
         headers = dict()
         headers["Content-Type"] = "application/json"
         headers["X-Vault-Request"] = "true"
         headers["X-Vault-Token"] = self.token
 
         url = self.addr+str(Path("/"+VaultClient.API_VERSION)/path)
-        payload = None if body is None else common.compact_json(body)
+        payload = None if body is None else util.compact_json(body)
         async with aiohttp.request(request_type, url, headers=headers, data=payload) as response:
             return await self._check_response(response, raw=raw)
 
@@ -76,7 +76,7 @@ class VaultClient:
 
     async def kv_put(self, path, data):
         u = path.parent/"data"/path.name
-        common.check_type(data, dict)
+        util.check_type(data, dict)
         return await self.write(u, **{"data": data})
 
     @classmethod

@@ -13,7 +13,7 @@ from starlette.staticfiles import StaticFiles
 from website.apiv1 import router as apiv1_router
 from starlette.middleware import Middleware
 
-from website import common, rdhelper, dbhelper
+from website import util, rdhelper, dbhelper
 from website.middleware import SessionMiddleware, get_context, StaticMiddleware
 import os
 
@@ -126,7 +126,7 @@ async def register(request: Request):
     key = str(Path(f"/user/{_id}/challenge"))
     challenge = await rdhelper.get_str(ctx.redis, key)
     if challenge is None:
-        challenge = common.generate_alphanumeric(32)
+        challenge = util.generate_alphanumeric(32)
         await ctx.redis.set(key, challenge, ex=30*60)
 
     link = "https://"+ctx.config["webserver"]["domain"][0]+f"/tryitout?_id={_id}&challenge={challenge}"

@@ -2,7 +2,7 @@ from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from pymongo import ReturnDocument
 
-from website import common, rdhelper
+from website import util, rdhelper
 
 PROCEED = 0
 CONTENTION = 1
@@ -60,7 +60,7 @@ async def inc_scan_p1(db: AsyncIOMotorDatabase, _id: ObjectId, time: float, chal
     )
 
     if challenge is None:
-        challenge = common.generate_alphanumeric(32)
+        challenge = util.generate_alphanumeric(32)
     ticket = {
         "challenge": challenge,
         "expire": time + 300
