@@ -160,15 +160,11 @@
 <body>
 {% include '_banner.html' %}
 <div class="content">
-    <p>
-        Hybrid OCR offers top-tier document digitization with a focus on privacy.
-        Your scans and text are securely encrypted in your browser, ensuring they
-        stay private and protected. While we currently send your scans to Google’s
-        highly accurate OCR, we’re developing our own engine that will run entirely
-        within your browser—meaning your documents will never leave your device.
-        With Hybrid OCR, you can digitize your documents confidently, knowing that
-        privacy is always a key focus.
-    </p>
+    <div id="email-form">
+        <input type="email" id="email-input" placeholder="Enter your email">
+        <button id="submit-email">Get 10 free scans.</button>
+        <span id="email-error" style="color: red; display: none;">Please enter a valid email address.</span>
+    </div>
 
     <div class="showcase" data-example="machine_print">
         <img src="" alt="machine print example">
@@ -203,13 +199,15 @@
         </textarea>
     </div>
 
-    <p>Try it yourself.</p>
-
-    <div id="email-form">
-        <input type="email" id="email-input" placeholder="Enter your email">
-        <button id="submit-email">Get 10 free scans.</button>
-        <span id="email-error" style="color: red; display: none;">Please enter a valid email address.</span>
-    </div>
+    <p class="info-paragraph">
+        Hybrid OCR offers top-tier document digitization with a focus on privacy.
+        Your scans and text are securely encrypted in your browser, ensuring
+        they stay private and protected. While we currently send your scans to
+        Google’s highly accurate OCR, we’re developing our own engine that will
+        run entirely within your browser—meaning your documents will never leave
+        your device. Our goal with Hybrid OCR is that you will be able to digitize
+        your documents confidently, knowing that privacy is always a key focus.
+    </p>
 </div>
 {% include '_footer.html' %}
 </body>

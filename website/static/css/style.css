@@ -9,12 +9,15 @@
 
 .showcase textarea {
   width: 100%; /* Match the width of the image */
-  height: auto; /* Adjust height dynamically */
+  /*height: auto; !* Adjust height dynamically *!*/
   min-height: 20vh; /* Ensure a minimum height */
   border: 1px solid #ccc; /* Add a border for better visibility */
   font-family: inherit; /* Match the page's font */
-  font-size: 1.25em; /* Adjust font size for readability */
+  font-size: 1.5vh; /* Adjust font size for readability */
+  /*line-height: 1.25rem;*/
   margin-bottom: 2rem;
+  overflow: scroll;
+  white-space: pre;
 }
 
 .showcase {
@@ -91,4 +94,15 @@
 
 .active {
   display: block;
+}
+
+.info-paragraph {
+  font-size: 1.125rem; /* Slightly larger than body text for readability */
+  line-height: 1.6; /* Increase line spacing for better readability */
+  color: #555; /* Softer gray color to reduce prominence */
+  background-color: #f9f9f9; /* Light background for separation */
+  padding: 1rem; /* Add padding for spacing */
+  border-left: 4px solid #ccc; /* Subtle visual cue with a left border */
+  border-radius: 4px; /* Subtle rounded corners */
+  margin-bottom: 2rem; /* Add space below the paragraph */
 }
