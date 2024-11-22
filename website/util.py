@@ -2,6 +2,7 @@ from google.cloud.vision_v1 import AnnotateImageResponse
 from pymongo import WriteConcern, ReadPreference
 from pymongo.read_concern import ReadConcern
 from redis.asyncio import Redis
+from datetime import datetime, timezone
 import os, json
 import secrets
 import hashlib
@@ -100,4 +101,21 @@ def generate_alphanumeric(count):
 
 
 def new_cas():
-    return secrets.randbits(64)
+    return secrets.randbits(63)
+
+
+def year_month_str(t: float):
+    dt = datetime.fromtimestamp(t, tz=timezone.utc)
+    return str(dt.year)+str(dt.month).zfill(2)
+
+
+def year_month_range(t: float):
+    dt = datetime.fromtimestamp(t, tz=timezone.utc)
+    y, m = dt.year, dt.month
+    start = datetime(y, m, 1, 0, 0, 0, tzinfo=timezone.utc)
+    if dt.month == 12:
+        y, m = y+1, 1
+    else:
+        m += 1
+    end = datetime(y, m, 1, 0, 0, 0, tzinfo=timezone.utc)
+    return start.timestamp(), end.timestamp()

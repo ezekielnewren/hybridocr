@@ -5,6 +5,7 @@ from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from website import util, rdhelper, dbhelper
+from website.dao import ResourceManager, Credit
 from website.gmail import GmailClient
 from website.gocr import GOCR
 from website.hcvault import get_config, VaultClient
@@ -13,13 +14,11 @@ from redis.asyncio import Redis
 class Context:
     def __init__(self):
         self._init: bool = False
-        self.config: dict | None = None
-        self.client: AsyncIOMotorClient | None = None
-        self.db: AsyncIOMotorDatabase | None = None
-        self.redis: Redis | None = None
+        self.rm = ResourceManager()
         self.vault: VaultClient | None = None
         self.gmail: GmailClient | None = None
         self.gocr: GOCR | None = None
+        self.credit: Credit | None = None
         self.timeout: int = 2*86400
         self.user = None
 
@@ -27,15 +26,12 @@ class Context:
         if not self._init:
             self._init = True
             try:
-                self.config = await get_config()
-                self.client, self.db = util.open_database(self.config)
-                self.redis = util.open_redis(self.config)
-                self.vault = VaultClient.from_config(self.config)
-                self.gmail = GmailClient(self.config)
-                self.gocr = GOCR(self.config)
+                self.credit = Credit(self.rm)
+                await self.rm.setup()
+                self.vault = VaultClient.from_config(self.rm.config)
+                self.gmail = GmailClient(self.rm.config)
+                self.gocr = GOCR(self.rm.config)
 
-                t = await rdhelper.get_time(self.redis)
-                await dbhelper.init(self.db, t)
                 await self.gmail.init()
                 await self.gocr.init()
             except Exception as e:
@@ -58,12 +54,12 @@ class SessionMiddleware(BaseHTTPMiddleware):
 
         new_session = False
         sid = request.cookies.get(SESSION_ID)
-        if not sid or not await self.ctx.redis.exists("/session/"+sid):
+        if not sid or not await self.ctx.rm.redis.exists("/session/"+sid):
             new_session = True
             sid = str(uuid4())
-            await self.ctx.redis.set("/session/"+sid, util.to_cbor({}), ex=self.ctx.timeout)
+            await self.ctx.rm.redis.set("/session/"+sid, util.to_cbor({}), ex=self.ctx.timeout)
 
-        raw0 = await self.ctx.redis.get("/session/"+sid)
+        raw0 = await self.ctx.rm.redis.get("/session/"+sid)
         request.state.session = util.from_cbor(raw0)
         request.state.session["ip"] = request.client.host
 
@@ -73,7 +69,7 @@ class SessionMiddleware(BaseHTTPMiddleware):
 
         raw1 = util.to_cbor(request.state.session)
         if raw0 != raw1:
-            await self.ctx.redis.set("/session/"+sid, raw1)
+            await self.ctx.rm.redis.set("/session/"+sid, raw1)
 
         return response
 

@@ -21,6 +21,7 @@ class ResourceManager:
         self.last_time_sync = 0
         self.time = 0
         self.dao = []
+        self.background_list = []
         self.primary = None
 
         self.config: dict | None = None
@@ -56,11 +57,20 @@ class ResourceManager:
                 self.gc_checkpoint = now
                 self.gc()
 
-            for i in range(len(self.dao) - 1, -1, -1):
-                if self.dao[i].task and self.dao[i].task.done():
-                    self.dao[i].task = None
+            for v in self.dao:
+                if v.task is not None and v.task.done():
+                    v.task = None
+
+            for i in range(len(self.background_list)-1, -1, -1):
+                if self.background_list[i].done():
+                    del self.background_list[i]
 
             await asyncio.sleep(self.task_poll_interval)
+
+    def background(self, coroutine):
+        task = asyncio.create_task(coroutine)
+        self.background_list.append(task)
+
 
     async def is_leader(self):
         return True
@@ -88,6 +98,7 @@ class Resource:
     def __init__(self, rm: ResourceManager):
         self.rm = rm
         self.rm.register(self)
+        self.task = None
 
     @abstractmethod
     async def setup(self):
@@ -140,23 +151,24 @@ class Credit(Resource):
                 "expire": t + 300
             }
 
+            ym = util.year_month_str(t)
+
             ## read
             result = await self.col_user.find_one({"_id": _id})
             if "credit" not in result:
+                starting = 10
                 credit = {
-                    "cas": util.new_cas(),
+                    "history": {
+                        ym: 0,
+                    },
                     "monthly": {
                         "value": 0,
                         "reset": 0,
                     },
-                    "wallet": 10,
-                    "history": {
-                        "compacted": 0,
-                        "log": []
-                    },
-                    "ledger": [],
-                    "reserved": {},
-                    "pending": []
+                    "wallet": starting,
+                    "ledger": [t, starting],
+                    "pending": [],
+                    "cas": util.new_cas(),
                 }
                 await self.col_user.find_one_and_update(
                     {"_id": _id, "credit": {"$exists": False}},
@@ -166,18 +178,15 @@ class Credit(Resource):
             credit = result["credit"]
 
             ## modify
-            count = credit["history"]["compacted"]
-            count += len(credit["history"]["log"])
-
             credit["pending"] = [v for v in credit["pending"] if t < v["expire"]]
             pending = len(credit["pending"])
 
-            limit = credit["monthly"]["value"]
-            limit += credit["wallet"]
+            balance = credit["monthly"]["value"]
+            balance += credit["wallet"]
 
-            if count >= limit:
+            if balance <= 0:
                 return {"state": dbhelper.EMPTY}
-            elif count + pending >= limit:
+            elif balance - pending <= 0:
                 assert pending > 0
                 return {"state": dbhelper.CONTENTION}
             else:
@@ -192,7 +201,7 @@ class Credit(Resource):
             )
 
             if r is not None:
-                assert count + pending < limit
+                assert balance - pending > 0
                 ticket["state"] = dbhelper.PROCEED
                 return ticket
 
@@ -202,18 +211,43 @@ class Credit(Resource):
 
     async def debit_p2(self, _id: ObjectId, challenge, commit):
         if commit:
-            await self.col_user.find_one_and_update(
-                {"_id": _id},
-                {
-                    "$inc": {"scan.google.count": 1},
-                    "$pull": {"scan.google.pending": {"challenge": challenge}}
-                }
-            )
+            for attempt in range(10):
+                t = await self.rm.get_time()
+                ym = util.year_month_str(t)
+
+                ## read
+                result = await self.col_user.find_one({"_id": _id})
+                credit = result["credit"]
+
+                if credit["monthly"]["value"] > 0:
+                    credit["monthly"]["value"] -= 1
+                elif credit["wallet"] > 0:
+                    credit["wallet"] -= 1
+                else:
+                    credit["monthly"]["value"] -= 1
+
+                if ym not in credit["history"]:
+                    credit["history"][ym] = 0
+                credit["history"][ym] += 1
+
+                credit["pending"] = [v for v in credit["pending"] if v["challenge"] != challenge]
+
+                current_cas = credit["cas"]
+                credit["cas"] = util.new_cas()
+                result = await self.col_user.find_one_and_update(
+                    {"_id": _id, "credit.cas": current_cas},
+                    {"$set": {"credit": credit}}
+                )
+
+                if result is not None:
+                    break
+
+                await asyncio.sleep(0.1 * (2 ** attempt) + random.uniform(0, 0.1))
         else:
             await self.col_user.find_one_and_update(
                 {"_id": _id},
                 {
-                    "$pull": {"scan.google.pending": {"challenge": challenge}}
+                    "$pull": {"credit.pending": {"challenge": challenge}}
                 }
             )
 

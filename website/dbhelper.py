@@ -15,9 +15,11 @@ async def init(db: AsyncIOMotorDatabase, t):
 
 async def ensure_user_exists(db: AsyncIOMotorDatabase, t: float, username: str, plan: str = "trial"):
     user_data = {
-        "username": username,
         "created": t,
         "plan": plan,
+        "marketing": False,
+        "email_verified": False,
+        "username": username,
     }
 
     result = await db.user.find_one_and_update(
