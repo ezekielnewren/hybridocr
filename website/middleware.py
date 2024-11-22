@@ -14,6 +14,7 @@ from redis.asyncio import Redis
 class Context:
     def __init__(self):
         self._init: bool = False
+        self.config: dict | None = None
         self.rm = ResourceManager()
         self.vault: VaultClient | None = None
         self.gmail: GmailClient | None = None
@@ -28,9 +29,10 @@ class Context:
             try:
                 self.credit = Credit(self.rm)
                 await self.rm.setup()
-                self.vault = VaultClient.from_config(self.rm.config)
-                self.gmail = GmailClient(self.rm.config)
-                self.gocr = GOCR(self.rm.config)
+                self.config = self.rm.config
+                self.vault = VaultClient.from_config(self.config)
+                self.gmail = GmailClient(self.config)
+                self.gocr = GOCR(self.config)
 
                 await self.gmail.init()
                 await self.gocr.init()

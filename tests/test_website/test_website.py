@@ -49,7 +49,7 @@ async def test_landing_page(test_context):
     client, user = test_context
     ctx = get_context(app)
     try:
-        await rdhelper.get_time(ctx.redis)
+        await ctx.rm.get_time()
         resp = await client.get("/")
         assert resp is not None
     except Exception as e:

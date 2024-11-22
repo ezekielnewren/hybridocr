@@ -26,7 +26,7 @@ async def lifespan(app: FastAPI):
     ctx = get_context(app)
     await ctx.init()
     yield
-    ctx.client.close()
+    ctx.rm.client.close()
 
 
 middleware = [
@@ -52,12 +52,12 @@ async def home(request: Request):
 async def tryitout(request: Request):
     ctx = get_context(app)
     _id = request.query_params.get("_id")
-    need_email = _id is None or not await dbhelper.user_exists(ctx.db, ObjectId(bytes.fromhex(_id)))
+    need_email = _id is None or not await dbhelper.user_exists(ctx.rm.db, ObjectId(bytes.fromhex(_id)))
     challenge = request.query_params.get("challenge")
     if challenge is None:
         need_challenge = True
     else:
-        r = await rdhelper.get_str(ctx.redis, f"/user/{_id}/challenge")
+        r = await rdhelper.get_str(ctx.rm.redis, f"/user/{_id}/challenge")
         need_challenge = r is None or r != challenge
     need_challenge = need_challenge or need_email
     return templates.TemplateResponse('tryitout.html', {
@@ -118,16 +118,16 @@ async def about(request: Request):
 async def register(request: Request):
     ctx = get_context(app)
     body = json.loads(await request.body())
-    body["timestamp"] = await rdhelper.get_time(ctx.redis)
+    body["timestamp"] = await ctx.rm.get_time()
 
     ## 10 free scans
-    result = await dbhelper.ensure_user_exists(ctx.db, body["timestamp"], body["email"])
+    result = await dbhelper.ensure_user_exists(ctx.rm.db, body["timestamp"], body["email"])
     _id = str(result["_id"])
     key = str(Path(f"/user/{_id}/challenge"))
-    challenge = await rdhelper.get_str(ctx.redis, key)
+    challenge = await rdhelper.get_str(ctx.rm.redis, key)
     if challenge is None:
         challenge = util.generate_alphanumeric(32)
-        await ctx.redis.set(key, challenge, ex=30*60)
+        await ctx.rm.redis.set(key, challenge, ex=30*60)
 
     link = "https://"+ctx.config["webserver"]["domain"][0]+f"/tryitout?_id={_id}&challenge={challenge}"
     email_body = "here is your link for 10 free scans "+link

@@ -28,18 +28,16 @@ async def ocr(request: Request):
     _id = m.group(1)
     challenge = m.group(2)
 
-    r = await rdhelper.get_str(ctx.redis, str(Path(f"/user/{_id}/challenge")))
+    r = await rdhelper.get_str(ctx.rm.redis, str(Path(f"/user/{_id}/challenge")))
     if r != challenge:
         return not_authorized
 
     image = await request.body()
 
-    t = await rdhelper.get_time(ctx.redis)
-
     run_ocr = lambda _image: ctx.gocr.ocr(_image)
 
     _id = ObjectId(_id)
-    ticket = await dbhelper.inc_scan_p1(ctx.db, _id, t)
+    ticket = await ctx.credit.debit_p1(_id)
     if ticket["state"] == dbhelper.EMPTY:
         return Response(util.compact_json({"errors": ["no more scans left"]}), status_code=400, media_type="application/json")
     elif ticket["state"] == dbhelper.CONTENTION:
@@ -47,22 +45,22 @@ async def ocr(request: Request):
     try:
         if not ctx.config["production"]:
             name = Path(util.compute_hash(image).hex())
-            v = await rdhelper.file_get(ctx.redis, name)
+            v = await rdhelper.file_get(ctx.rm.redis, name)
             if v is None:
                 answer = await run_ocr(image)
-                await rdhelper.file_put(ctx.redis, name, answer, expire=30*86400)
+                await rdhelper.file_put(ctx.rm.redis, name, answer, expire=30*86400)
 
-            v = await rdhelper.file_get(ctx.redis, name)
+            v = await rdhelper.file_get(ctx.rm.redis, name)
             if v is None:
                 raise ValueError("file must have been deleted or expired")
             _, answer = v
         else:
             answer = await run_ocr(image)
 
-        await dbhelper.inc_scan_p2(ctx.db, _id, ticket["challenge"], True)
+        await ctx.credit.debit_p2(_id, ticket["challenge"], True)
         return Response(answer, media_type="application/json")
     except Exception as e:
-        await dbhelper.inc_scan_p2(ctx.db, _id, ticket.get("challenge"), False)
+        await ctx.credit.debit_p2(_id, ticket["challenge"], False)
         return Response(util.compact_json({"errors": ["error when running ocr"]}), status_code=500, media_type="application/json")
 
 
