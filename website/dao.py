@@ -1,8 +1,10 @@
 import asyncio
+import random
 from abc import ABC, abstractmethod
 import time
 
-from motor.motor_asyncio import AsyncIOMotorDatabase, AsyncIOMotorClient
+from bson import ObjectId
+from motor.motor_asyncio import AsyncIOMotorDatabase, AsyncIOMotorClient, AsyncIOMotorCollection
 from redis.asyncio import Redis
 from typing_extensions import override
 
@@ -103,21 +105,115 @@ class Resource:
 class Credit(Resource):
     def __init__(self, rm: ResourceManager):
         super().__init__(rm)
+        self.col_user: AsyncIOMotorCollection | None = None
 
     @override
     async def setup(self):
-        pass
+        self.col_user = self.rm.db.user
 
     @override
     async def gc(self):
-        pass
+        t = await self.rm.get_time()
+        await self.col_user.update_many(
+            {},
+            {
+                "$pull": {
+                    "credit.pending": {
+                        "expire": {"$lt": t}
+                    }
+                }
+            }
+        )
 
     @override
     async def teardown(self):
         pass
 
-    async def debit_p1(self):
-        pass
+    async def debit_p1(self, _id: ObjectId, challenge=None):
+        if challenge is None:
+            challenge = util.generate_alphanumeric(32)
 
-    async def debit_p2(self):
-        pass
+        for attempt in range(10):
+            t = await self.rm.get_time()
+            ticket = {
+                "challenge": challenge,
+                "expire": t + 300
+            }
+
+            ## read
+            result = await self.col_user.find_one({"_id": _id})
+            if "credit" not in result:
+                credit = {
+                    "cas": util.new_cas(),
+                    "monthly": {
+                        "value": 0,
+                        "reset": 0,
+                    },
+                    "wallet": 10,
+                    "history": {
+                        "compacted": 0,
+                        "log": []
+                    },
+                    "ledger": [],
+                    "reserved": {},
+                    "pending": []
+                }
+                await self.col_user.find_one_and_update(
+                    {"_id": _id, "credit": {"$exists": False}},
+                    {"$set": {"credit": credit}},
+                )
+                continue
+            credit = result["credit"]
+
+            ## modify
+            count = credit["history"]["compacted"]
+            count += len(credit["history"]["log"])
+
+            credit["pending"] = [v for v in credit["pending"] if t < v["expire"]]
+            pending = len(credit["pending"])
+
+            limit = credit["monthly"]["value"]
+            limit += credit["wallet"]
+
+            if count >= limit:
+                return {"state": dbhelper.EMPTY}
+            elif count + pending >= limit:
+                assert pending > 0
+                return {"state": dbhelper.CONTENTION}
+            else:
+                credit["pending"].append(ticket)
+
+            ## write
+            current_cas = credit["cas"]
+            credit["cas"] = util.new_cas()
+            r = await self.col_user.find_one_and_update(
+                {"_id": _id, "credit.cas": current_cas},
+                {"$set": {"credit": credit}}
+            )
+
+            if r is not None:
+                assert count + pending < limit
+                ticket["state"] = dbhelper.PROCEED
+                return ticket
+
+            await asyncio.sleep(0.1 * (2 ** attempt) + random.uniform(0, 0.1))
+
+        return {"state": dbhelper.CONTENTION}
+
+    async def debit_p2(self, _id: ObjectId, challenge, commit):
+        if commit:
+            await self.col_user.find_one_and_update(
+                {"_id": _id},
+                {
+                    "$inc": {"scan.google.count": 1},
+                    "$pull": {"scan.google.pending": {"challenge": challenge}}
+                }
+            )
+        else:
+            await self.col_user.find_one_and_update(
+                {"_id": _id},
+                {
+                    "$pull": {"scan.google.pending": {"challenge": challenge}}
+                }
+            )
+
