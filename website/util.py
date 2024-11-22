@@ -3,6 +3,7 @@ from pymongo import WriteConcern, ReadPreference
 from pymongo.read_concern import ReadConcern
 from redis.asyncio import Redis
 import os, json
+import secrets
 import hashlib
 import time
 import cbor2
@@ -94,6 +95,9 @@ def exists(data, path):
     return True
 
 def generate_alphanumeric(count):
-    import secrets
     import string
     return ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(count))
+
+
+def new_cas():
+    return secrets.randbits(64)
