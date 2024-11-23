@@ -123,8 +123,16 @@ async def register(request: Request):
     body["timestamp"] = await ctx.rm.get_time()
 
     ## 10 free scans
-    result = await dbhelper.ensure_user_exists(ctx.rm.db, body["timestamp"], body["email"])
-    _id = str(result["_id"])
+    if "_id" in body:
+        _id = body["_id"]
+        result = await ctx.rm.db.user.find_one({"_id": ObjectId(_id)})
+        body["email"] = result["username"]
+    elif "email" in body:
+        result = await dbhelper.ensure_user_exists(ctx.rm.db, body["timestamp"], body["email"])
+        _id = str(result["_id"])
+    else:
+        return Response(util.compact_json({"errors": ["must supply email or _id"]}), status_code=400, media_type="text/application")
+    assert "_id" in body and "email" in body
     key = str(Path(f"/user/{_id}/challenge"))
     challenge = await rdhelper.get_str(ctx.rm.redis, key)
     if challenge is None:
@@ -134,4 +142,4 @@ async def register(request: Request):
     link = "https://"+ctx.config["webserver"]["domain"][0]+f"/tryitout?_id={_id}&challenge={challenge}"
     email_body = "here is your link for 10 free scans "+link
     await ctx.gmail.send_email("noreply@hybridocr.com", body["email"], "10 free scans link", email_body)
-    return json.dumps({"result": "ok"})
+    return Response(util.compact_json({"success": True}), status_code=200, media_type="application/json")

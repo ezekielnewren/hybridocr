@@ -117,16 +117,19 @@
 
         sendNewLinkBtn.addEventListener('click', async () => {
             try {
-                const response = await fetch('/api/v1/send-new-link', {
+                const url = new URL(window.location.href);
+                const p = new URLSearchParams(url.search);
+
+                const response = await fetch('/register', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({}),
+                    body: JSON.stringify({_id: p.get('_id')}),
                 });
 
                 if (response.ok) {
-                    alert('New link sent successfully.');
+                    alert('we sent you a new link');
                 } else {
                     const error = await response.text();
                     alert(`Failed to send new link: ${error}`);
