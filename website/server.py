@@ -129,7 +129,8 @@ async def register(request: Request):
         body["email"] = result["username"]
     elif "email" in body:
         result = await dbhelper.ensure_user_exists(ctx.rm.db, body["timestamp"], body["email"])
-        _id = str(result["_id"])
+        _id = result["_id"]
+        body["_id"] = _id
     else:
         return Response(util.compact_json({"errors": ["must supply email or _id"]}), status_code=400, media_type="text/application")
     assert "_id" in body and "email" in body
