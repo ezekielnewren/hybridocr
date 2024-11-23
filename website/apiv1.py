@@ -42,10 +42,10 @@ async def ocr(request: Request):
     if not bool(m):
         return not_authorized
 
-    _id = m.group(1)
+    _id = util.str2ObjectId(m.group(1))
     challenge = m.group(2)
 
-    r = await rdhelper.get_str(ctx.rm.redis, str(Path(f"/user/{_id}/challenge")))
+    r = await rdhelper.get_str(ctx.rm.redis, str(Path(f"/user/{util.ObjectId2str(_id)}/challenge")))
     if r != challenge:
         return not_authorized
 
@@ -53,7 +53,6 @@ async def ocr(request: Request):
 
     run_ocr = lambda _image: ctx.gocr.ocr(_image)
 
-    _id = ObjectId(_id)
     ticket = await ctx.credit.debit_p1(_id)
     if ticket["state"] == dbhelper.EMPTY:
         return Response(util.compact_json({"errors": ["no more scans left"]}), status_code=400, media_type="application/json")

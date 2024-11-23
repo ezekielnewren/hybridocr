@@ -1,3 +1,4 @@
+from bson import ObjectId
 from google.cloud.vision_v1 import AnnotateImageResponse
 from pymongo import WriteConcern, ReadPreference
 from pymongo.read_concern import ReadConcern
@@ -119,3 +120,19 @@ def year_month_range(t: float):
         m += 1
     end = datetime(y, m, 1, 0, 0, 0, tzinfo=timezone.utc)
     return start.timestamp(), end.timestamp()
+
+
+def str2ObjectId(_id):
+    if _id is None:
+        return None
+    elif isinstance(_id, ObjectId):
+        return _id
+    return ObjectId(bytes.fromhex(_id))
+
+
+def ObjectId2str(_id: ObjectId):
+    if _id is None:
+        raise TypeError("ObjectId cannot be None")
+    if not isinstance(_id, ObjectId):
+        raise TypeError("_id must be an ObjectId")
+    return str(_id)

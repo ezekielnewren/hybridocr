@@ -51,13 +51,18 @@ async def home(request: Request):
 @app.get("/tryitout")
 async def tryitout(request: Request):
     ctx = get_context(app)
-    _id = request.query_params.get("_id")
-    need_email = _id is None or not await dbhelper.user_exists(ctx.rm.db, ObjectId(bytes.fromhex(_id)))
+    _id = util.str2ObjectId(request.query_params.get("_id"))
+    doc = await ctx.rm.db.user.find_one({"_id": _id})
+    need_email = doc is None
+    if doc is not None and not doc["email_verified"]:
+        await ctx.rm.db.user.find_one_and_update(
+            {"_id": _id},
+            {"$set": {"email_verified": True}})
     challenge = request.query_params.get("challenge")
     if challenge is None:
         need_challenge = True
     else:
-        r = await rdhelper.get_str(ctx.rm.redis, f"/user/{_id}/challenge")
+        r = await rdhelper.get_str(ctx.rm.redis, f"/user/{util.ObjectId2str(_id)}/challenge")
         need_challenge = r is None or r != challenge
     need_challenge = need_challenge or need_email
     cf_secret = await ctx.vault.kv_get(Path("kv/api_token/cloudflare_turnstile"))
@@ -124,23 +129,22 @@ async def register(request: Request):
 
     ## 10 free scans
     if "_id" in body:
-        _id = body["_id"]
-        result = await ctx.rm.db.user.find_one({"_id": ObjectId(_id)})
+        body["_id"] = util.str2ObjectId(body["_id"])
+        result = await ctx.rm.db.user.find_one({"_id": body["_id"]})
         body["email"] = result["username"]
     elif "email" in body:
         result = await dbhelper.ensure_user_exists(ctx.rm.db, body["timestamp"], body["email"])
-        _id = result["_id"]
-        body["_id"] = _id
+        body["_id"] = util.str2ObjectId(result["_id"])
     else:
         return Response(util.compact_json({"errors": ["must supply email or _id"]}), status_code=400, media_type="text/application")
     assert "_id" in body and "email" in body
-    key = str(Path(f"/user/{_id}/challenge"))
+    key = str(Path(f"/user/{util.ObjectId2str(body['_id'])}/challenge"))
     challenge = await rdhelper.get_str(ctx.rm.redis, key)
     if challenge is None:
         challenge = util.generate_alphanumeric(32)
         await ctx.rm.redis.set(key, challenge, ex=30*60)
 
-    link = "https://"+ctx.config["webserver"]["domain"][0]+f"/tryitout?_id={_id}&challenge={challenge}"
+    link = "https://"+ctx.config["webserver"]["domain"][0]+f"/tryitout?_id={util.ObjectId2str(body['_id'])}&challenge={challenge}"
     email_body = "here is your link for 10 free scans "+link
     await ctx.gmail.send_email("noreply@hybridocr.com", body["email"], "10 free scans link", email_body)
     return Response(util.compact_json({"success": True}), status_code=200, media_type="application/json")
