@@ -1,3 +1,12 @@
+.error {
+  color: red;
+  font-weight: bold;
+}
+
+.hidden {
+  display: none;
+}
+
 .showcase img {
   width: 100%; /* Ensure all images are the same width */
   height: auto; /* Maintain aspect ratio */

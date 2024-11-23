@@ -84,39 +84,25 @@
         }
     </style>
     <script>
-        $(document).ready(function(){
-            $("#submit-email").click(function() {
-                var email = $("#email-input").val();
-                const emailError = document.getElementById("email-error");
-                var selectedPlan = $("#selected-plan").val();
+        document.addEventListener("DOMContentLoaded", () => {
+            const errorMessage = document.getElementById("error-message");
 
-                // Regular expression to validate email format
-                const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            $(document).ready(function() {
+                $("#submit-email").click(async () => {
+                    var email = $("#email-input").val();
 
-                // Check if email matches the pattern
-                if (!emailPattern.test(email)) {
-                    emailError.style.display = "block";
-                    return;
-                }
-
-                $.ajax({
-                    url: '/register',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({ email: email, plan: selectedPlan }),
-                    success: function(data) {
-                        $("#email-form").hide();
-                        window.location.href = "/check-your-email"
-                    },
-                    error: function(error) {
-                        console.error('Error saving email:', error);
-                        // Handle the error appropriately (e.g., display an error message to the user)
+                    try {
+                        errorMessage.innerText = "";
+                        errorMessage.style.display = "none";
+                        await register(null, email);
+                        window.location.href = "/check-your-email";
+                    } catch (e) {
+                        errorMessage.innerText = e.message;
+                        errorMessage.style.display = "inline";
                     }
                 });
             });
-        });
 
-        document.addEventListener("DOMContentLoaded", () => {
             const showcase = document.querySelectorAll(".showcase");
 
             showcase.forEach(async v0 => {
@@ -163,7 +149,7 @@
     <div id="email-form">
         <input type="email" id="email-input" placeholder="Enter your email">
         <button id="submit-email">Get 10 free scans.</button>
-        <span id="email-error" style="color: red; display: none;">Please enter a valid email address.</span>
+        <span id="error-message" class="error hidden"></span>
     </div>
 
     <div class="showcase" data-example="machine_print">

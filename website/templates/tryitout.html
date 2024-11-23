@@ -67,9 +67,11 @@
 
     <div id="loading">Recognizing text, please wait...</div>
 {% endif %}
+    <span id="error-message" class="error hidden"></span>
 </div>
 {% include '_footer.html' %}
 <script>
+    const errorMessage = document.getElementById('error-message');
     const dropArea = document.getElementById('drop-area');
     const fileInput = document.getElementById('file-input');
     const uploadedImage = document.getElementById('uploaded-image');
@@ -85,28 +87,14 @@
         submitEmailBtn.addEventListener('click', async () => {
             const email = emailInput.value.trim();
 
-            if (!email) {
-                alert('Please enter a valid email address.');
-                return;
-            }
-
             try {
-                const response = await fetch('/register', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ email }),
-                });
-
-                if (response.ok) {
-                    alert('Email submitted successfully.');
-                } else {
-                    const error = await response.text();
-                    alert(`Failed to submit email: ${error}`);
-                }
-            } catch (error) {
-                alert(`Error: ${error.message}`);
+                errorMessage.innerText = "";
+                errorMessage.style.display = "none";
+                await register(null, email);
+                window.location.href = "/check-your-email";
+            } catch (e) {
+                errorMessage.innerText = e.message;
+                errorMessage.style.display = "inline";
             }
         });
     {% endif %}
@@ -116,26 +104,18 @@
         const sendNewLinkBtn = document.getElementById('send-new-link-btn');
 
         sendNewLinkBtn.addEventListener('click', async () => {
+            const url = new URL(window.location.href);
+            const p = new URLSearchParams(url.search);
+            const _id = p.get('_id');
+
             try {
-                const url = new URL(window.location.href);
-                const p = new URLSearchParams(url.search);
-
-                const response = await fetch('/register', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({_id: p.get('_id')}),
-                });
-
-                if (response.ok) {
-                    alert('we sent you a new link');
-                } else {
-                    const error = await response.text();
-                    alert(`Failed to send new link: ${error}`);
-                }
-            } catch (error) {
-                alert(`Error: ${error.message}`);
+                errorMessage.innerText = "";
+                errorMessage.style.display = "none";
+                await register(_id, null);
+                window.location.href = "/check-your-email";
+            } catch (e) {
+                errorMessage.innerText = e.message;
+                errorMessage.style.display = "inline";
             }
         });
     {% endif %}
@@ -196,14 +176,14 @@
     function onCaptchaSuccess(token) {
         console.log("CAPTCHA solved successfully. Token:", token);
         captchaToken = token;  // Store the token for later use
-        document.getElementById("recognize-btn").disabled = false;  // Enable the button
+        document.getElementById("recognize-btn").disabled = false;
     }
 
     // Optional: Callback function when the CAPTCHA expires
     function onCaptchaExpired() {
         console.log("CAPTCHA expired. Please solve it again.");
         captchaToken = null;  // Clear the token
-        document.getElementById("recognize-btn").disabled = true;  // Disable the button
+        document.getElementById("recognize-btn").disabled = true;
     }
 
 
