@@ -60,12 +60,14 @@ async def tryitout(request: Request):
         r = await rdhelper.get_str(ctx.rm.redis, f"/user/{_id}/challenge")
         need_challenge = r is None or r != challenge
     need_challenge = need_challenge or need_email
+    cf_secret = await ctx.vault.kv_get(Path("kv/api_token/cloudflare_turnstile"))
     return templates.TemplateResponse('tryitout.html', {
         "request": request,
         "production": ctx.config["production"],
         "gtag_id": ctx.config["webserver"]["gtag_id"],
         "need_email": need_email,
         "need_challenge": need_challenge,
+        "cf_site": cf_secret["site"],
     })
 
 

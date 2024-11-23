@@ -1,5 +1,7 @@
+import json
 from pathlib import Path
 
+import aiohttp
 from bson import ObjectId
 from fastapi import APIRouter
 from fastapi import Request, Response
@@ -15,11 +17,26 @@ router = APIRouter()
 @router.post("/ocr")
 async def ocr(request: Request):
     ctx = get_context(request.app)
+    not_authorized = Response(util.compact_json({"errors": ["unauthorized"]}), status_code=400, media_type="application/json")
+
+
+
+    cf_turnstile_response = request.headers.get("cf-turnstile-response")
+    secret_key = (await ctx.vault.kv_get(Path("kv/api_token/cloudflare_turnstile")))["secret"]
+
+    data = {
+        "secret": secret_key,
+        "response": cf_turnstile_response,
+    }
+    async with aiohttp.request("POST", "https://challenges.cloudflare.com/turnstile/v0/siteverify", data=data) as r:
+        content = await r.content.read()
+    content = json.loads(content)
+
+    if not content.get("success"):
+        return not_authorized
 
     auth = request.headers.get("Authorization")
     p = re.compile("^([^:]+):([^:]+)$")
-
-    not_authorized = Response(util.compact_json({"errors": ["unauthorized"]}), status_code=400, media_type="application/json")
 
     m = p.match(auth)
     if not bool(m):

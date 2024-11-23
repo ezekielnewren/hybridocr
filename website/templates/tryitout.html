@@ -37,6 +37,7 @@
         }
 
     </style>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body>
 {% include '_banner.html' %}
@@ -61,6 +62,7 @@
     </div>
 
     <input type="file" id="file-input" style="display: none;">
+    <div class="cf-turnstile" data-sitekey="{{ cf_site }}" data-callback="onCaptchaSuccess"></div>
     <button id="recognize-btn" disabled>Recognize Text</button>
 
     <div id="loading">Recognizing text, please wait...</div>
@@ -186,9 +188,30 @@
         return htmlContent;
     }
 
+    let captchaToken = null;
+
+    function onCaptchaSuccess(token) {
+        console.log("CAPTCHA solved successfully. Token:", token);
+        captchaToken = token;  // Store the token for later use
+        document.getElementById("recognize-btn").disabled = false;  // Enable the button
+    }
+
+    // Optional: Callback function when the CAPTCHA expires
+    function onCaptchaExpired() {
+        console.log("CAPTCHA expired. Please solve it again.");
+        captchaToken = null;  // Clear the token
+        document.getElementById("recognize-btn").disabled = true;  // Disable the button
+    }
+
+
     recognizeBtn.addEventListener('click', async () => {
         if (!inputImage) {
             alert('Please upload an image file.');
+            return;
+        }
+
+        if (!captchaToken) {
+            alert('Please complete the CAPTCHA before proceeding.');
             return;
         }
 
@@ -205,6 +228,7 @@
                 headers: {
                     'Content-Type': 'application/octet-stream',
                     'Authorization': authorization,
+                    'cf-turnstile-response': captchaToken,
                 },
                 body: arrayBuffer,  // Send raw binary data
             });
