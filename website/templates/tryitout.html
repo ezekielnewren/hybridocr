@@ -151,6 +151,7 @@
 
     let imageFile = null;
     let captchaToken = null;
+    let needReset = false;
 
     fileInput.addEventListener('change', (event) => {
         handleImage(event.target.files[0]);
@@ -167,28 +168,30 @@
         eBalance.innerText = result["balance"];
     }
 
-    document.addEventListener("DOMContentLoaded", async () => {
+    window.onload = async () => {
         await updateBalance();
-    });
+    };
 
-
-    // window.onload = async () => {
-    //     await updateBalance();
-    // };
+    function resetCaptcha() {
+        turnstile.reset();
+        captchaToken = null;
+        needReset = false;
+        readyToSubmit();
+    }
 
     function handleImage(file) {
         if (file) {
             imageFile = file;
             uploadedImage.src = URL.createObjectURL(file);
-            if (captchaToken != null) {
-                turnstile.reset();
+            if (needReset) {
+                resetCaptcha();
             }
             readyToSubmit();
         }
     }
 
     function readyToSubmit() {
-        recognizeBtn.disabled = captchaToken == null || imageFile == null;
+        recognizeBtn.disabled = needReset || captchaToken == null || imageFile == null;
         return !recognizeBtn.disabled;
     }
 
@@ -240,6 +243,8 @@
             if (response.ok) {
                 const ocrData = await response.json();
                 textOutput.innerHTML = formatOcrTextToHtml(ocrData);  // Display recognized text
+                needReset = true;
+                readyToSubmit();
                 await updateBalance();
             } else {
                 const errorText = await response.text();
