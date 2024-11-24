@@ -151,9 +151,14 @@ class Credit(Resource):
 
         assert "credit" in result
         credit = result["credit"]
-        t = credit["monthly"]["value"]
-        t += credit["wallet"]
-        return t
+        report = {
+            "_id": util.ObjectId2str(result["_id"]),
+            "username": result["username"],
+            "balance": 0,
+        }
+        report["balance"] += credit["monthly"]["value"]
+        report["balance"] += credit["wallet"]
+        return report
 
     async def setup_credits(self, result: dict | Mapping[str, Any]):
         t = await self.rm.get_time()

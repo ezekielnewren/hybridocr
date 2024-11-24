@@ -74,14 +74,13 @@ async def tryitout(request: Request):
             "need_challenge": need_challenge,
         })
     doc = await ctx.rm.db.user.find_one({"_id": _id})
+    request.state.session["_id"] = util.ObjectId2str(doc["_id"])
     cf_secret = await ctx.vault.kv_get(Path("kv/api_token/cloudflare_turnstile"))
-    balance = await ctx.credit.balance(_id)
     return templates.TemplateResponse('tryitout.html', {
         "request": request,
         "production": ctx.config["production"],
         "gtag_id": ctx.config["webserver"]["gtag_id"],
         "username": doc["username"],
-        "balance": balance,
         "cf_site": cf_secret["site"],
     })
 

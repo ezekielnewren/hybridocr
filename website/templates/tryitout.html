@@ -58,7 +58,7 @@
         <label>username: </label><span id="username">{{ username }}</span>
     </div>
     <div>
-        <label>credit(s): </label><span id="balance">{{ balance }}</span>
+        <label>credit(s): </label><span id="balance">0</span>
     </div>
     <div id="side-by-side">
         <div id="drop-area">
@@ -85,6 +85,8 @@
     const recognizeBtn = document.getElementById('recognize-btn');
     const textOutput = document.getElementById('text-output');
     const loadingMessage = document.getElementById('loading');
+    const eUsername = document.getElementById('username');
+    const eBalance = document.getElementById('balance');
 
     {% if need_email %}
         // Handle email submission
@@ -154,6 +156,26 @@
         handleImage(event.target.files[0]);
     });
 
+    async function getBalance() {
+        const response = await fetch('/api/v1/balance', {method: 'GET'});
+        return await response.json()
+    }
+
+    async function updateBalance() {
+        const result = await getBalance();
+        eUsername.innerText = result["username"];
+        eBalance.innerText = result["balance"];
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        await updateBalance();
+    });
+
+
+    // window.onload = async () => {
+    //     await updateBalance();
+    // };
+
     function handleImage(file) {
         if (file) {
             imageFile = file;
@@ -218,6 +240,7 @@
             if (response.ok) {
                 const ocrData = await response.json();
                 textOutput.innerHTML = formatOcrTextToHtml(ocrData);  // Display recognized text
+                await updateBalance();
             } else {
                 const errorText = await response.text();
                 textOutput.innerHTML = `<p>Error: ${errorText}</p>`;

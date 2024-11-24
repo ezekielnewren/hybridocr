@@ -80,3 +80,13 @@ async def ocr(request: Request):
         return Response(util.compact_json({"errors": ["error when running ocr"]}), status_code=500, media_type="application/json")
 
 
+@router.get("/balance")
+async def balance(request: Request):
+    ctx = get_context(request.app)
+
+    _id = util.str2ObjectId(request.state.session["_id"])
+    result = await ctx.credit.balance(_id)
+
+    return Response(util.compact_json(result), media_type="application/json")
+
+
