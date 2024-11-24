@@ -4,6 +4,8 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from pathlib import Path
 
+from email_validator import validate_email
+
 from website import util
 from website.hcvault import VaultClient
 
@@ -54,12 +56,19 @@ class GmailClient:
 
         return self.service.users().messages().list(userId=inbox + "@"+util.DOMAIN).execute()
 
-    async def send_email(self, sender, recipient, subject, body):
+    async def send_email(self, sender_alias: str, recipient, subject, body):
         await self.init()
 
+        if "@" in sender_alias:
+            raise ValueError("only supply the username not username@domain.com")
+
+        if isinstance(recipient, (str, bytes)):
+            recipient = validate_email(recipient)
+
         message = MIMEMultipart()
-        message['to'] = recipient
-        message['from'] = f"{sender}@{util.DOMAIN}"
+        message['to'] = recipient.normalized
+        sender_email = validate_email(f"{sender_alias}@{util.DOMAIN}")
+        message['from'] = sender_email.normalized
         message['subject'] = subject
         message.attach(MIMEText(body, 'plain'))
 

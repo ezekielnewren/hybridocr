@@ -16,7 +16,7 @@ from starlette.middleware import Middleware
 from website import util, rdhelper, dbhelper
 from website.middleware import SessionMiddleware, get_context, StaticMiddleware
 import os
-
+from email_validator import validate_email, EmailNotValidError
 
 templates = Jinja2Templates(directory=Path(__file__).parent/"templates")
 dir_static = Path(__file__).parent/"static"
@@ -127,7 +127,6 @@ async def register(request: Request):
     body = json.loads(await request.body())
     body["timestamp"] = await ctx.rm.get_time()
 
-    ## 10 free scans
     if "_id" in body:
         body["_id"] = util.str2ObjectId(body["_id"])
         result = await ctx.rm.db.user.find_one({"_id": body["_id"]})
@@ -138,13 +137,22 @@ async def register(request: Request):
     else:
         return Response(util.compact_json({"errors": ["must supply email or _id"]}), status_code=400, media_type="text/application")
     assert "_id" in body and "email" in body
+    try:
+        body["email"] = validate_email(body["email"], check_deliverability=ctx.config["production"])
+    except EmailNotValidError as e:
+        return Response(util.compact_json({"errors": [str(e)]}), status_code=400, media_type="application/json")
+    prohibited_email_domain = ctx.config["webserver"].get("prohibited_email_domain")
+    if prohibited_email_domain is not None and body["email"].domain in prohibited_email_domain:
+        return Response(util.compact_json({"errors": ["Prohibited email address"]}), status_code=400, media_type="application/json")
+
     key = str(Path(f"/user/{util.ObjectId2str(body['_id'])}/challenge"))
     challenge = await rdhelper.get_str(ctx.rm.redis, key)
     if challenge is None:
         challenge = util.generate_alphanumeric(32)
         await ctx.rm.redis.set(key, challenge, ex=30*60)
 
+
     link = "https://"+ctx.config["webserver"]["domain"][0]+f"/tryitout?_id={util.ObjectId2str(body['_id'])}&challenge={challenge}"
     email_body = "here is your link for 10 free scans "+link
-    await ctx.gmail.send_email("noreply@hybridocr.com", body["email"], "10 free scans link", email_body)
+    await ctx.gmail.send_email("noreply", body["email"], "10 free scans link", email_body)
     return Response(util.compact_json({"success": True}), status_code=200, media_type="application/json")
