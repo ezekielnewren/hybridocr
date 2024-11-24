@@ -127,8 +127,6 @@
         });
     {% endif %}
 
-    let inputImage = null;
-
     // Handle drag-and-drop
     dropArea.addEventListener('dragover', (event) => {
         event.preventDefault();
@@ -142,35 +140,35 @@
     dropArea.addEventListener('drop', (event) => {
         event.preventDefault();
         dropArea.style.borderColor = '#ccc';
-        inputImage = event.dataTransfer.files[0];
-        handleFile(inputImage);
+        handleImage(event.dataTransfer.files[0]);
     });
 
-    // Handle click to select image
     dropArea.addEventListener('click', () => {
         fileInput.click();
     });
 
+    let imageFile = null;
+    let captchaToken = null;
+
     fileInput.addEventListener('change', (event) => {
-        inputImage = event.target.files[0];
-        handleFile(inputImage);
+        handleImage(event.target.files[0]);
     });
 
-    // Handle file input and display the image
-    function handleFile(file) {
-        if (file && file.type.startsWith('image/')) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                uploadedImage.src = e.target.result;
-                recognizeBtn.disabled = false; // Enable the "Recognize" button
-                textOutput.innerHTML = ''; // Clear any previous output
-            };
-            reader.readAsDataURL(file);
-        } else {
-            alert('Please upload an image file.');
+    function handleImage(file) {
+        if (file) {
+            imageFile = file;
+            uploadedImage.src = URL.createObjectURL(file);
+            if (captchaToken != null) {
+                turnstile.reset();
+            }
+            readyToSubmit();
         }
     }
 
+    function readyToSubmit() {
+        recognizeBtn.disabled = captchaToken == null || imageFile == null;
+        return !recognizeBtn.disabled;
+    }
 
     // Extract the recognized text and format into HTML
     function formatOcrTextToHtml(ocrData) {
@@ -178,12 +176,10 @@
         return htmlContent;
     }
 
-    let captchaToken = null;
-
     function onCaptchaSuccess(token) {
         console.log("CAPTCHA solved successfully. Token:", token);
         captchaToken = token;  // Store the token for later use
-        document.getElementById("recognize-btn").disabled = false;
+        readyToSubmit();
     }
 
     // Optional: Callback function when the CAPTCHA expires
@@ -195,13 +191,8 @@
 
 
     recognizeBtn.addEventListener('click', async () => {
-        if (!inputImage) {
-            alert('Please upload an image file.');
-            return;
-        }
-
-        if (!captchaToken) {
-            alert('Please complete the CAPTCHA before proceeding.');
+        if (!readyToSubmit()) {
+            alert("add an image and solve the captcha");
             return;
         }
 
@@ -212,7 +203,7 @@
             const p = new URLSearchParams(url.search);
             const authorization = p.get('_id')+":"+p.get('challenge')
 
-            const arrayBuffer = await inputImage.arrayBuffer();
+            const arrayBuffer = await imageFile.arrayBuffer();
             const response = await fetch('/api/v1/ocr', {
                 method: 'POST',
                 headers: {
