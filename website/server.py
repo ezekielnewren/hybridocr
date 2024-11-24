@@ -149,7 +149,7 @@ async def register(request: Request):
     challenge = await rdhelper.get_str(ctx.rm.redis, key)
     if challenge is None:
         challenge = util.generate_alphanumeric(32)
-        await ctx.rm.redis.set(key, challenge, ex=30*60)
+        await ctx.rm.redis.set(key, challenge, ex=5*3600)
 
 
     link = "https://"+ctx.config["webserver"]["domain"][0]+f"/tryitout?_id={util.ObjectId2str(body['_id'])}&challenge={challenge}"
