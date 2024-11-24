@@ -20,6 +20,7 @@
         flex-direction: column;
     }
     {% set banner_height = "0vh" if production else "4vh" %}
+    {% set navbar_height = "5vh" %}
     {% if not production %}
     .banner {
         background-color: green;
@@ -36,13 +37,21 @@
         height: {{ banner_height }};
     }
     {% endif %}
+    .navbar {
+      display: flex;
+      background-color: lightgray;
+      flex-direction: row;
+      margin-top: {{ banner_height }};
+      flex: 0 0 {{ navbar_height }};
+      justify-content: space-between;
+      align-items: center;
+      color: #006400;
+      font-family: 'Arial', sans-serif;
+    }
     .main-content-f99c33bb {
-        /*border: 5px solid black;*/
         flex: 1;
-        margin-top: {{ banner_height }};
         padding: 1%;
         box-sizing: border-box;
-        /*height: calc(100% - <%= banner_height %>);*/
     }
 </style>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
