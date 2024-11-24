@@ -2,9 +2,11 @@ import asyncio
 import random
 from abc import ABC, abstractmethod
 import time
+from typing import Mapping, Any
 
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase, AsyncIOMotorClient, AsyncIOMotorCollection
+from pymongo import ReturnDocument
 from redis.asyncio import Redis
 from typing_extensions import override
 
@@ -145,10 +147,40 @@ class Credit(Resource):
         if result is None:
             return 0
 
+        result = await self.setup_credits(result)
+
+        assert "credit" in result
         credit = result["credit"]
         t = credit["monthly"]["value"]
         t += credit["wallet"]
         return t
+
+    async def setup_credits(self, result: dict | Mapping[str, Any]):
+        t = await self.rm.get_time()
+        ym = util.year_month_str(t)
+        if "credit" not in result:
+            _id = result["_id"]
+            assert isinstance(_id, ObjectId)
+            starting = 10
+            credit = {
+                "history": {
+                    ym: 0,
+                },
+                "monthly": {
+                    "value": 0,
+                    "reset": 0,
+                },
+                "wallet": starting,
+                "ledger": [t, starting],
+                "pending": [],
+                "cas": util.new_cas(),
+            }
+            return await self.col_user.find_one_and_update(
+                {"_id": _id, "credit": {"$exists": False}},
+                {"$set": {"credit": credit}},
+                return_document=ReturnDocument.AFTER,
+            )
+        return result
 
     async def debit_p1(self, _id: ObjectId, challenge=None):
         if challenge is None:
@@ -161,30 +193,11 @@ class Credit(Resource):
                 "expire": t + 300
             }
 
-            ym = util.year_month_str(t)
-
             ## read
             result = await self.col_user.find_one({"_id": _id})
-            if "credit" not in result:
-                starting = 10
-                credit = {
-                    "history": {
-                        ym: 0,
-                    },
-                    "monthly": {
-                        "value": 0,
-                        "reset": 0,
-                    },
-                    "wallet": starting,
-                    "ledger": [t, starting],
-                    "pending": [],
-                    "cas": util.new_cas(),
-                }
-                await self.col_user.find_one_and_update(
-                    {"_id": _id, "credit": {"$exists": False}},
-                    {"$set": {"credit": credit}},
-                )
-                continue
+            if result is None:
+                raise ValueError("no such user")
+            result = await self.setup_credits(result)
             credit = result["credit"]
 
             ## modify
