@@ -45,6 +45,6 @@ async function register(_id, email) {
     if (response.ok) {
         return {success: true}
     } else {
-        return {errors: [`Failed to submit email: ${response.status} ${response.statusText}`]};
+        throw new Error(`Failed to submit email: ${response.status} ${response.statusText}`);
     }
 }
