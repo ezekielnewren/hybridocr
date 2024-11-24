@@ -140,6 +140,16 @@ class Credit(Resource):
     async def teardown(self):
         pass
 
+    async def balance(self, _id: ObjectId):
+        result = await self.col_user.find_one({"_id": _id})
+        if result is None:
+            return 0
+
+        credit = result["credit"]
+        t = credit["monthly"]["value"]
+        t += credit["wallet"]
+        return t
+
     async def debit_p1(self, _id: ObjectId, challenge=None):
         if challenge is None:
             challenge = util.generate_alphanumeric(32)

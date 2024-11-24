@@ -65,13 +65,23 @@ async def tryitout(request: Request):
         r = await rdhelper.get_str(ctx.rm.redis, f"/user/{util.ObjectId2str(_id)}/challenge")
         need_challenge = r is None or r != challenge
     need_challenge = need_challenge or need_email
+    if need_email or need_challenge:
+        return templates.TemplateResponse('tryitout.html', {
+            "request": request,
+            "production": ctx.config["production"],
+            "gtag_id": ctx.config["webserver"]["gtag_id"],
+            "need_email": need_email,
+            "need_challenge": need_challenge,
+        })
+    doc = await ctx.rm.db.user.find_one({"_id": _id})
     cf_secret = await ctx.vault.kv_get(Path("kv/api_token/cloudflare_turnstile"))
+    balance = await ctx.credit.balance(_id)
     return templates.TemplateResponse('tryitout.html', {
         "request": request,
         "production": ctx.config["production"],
         "gtag_id": ctx.config["webserver"]["gtag_id"],
-        "need_email": need_email,
-        "need_challenge": need_challenge,
+        "username": doc["username"],
+        "balance": balance,
         "cf_site": cf_secret["site"],
     })
 

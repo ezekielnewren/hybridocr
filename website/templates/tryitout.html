@@ -54,6 +54,12 @@
     <p>nonsensical combination of need_email and need_challenge</p>
     {% endif %}
 {% else %}
+    <div>
+        <label>username: </label><span id="username">{{ username }}</span>
+    </div>
+    <div>
+        <label>credit(s): </label><span id="balance">{{ balance }}</span>
+    </div>
     <div id="side-by-side">
         <div id="drop-area">
             <p>Drag & drop an image here or click to select</p>
