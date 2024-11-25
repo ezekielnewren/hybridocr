@@ -2,6 +2,7 @@ import asyncio
 import random
 from abc import ABC, abstractmethod
 import time
+from pathlib import Path
 from typing import Mapping, Any
 
 from bson import ObjectId
@@ -186,6 +187,52 @@ class Credit(Resource):
                 return_document=ReturnDocument.AFTER,
             )
         return result
+
+    async def get_trial_balance(self, t=None):
+        if t is None:
+            t = await self.rm.get_time()
+
+        cache = await self.rm.redis.hgetall(str(Path("/dao/credit")))
+        if "update_after" in cache:
+            cache["update_after"] = float(cache["update_after"])
+        if "trial_balance" in cache:
+            cache["trial_balance"] = int(cache["trial_balance"])
+        if "update_after" in cache and t < cache["update_after"]:
+            return cache.get("trial_balance", 0)
+
+        ym = util.year_month_str(t)
+        path = f"$credit.monthly.{ym}.value"
+        result = await self.col_user.aggregate([
+            {"$match": {"plan": "trial"}},
+            {
+              "$set": {
+                "balance": {"$add": [
+                    {"$ifNull": ["$credit.wallet", 0]},
+                    {"$ifNull": [path, 0]}
+                ]}
+              }
+            },
+            {
+              "$group": {
+                "_id": None,
+                "trial_balance": {"$sum": "$balance"},
+              }
+            }
+        ]).to_list()
+        trial_balance = result[0].get("trial_balance", 0) if result else 0
+
+        t = await self.rm.get_time()
+        await self.rm.redis.hset(str(Path("/dao/credit")), mapping={
+            "update_after": t+3600,
+            "trial_balance": trial_balance
+        })
+
+        return trial_balance
+
+
+    async def inc_trial_balance(self):
+        await self.rm.redis.hincrby(str(Path("/dao/credit")), "trial_balance", 1)
+
 
     async def debit_p1(self, _id: ObjectId, challenge=None):
         if challenge is None:
