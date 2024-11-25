@@ -44,6 +44,7 @@
 {% include '_banner.html' %}
 {% include '_navbar.html' %}
 <div class="main-content-f99c33bb">
+    <span id="error-message" class="error">No errors</span>
 {% if need_email or need_challenge %}
     <!-- get email if needed and a button to send a new link -->
     {% if need_email %}
@@ -83,19 +84,20 @@
 
     <div id="loading">Recognizing text, please wait...</div>
 {% endif %}
-    <span id="error-message" class="error hidden"></span>
 </div>
 {% include '_footer.html' %}
 <script>
-    const errorMessage = document.getElementById('error-message');
     const dropArea = document.getElementById('drop-area');
     const fileInput = document.getElementById('file-input');
     const recognizeBtn = document.getElementById('recognize-btn');
     const loadingMessage = document.getElementById('loading');
     const eUsername = document.getElementById('username');
     const eBalance = document.getElementById('balance');
-    const showcase = new Showcase(document.getElementById('side-by-side'));
-    // const sideBySide = document.getElementById('side-by-side');
+    const eSideBySide = document.getElementById('side-by-side');
+    let showcase = null;
+    if (eSideBySide != null) {
+        showcase = new Showcase(eSideBySide);
+    }
 
     {% if need_email %}
         // Handle email submission
@@ -106,18 +108,14 @@
             const email = emailInput.value.trim();
 
             try {
-                errorMessage.innerText = "";
-                errorMessage.style.display = "none";
+                clearErrorMessage();
                 await register(null, email);
                 window.location.href = "/check-your-email";
             } catch (e) {
-                errorMessage.innerText = e.message;
-                errorMessage.style.display = "inline";
+                setErrorMessage(e.message);
             }
         });
-    {% endif %}
-
-    {% if need_challenge %}
+    {% elif need_challenge %}
         // Handle sending a new link
         const sendNewLinkBtn = document.getElementById('send-new-link-btn');
 
@@ -127,13 +125,11 @@
             const _id = p.get('_id');
 
             try {
-                errorMessage.innerText = "";
-                errorMessage.style.display = "none";
+                clearErrorMessage();
                 await register(_id, null);
                 window.location.href = "/check-your-email";
             } catch (e) {
-                errorMessage.innerText = e.message;
-                errorMessage.style.display = "inline";
+                setErrorMessage(e.message);
             }
         });
     {% endif %}
@@ -246,15 +242,13 @@
                 needReset = true;
                 readyToSubmit();
                 await updateBalance();
-                errorMessage.display = "none";
+                clearErrorMessage();
             } else {
                 const errorText = await response.text();
-                errorMessage.innerHTML = `<p>Error: ${errorText}</p>`;
-                errorMessage.display = "inline";
+                setErrorMessage(`Error: ${errorText}`);
             }
         } catch (error) {
-            errorMessage.innerHTML = `<p>Error: ${error.message}</p>`;
-            errorMessage.display = "inline";
+            setErrorMessage(`Error: ${error.message}`);
         } finally {
             loadingMessage.style.display = 'none';
         }

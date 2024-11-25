@@ -110,5 +110,21 @@ class Showcase {
         this.ocr = _ocr;
         this.getActiveTab().click();
     }
+
 }
 
+function setErrorMessage(msg) {
+    const e = document.getElementById("error-message");
+    if (e != null) {
+        e.innerText = msg;
+        e.style.display = "block";
+    }
+}
+
+function clearErrorMessage() {
+    const e = document.getElementById("error-message");
+    if (e != null) {
+        e.innerText = "No errors";
+        e.style.display = "none";
+    }
+}
