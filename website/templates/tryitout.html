@@ -34,6 +34,7 @@
 
         #side-by-side {
             display: flex;
+            flex-direction: row;
         }
 
     </style>
@@ -60,12 +61,20 @@
     <div>
         <label>credit(s): </label><span id="balance">0</span>
     </div>
-    <div id="side-by-side">
-        <div id="drop-area">
+    <div id="side-by-side" class="showcase"><!-- use the custom 'data' property to hold javascript objects -->
+        <div id="drop-area" class="showcase-image">
             <p>Drag & drop an image here or click to select</p>
-            <img id="uploaded-image" alt="Your Image Will Appear Here">
+            <img src="" id="uploaded-image" alt="Your Image Will Appear Here">
         </div>
-        <div id="text-output"></div>
+        <div class="showcase-text">
+            <div class="tab-button-container">
+                <button class="tab-button active" data-tab="text">Text</button>
+                <button class="tab-button" data-tab="json">Json</button>
+            </div>
+            <textarea class="tab-display" readonly>
+                No data yet.
+            </textarea>
+        </div>
     </div>
 
     <input type="file" id="file-input" style="display: none;">
@@ -81,12 +90,12 @@
     const errorMessage = document.getElementById('error-message');
     const dropArea = document.getElementById('drop-area');
     const fileInput = document.getElementById('file-input');
-    const uploadedImage = document.getElementById('uploaded-image');
     const recognizeBtn = document.getElementById('recognize-btn');
-    const textOutput = document.getElementById('text-output');
     const loadingMessage = document.getElementById('loading');
     const eUsername = document.getElementById('username');
     const eBalance = document.getElementById('balance');
+    const showcase = new Showcase(document.getElementById('side-by-side'));
+    // const sideBySide = document.getElementById('side-by-side');
 
     {% if need_email %}
         // Handle email submission
@@ -149,7 +158,6 @@
         fileInput.click();
     });
 
-    let imageFile = null;
     let captchaToken = null;
     let needReset = false;
 
@@ -181,8 +189,7 @@
 
     function handleImage(file) {
         if (file) {
-            imageFile = file;
-            uploadedImage.src = URL.createObjectURL(file);
+            showcase.setImage(file);
             if (needReset) {
                 resetCaptcha();
             }
@@ -191,14 +198,8 @@
     }
 
     function readyToSubmit() {
-        recognizeBtn.disabled = needReset || captchaToken == null || imageFile == null;
+        recognizeBtn.disabled = needReset || captchaToken == null || showcase.getImage() == null;
         return !recognizeBtn.disabled;
-    }
-
-    // Extract the recognized text and format into HTML
-    function formatOcrTextToHtml(ocrData) {
-        const htmlContent = `<pre>${ocrData.fullTextAnnotation.text}</pre>`;
-        return htmlContent;
     }
 
     function onCaptchaSuccess(token) {
@@ -228,7 +229,7 @@
             const p = new URLSearchParams(url.search);
             const authorization = p.get('_id')+":"+p.get('challenge')
 
-            const arrayBuffer = await imageFile.arrayBuffer();
+            const arrayBuffer = await showcase.getImage().arrayBuffer();
             const response = await fetch('/api/v1/ocr', {
                 method: 'POST',
                 headers: {
@@ -241,17 +242,19 @@
 
             // Check for response success
             if (response.ok) {
-                const ocrData = await response.json();
-                textOutput.innerHTML = formatOcrTextToHtml(ocrData);  // Display recognized text
+                showcase.setOcr(await response.json());
                 needReset = true;
                 readyToSubmit();
                 await updateBalance();
+                errorMessage.display = "none";
             } else {
                 const errorText = await response.text();
-                textOutput.innerHTML = `<p>Error: ${errorText}</p>`;
+                errorMessage.innerHTML = `<p>Error: ${errorText}</p>`;
+                errorMessage.display = "inline";
             }
         } catch (error) {
-            textOutput.innerHTML = `<p>Error: ${error.message}</p>`;
+            errorMessage.innerHTML = `<p>Error: ${error.message}</p>`;
+            errorMessage.display = "inline";
         } finally {
             loadingMessage.style.display = 'none';
         }
