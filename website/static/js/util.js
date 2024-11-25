@@ -88,9 +88,18 @@ class Showcase {
     }
 
     setImage(_image) {
+        const eImage = this.element.querySelector("img");
         this.image = _image;
-        const eImage = this.element.querySelector('img');
-        eImage.src = URL.createObjectURL(this.image);
+        if (this.image == null) {
+            eImage.src = "";
+        } else if (typeof this.image === "string") {
+            eImage.src = this.image;
+        } else if (this.image instanceof File) {
+            const eImage = this.element.querySelector('img');
+            eImage.src = URL.createObjectURL(this.image);
+        } else {
+            throw new Error("Invalid type for image");
+        }
     }
 
     getImage() {

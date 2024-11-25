@@ -22,7 +22,7 @@
         }
     </style>
     <script>
-        document.addEventListener("DOMContentLoaded", () => {
+        document.addEventListener("DOMContentLoaded", async () => {
             const errorMessage = document.getElementById("error-message");
 
             $(document).ready(function() {
@@ -41,41 +41,24 @@
                 });
             });
 
-            const showcase = document.querySelectorAll(".showcase");
 
-            showcase.forEach(async v0 => {
-                const tabButton = v0.querySelectorAll(".tab-button");
-                const e_image = v0.querySelector("img");
-                const textArea = v0.querySelector("textarea");
-                const example = v0.getAttribute("data-example")
+            const showcaseMachinePrint = new Showcase(document.getElementById('machine_print'));
+            const showcaseBlockLetters = new Showcase(document.getElementById('block_letters'));
+            const showcaseCursive = new Showcase(document.getElementById('cursive'));
 
-                e_image.src = `/static/image/${example}.jpg`
-                const path0 = `/static/ocr/${example}.json`
-                const r0 = await fetch(path0);
-                if (!r0.ok) {
-                    const errMessage = `Failed to load file: ${path0}`;
-                    textArea.value = errMessage;
-                    console.log(errMessage);
+            for (const showcase of [showcaseMachinePrint, showcaseBlockLetters, showcaseCursive]) {
+                const example = showcase.element.id;
+                showcase.setImage(`/static/image/${example}.jpg`);
+                const path = `/static/ocr/${example}.json`
+                const result = await fetch(path);
+                if (!result.ok) {
+                    errorMessage.innerText = `Failed to load file: ${path}`;
+                    errorMessage.display = "inline";
+                } else {
+                    errorMessage.display = "none";
                 }
-                const json = JSON.parse(await r0.text());
-
-                const contentJson = JSON.stringify(json, null, 2);
-                const contentText = json.fullTextAnnotation.text;
-
-                tabButton.forEach(btn => {
-                    btn.addEventListener("click", () => {
-                        tabButton.forEach(v1 => v1.classList.remove("active"));
-                        btn.classList.add("active");
-                        const type = btn.getAttribute("data-tab");
-                        if (type === "text") {
-                            textArea.value = contentText;
-                        } else if (type === "json") {
-                            textArea.value = contentJson;
-                        }
-                    });
-                });
-                tabButton.item(0).click();
-            });
+                showcase.setOcr(JSON.parse(await result.text()));
+            }
         });
 
 
@@ -91,7 +74,7 @@
         <span id="error-message" class="error hidden"></span>
     </div>
 
-    <div class="showcase" data-example="machine_print">
+    <div id="machine_print" class="showcase">
         <img src="" alt="machine print example">
         <div class="tab-button-container">
             <button class="tab-button active" data-tab="text">Text</button>
@@ -102,7 +85,7 @@
         </textarea>
     </div>
 
-    <div class="showcase" data-example="block_letters">
+    <div id="block_letters" class="showcase">
         <img src="" alt="block letters example">
         <div class="tab-button-container">
             <button class="tab-button active" data-tab="text">Text</button>
@@ -113,7 +96,7 @@
         </textarea>
     </div>
 
-    <div class="showcase" data-example="cursive">
+    <div id="cursive" class="showcase">
         <img src="" alt="cursive example">
         <div class="tab-button-container">
             <button class="tab-button active" data-tab="text">Text</button>
