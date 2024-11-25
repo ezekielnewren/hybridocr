@@ -256,6 +256,14 @@ class Credit(Resource):
             result = await self.setup_credits(result)
             credit = result["credit"]
 
+            if result["plan"] == "trial":
+                start, end = util.year_month_range(t)
+                percent = (t - start) / (end - start)
+                trial_balance = await self.get_trial_balance(t)
+                trial_limit = await self.get_trial_limit()
+                if trial_balance >= trial_limit * percent:
+                    return {"state", dbhelper.BUSY}
+
             ## modify
             credit["pending"] = [v for v in credit["pending"] if t < v["expire"]]
             pending = len(credit["pending"])
