@@ -235,7 +235,7 @@
                 headers: {
                     'Content-Type': 'application/octet-stream',
                     'Authorization': authorization,
-                    'cf-turnstile-response': captchaToken,
+                    'cf-turnstile': captchaToken,
                 },
                 body: arrayBuffer,  // Send raw binary data
             });

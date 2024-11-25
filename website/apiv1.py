@@ -21,7 +21,7 @@ async def ocr(request: Request):
 
 
 
-    cf_turnstile_response = request.headers.get("cf-turnstile-response")
+    cf_turnstile_response = request.headers.get("cf-turnstile")
     secret_key = (await ctx.vault.kv_get(Path("kv/api_token/cloudflare_turnstile")))["secret"]
 
     data = {
