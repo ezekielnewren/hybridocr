@@ -234,6 +234,10 @@ class Credit(Resource):
         await self.rm.redis.hincrby(str(Path("/dao/credit")), "trial_balance", 1)
 
 
+    async def get_trial_limit(self):
+        return 5000
+
+
     async def debit_p1(self, _id: ObjectId, challenge=None):
         if challenge is None:
             challenge = util.generate_alphanumeric(32)
