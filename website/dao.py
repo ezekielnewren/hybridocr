@@ -188,27 +188,19 @@ class Credit(Resource):
             )
         return result
 
-    async def get_trial_balance(self, t=None):
-        if t is None:
-            t = await self.rm.get_time()
-
+    async def get_trial_balance(self, t: float):
         cache = await self.rm.redis.hgetall(str(Path("/dao/credit")))
-        if "update_after" in cache:
-            cache["update_after"] = float(cache["update_after"])
-        if "trial_balance" in cache:
-            cache["trial_balance"] = int(cache["trial_balance"])
+        cache = util.redis_auto_cast(cache)
         if "update_after" in cache and t < cache["update_after"]:
             return cache.get("trial_balance", 0)
 
         ym = util.year_month_str(t)
-        path = f"$credit.monthly.{ym}.value"
         result = await self.col_user.aggregate([
             {"$match": {"plan": "trial"}},
             {
               "$set": {
                 "balance": {"$add": [
-                    {"$ifNull": ["$credit.wallet", 0]},
-                    {"$ifNull": [path, 0]}
+                    {"$ifNull": [f"$credit.history.{ym}", 0]}
                 ]}
               }
             },
@@ -234,8 +226,10 @@ class Credit(Resource):
         await self.rm.redis.hincrby(str(Path("/dao/credit")), "trial_balance", 1)
 
 
-    async def get_trial_limit(self):
-        return 5000
+    async def get_trial_limit(self, t: float):
+        start, end = util.year_month_range(t)
+        percent = (t - start) / (end - start)
+        return int(self.rm.config["webserver"]["trial_limit"]*percent)
 
 
     async def debit_p1(self, _id: ObjectId, challenge=None):
@@ -257,12 +251,10 @@ class Credit(Resource):
             credit = result["credit"]
 
             if result["plan"] == "trial":
-                start, end = util.year_month_range(t)
-                percent = (t - start) / (end - start)
                 trial_balance = await self.get_trial_balance(t)
-                trial_limit = await self.get_trial_limit()
-                if trial_balance >= trial_limit * percent:
-                    return {"state", dbhelper.BUSY}
+                trial_limit = await self.get_trial_limit(t)
+                if trial_balance >= trial_limit:
+                    return {"state": dbhelper.BUSY}
 
             ## modify
             credit["pending"] = [v for v in credit["pending"] if t < v["expire"]]
@@ -327,6 +319,7 @@ class Credit(Resource):
                 )
 
                 if result is not None:
+                    await self.inc_trial_balance()
                     break
 
                 await asyncio.sleep(0.1 * (2 ** attempt) + random.uniform(0, 0.1))

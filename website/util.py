@@ -136,3 +136,35 @@ def ObjectId2str(_id: ObjectId):
     if not isinstance(_id, ObjectId):
         raise TypeError("_id must be an ObjectId")
     return str(_id)
+
+def redis_auto_cast(data: dict, cast_keys=True, cast_values_to_int=True, cast_values_to_float=True, cast_values_to_str=True):
+    if cast_keys:
+        for k in list(data.keys()):
+            if not isinstance(k, bytes):
+                continue
+            try:
+                data[str(k, "utf-8")] = data[k]
+                del data[k]
+            except UnicodeDecodeError:
+                pass
+
+    for k, v in data.items():
+        if cast_values_to_int and isinstance(v, bytes):
+            try:
+                data[k] = int(v)
+                continue
+            except ValueError:
+                pass
+        if cast_values_to_float and isinstance(v, bytes):
+            try:
+                data[k] = float(v)
+                continue
+            except ValueError:
+                pass
+        if cast_values_to_str and isinstance(v, bytes):
+            try:
+                data[k] = str(v, "utf-8")
+                continue
+            except UnicodeDecodeError:
+                pass
+    return data

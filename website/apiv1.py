@@ -58,6 +58,8 @@ async def ocr(request: Request):
         return Response(util.compact_json({"errors": ["no more scans left"]}), status_code=400, media_type="application/json")
     elif ticket["state"] == dbhelper.CONTENTION:
         return Response(util.compact_json({"errors": ["try again later"]}), status_code=400, media_type="application/json")
+    elif ticket["state"] == dbhelper.BUSY:
+        return Response(util.compact_json({"errors": ["due to excessive demand we are unable to process your request right now"]}), status_code=400, media_type="application/json")
     try:
         if not ctx.config["production"]:
             name = Path(util.compute_hash(image).hex())
