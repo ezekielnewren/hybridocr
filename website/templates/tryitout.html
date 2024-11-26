@@ -4,39 +4,6 @@
     {% include '_header.html' %}
     <style>
 
-        #drop-area, #text-output {
-            flex: 1;
-        }
-
-        #drop-area {
-            border: 2px dashed #ccc;
-            border-radius: 10px;
-            padding: 20px;
-            cursor: pointer;
-            margin: auto auto 20px;
-        }
-
-        #drop-area img {
-            max-width: 100%;
-            height: auto;
-        }
-
-        #text-output {
-            margin-top: 20px;
-            font-weight: bold;
-        }
-
-        #loading {
-            display: none;
-            font-style: italic;
-            color: #555;
-        }
-
-        #side-by-side {
-            display: flex;
-            flex-direction: row;
-        }
-
     </style>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
@@ -133,16 +100,6 @@
             }
         });
     {% endif %}
-
-    // Handle drag-and-drop
-    dropArea.addEventListener('dragover', (event) => {
-        event.preventDefault();
-        dropArea.style.borderColor = 'green';
-    });
-
-    dropArea.addEventListener('dragleave', () => {
-        dropArea.style.borderColor = '#ccc';
-    });
 
     dropArea.addEventListener('drop', (event) => {
         event.preventDefault();
