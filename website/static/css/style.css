@@ -15,6 +15,17 @@
   background-color: #b4b4b4;
 }
 
+.warning-message {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  border: 2px solid lightgray;
+  background-color: #eeeeee;
+  border-radius: 5px;
+  font-family: Arial, sans-serif;
+  color: black;
+}
+
 .showcase {
   display: flex;
   flex-direction: row;
@@ -50,3 +61,4 @@
   object-fit: contain;
   width: 100%;
 }
+
