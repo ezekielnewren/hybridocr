@@ -34,6 +34,19 @@
   border: 1px solid black;
 }
 
+.showcase-text textarea {
+  flex: 1;
+  resize: none;
+}
+
 .showcase-image {
   cursor: pointer;
+}
+
+.showcase-image img {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  object-fit: contain;
+  width: 100%;
 }
