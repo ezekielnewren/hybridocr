@@ -34,7 +34,7 @@
 
 .showcase-divider {
   display: flex;
-  flex: 0 0 10px;
+  flex: 0 0 20px;
   background-color: green;
 }
 
@@ -50,9 +50,9 @@
   resize: none;
 }
 
-.showcase-image {
-  cursor: pointer;
-}
+/*.showcase-image {*/
+/*  cursor: pointer;*/
+/*}*/
 
 .showcase-image img {
   display: flex;
@@ -107,4 +107,31 @@
   box-sizing: border-box;
   margin-top: -1px;
   resize: none;
+  outline: none;
+}
+
+.fancy-button {
+  display: flex;
+  align-items: center;
+  background-color: green;
+  color: white;
+  font-weight: bold;
+  border-radius: 4px;
+  border: none;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.fancy-button:hover {
+  background: darkgreen;
+  color: #ccc;
+}
+
+.fancy-button:disabled {
+  background: #eeeeee;
+  color: #666666;
+  font-weight: normal;
+  box-shadow: none;
+  transform: none;
+  cursor: default;
 }
