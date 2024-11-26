@@ -117,6 +117,10 @@
         });
     {% endif %}
 
+    dropArea.addEventListener('dragover', (event) => {
+        event.preventDefault();
+    });
+
     dropArea.addEventListener('drop', (event) => {
         event.preventDefault();
         dropArea.style.borderColor = '#ccc';
