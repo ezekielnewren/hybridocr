@@ -62,3 +62,22 @@
   width: 100%;
 }
 
+.tab-button-container {
+  display: flex;
+  flex-direction: row;
+  margin-bottom: 0;
+}
+
+.tab-button {
+  background-color: #eeeeee;
+  color: black;
+  border-radius: 4px 4px 0 0;
+  font-size: 1rem;
+  transition: background-color 0.3s ease;
+}
+
+.tab-button.active {
+  background-color: white;
+  border-bottom: 1px solid white;
+  font-weight: bold;
+}
