@@ -54,6 +54,8 @@ class Showcase {
         this.element = element;
         this.image = null;
         this.ocr = null;
+        this.isDragging = false;
+        this.resizeStyle = "all-scroll";
 
         // setup ui behavior
         const tabButtonList = this.element.querySelectorAll(".tab-button");
@@ -77,6 +79,55 @@ class Showcase {
             })
         }
         tabButtonList.item(0).click();
+
+        const eShowcaseDivider = this.element.querySelector(".showcase-divider");
+        if (eShowcaseDivider != null) {
+            const computedStyle = window.getComputedStyle(this.element); // Get computed styles
+            const flexDirection = computedStyle.getPropertyValue('flex-direction');
+            if (flexDirection === "row") {
+                this.resizeStyle = "ew-resize";
+            } else if (flexDirection === "column") {
+                this.resizeStyle = "ns-resize";
+            }
+
+            const eImage = this.element.querySelector(".showcase-image");
+            const eText = this.element.querySelector(".showcase-text");
+
+            eShowcaseDivider.addEventListener("mousedown", (e) => {
+                this.isDragging = true;
+                document.body.style.cursor = this.resizeStyle;
+            })
+
+            eShowcaseDivider.addEventListener("mouseenter", () => {
+                document.body.style.cursor = this.resizeStyle;
+            });
+
+            eShowcaseDivider.addEventListener("mouseleave", () => {
+                if (!this.isDragging) {
+                    document.body.style.cursor = 'default';
+                }
+            })
+
+            document.addEventListener("mouseup", () => {
+                this.isDragging = false;
+                document.body.style.cursor = "default";
+            })
+
+            document.addEventListener("mousemove", (e) => {
+                if (!this.isDragging) return;
+
+                const rect = this.element.getBoundingClientRect();
+                const offX = e.clientX-(rect.left+eShowcaseDivider.getBoundingClientRect().width/2);
+
+                const minWidth = .02;
+
+                const imageWidth = Math.max(offX/rect.width, minWidth);
+                const textWidth = Math.max((rect.width - offX)/rect.width, minWidth);
+
+                eImage.style.flex = `0 0 ${imageWidth*100}%`;
+                eText.style.flex = `0 0 ${textWidth*100}%`;
+            });
+        }
     }
 
     getActiveTab() {

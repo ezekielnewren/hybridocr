@@ -15,3 +15,25 @@
   background-color: #b4b4b4;
 }
 
+.showcase {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+}
+
+.showcase-divider {
+  display: flex;
+  flex: 0 0 10px;
+  background-color: green;
+}
+
+.showcase-image, .showcase-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  border: 1px solid black;
+}
+
+.showcase-image {
+  cursor: pointer;
+}
