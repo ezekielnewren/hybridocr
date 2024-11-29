@@ -60,7 +60,7 @@ class GOCR(Credentials):
         e = None
         for _ in range(3):
             try:
-                answer = client.text_detection(image=img)
+                answer: AnnotateImageResponse = client.text_detection(image=img)
                 return util.compact_json(AnnotateImageResponse.to_json(answer)).encode("utf-8")
             except Unauthenticated as ex:
                 e = ex

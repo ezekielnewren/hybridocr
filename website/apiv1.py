@@ -75,11 +75,15 @@ async def ocr(request: Request):
         else:
             answer = await run_ocr(image)
 
+        tmp = json.loads(answer)
+        if "error" in tmp:
+            raise ValueError(tmp["error"])
+
         await ctx.credit.debit_p2(_id, ticket["challenge"], True)
         return Response(answer, media_type="application/json")
     except Exception as e:
         await ctx.credit.debit_p2(_id, ticket["challenge"], False)
-        return Response(util.compact_json({"errors": ["error when running ocr"]}), status_code=500, media_type="application/json")
+        return Response(util.compact_json({"errors": ["error when running ocr", e.args]}), status_code=500, media_type="application/json")
 
 
 @router.get("/balance")
