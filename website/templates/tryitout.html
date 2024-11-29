@@ -163,7 +163,11 @@
 
     function handleImage(file) {
         if (file) {
-            showcase.setImage(file);
+            try {
+                showcase.setImage(file);
+            } catch (e) {
+                setErrorMessage(e.message);
+            }
             if (needReset) {
                 resetCaptcha();
             }

@@ -147,7 +147,14 @@ class Showcase {
             eImage.src = this.image;
         } else if (this.image instanceof File) {
             const eImage = this.element.querySelector('img');
-            eImage.src = URL.createObjectURL(this.image);
+            if (this.image.type.startsWith("image/")) {
+                eImage.src = URL.createObjectURL(this.image);
+            } else {
+                eImage.src = null;
+                const m = this.image.type;
+                this.image = null;
+                throw new Error(`Unsupported file type ${m}`)
+            }
         } else {
             throw new Error("Invalid type for image");
         }
