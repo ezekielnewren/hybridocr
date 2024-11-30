@@ -8,8 +8,8 @@ from httpx import AsyncClient, ASGITransport
 
 from website import rdhelper
 from website.hcvault import get_config
+from website.middleware import Context
 from website.server import app
-from website.middleware import get_context
 
 def save_cookies(user: dict, client: AsyncClient):
     if "cookie" not in user or user["cookie"] is None:
@@ -32,7 +32,7 @@ async def test_context():
     base_url = f'https://{config["webserver"]["domain"][0]}'
     async with AsyncClient(transport=ASGITransport(app=app), base_url=base_url) as client:
         await client.get("/status/ready")
-        ctx = get_context(app)
+        ctx = Context()
         user = await ctx.vault.kv_get(Path(f"kv/user/{alias}"))
         before = user.copy()
         if user is not None:
@@ -47,7 +47,7 @@ async def test_context():
 @pytest.mark.asyncio
 async def test_landing_page(test_context):
     client, user = test_context
-    ctx = get_context(app)
+    ctx = Context()
     try:
         await ctx.rm.get_time()
         resp = await client.get("/")

@@ -1,18 +1,27 @@
 from uuid import uuid4
 
 from fastapi import FastAPI, Request, Response
-from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from website import util, rdhelper, dbhelper
+from website import util
 from website.dao import ResourceManager, Credit
 from website.gmail import GmailClient
 from website.gocr import GOCR
 from website.hcvault import get_config, VaultClient
-from redis.asyncio import Redis
 
 class Context:
+    _instance = None
+    _instantiated = False
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
     def __init__(self):
+        if Context._instantiated:
+            return
+        Context._instantiated = True
         self._init: bool = False
         self.config: dict | None = None
         self.rm = ResourceManager()
@@ -45,12 +54,9 @@ class SessionMiddleware(BaseHTTPMiddleware):
     def __init__(self, app: FastAPI):
         super().__init__(app)
         self.ctx = Context()
-
-    async def init(self):
-        await self.ctx.init()
+        assert self.ctx._init
 
     async def dispatch(self, request: Request, call_next):
-        await self.init()
         if request.url.path.startswith("/status"):
             return await call_next(request)
 
@@ -74,17 +80,6 @@ class SessionMiddleware(BaseHTTPMiddleware):
             await self.ctx.rm.redis.set("/session/"+sid, raw1)
 
         return response
-
-
-def get_context(app: FastAPI):
-    v = app.middleware_stack
-    while True:
-        if isinstance(v, SessionMiddleware):
-            return v.ctx
-        if not hasattr(v, "app"):
-            break
-        v = v.app
-    raise ValueError("unable to get context")
 
 
 class StaticMiddleware(BaseHTTPMiddleware):

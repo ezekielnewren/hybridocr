@@ -2,6 +2,7 @@ FROM python:3.11.7-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /app
+ENV PYTHONPATH=/app
 
 RUN apt-get update
 RUN apt-get install -y dumb-init
@@ -16,4 +17,4 @@ RUN pip install -r /app/requirements.txt
 COPY website/ /app/website
 
 ENTRYPOINT ["dumb-init"]
-CMD ["/home/docker/.local/bin/uvicorn", "website.server:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*"]
+CMD ["python3", "website/server.py"]

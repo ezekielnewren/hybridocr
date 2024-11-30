@@ -1,6 +1,11 @@
 ## python3 -m uvicorn website.server:app --reload --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips '*'
+import os
+print("PYTHONPATH:", os.environ.get("PYTHONPATH"))
+
+import asyncio
 from contextlib import asynccontextmanager
 
+import uvicorn
 from bson import ObjectId
 from fastapi import FastAPI, Request, Response
 from fastapi.templating import Jinja2Templates
@@ -14,8 +19,7 @@ from website.apiv1 import router as apiv1_router
 from starlette.middleware import Middleware
 
 from website import util, rdhelper, dbhelper
-from website.middleware import SessionMiddleware, get_context, StaticMiddleware
-import os
+from website.middleware import SessionMiddleware, StaticMiddleware, Context
 from email_validator import validate_email, EmailNotValidError
 
 templates = Jinja2Templates(directory=Path(__file__).parent/"templates")
@@ -23,7 +27,6 @@ dir_static = Path(__file__).parent/"static"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    ctx = get_context(app)
     await ctx.init()
     yield
     ctx.rm.client.close()
@@ -40,7 +43,6 @@ app.mount("/static", StaticFiles(directory=dir_static), name="static")
 
 @app.get('/')
 async def home(request: Request):
-    ctx = get_context(app)
     return templates.TemplateResponse('index.html', {
         "request": request,
         "production": ctx.config["production"],
@@ -50,7 +52,6 @@ async def home(request: Request):
 
 @app.get("/tryitout")
 async def tryitout(request: Request):
-    ctx = get_context(app)
     _id = util.str2ObjectId(request.query_params.get("_id"))
     doc = await ctx.rm.db.user.find_one({"_id": _id})
     need_email = doc is None
@@ -102,7 +103,6 @@ async def ready(request: Request):
 
 @app.get("/info")
 async def info(request: Request):
-    ctx = get_context(app)
     if ctx.config["production"]:
         return Response("", media_type="text/plain")
     name = os.environ.get("POD_NAME")
@@ -112,7 +112,6 @@ async def info(request: Request):
 
 @app.get('/check-your-email')
 async def check_your_email(request: Request):
-    ctx = get_context(app)
     return templates.TemplateResponse('check-your-email.html', {
         "request": request,
         "production": ctx.config["production"],
@@ -122,7 +121,6 @@ async def check_your_email(request: Request):
 
 @app.get('/about')
 async def about(request: Request):
-    ctx = get_context(app)
     return templates.TemplateResponse('about.html', {
         "request": request,
         "production": ctx.config["production"],
@@ -132,7 +130,6 @@ async def about(request: Request):
 
 @app.post('/register')
 async def register(request: Request):
-    ctx = get_context(app)
     body = json.loads(await request.body())
     body["timestamp"] = await ctx.rm.get_time()
 
@@ -165,3 +162,24 @@ async def register(request: Request):
     email_body = "here is your link for 10 free scans "+link
     await ctx.gmail.send_email("noreply", body["email"], "10 free scans link", email_body)
     return Response(util.compact_json({"success": True}), status_code=200, media_type="application/json")
+
+
+ctx = Context()
+async def main():
+    await ctx.init()
+
+    # server:app --host 0.0.0.0 --port 8000 --reload --proxy-headers --forwarded-allow-ips *
+    config = uvicorn.Config("server:app",
+                            host="0.0.0.0",
+                            port=ctx.config["webserver"]["port"],
+                            reload=not ctx.config["webserver"]["production"],
+                            proxy_headers=True,
+                            forwarded_allow_ips="*",
+                            )
+    server = uvicorn.Server(config)
+    await server.serve()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+

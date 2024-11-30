@@ -6,17 +6,17 @@ from bson import ObjectId
 from fastapi import APIRouter
 from fastapi import Request, Response
 
-from website.middleware import get_context
 from website import rdhelper, dbhelper
 from website import util
 import re
 
-router = APIRouter()
+from website.middleware import Context
 
+router = APIRouter()
+ctx = Context()
 
 @router.post("/ocr")
 async def ocr(request: Request):
-    ctx = get_context(request.app)
     not_authorized = Response(util.compact_json({"errors": ["unauthorized"]}), status_code=400, media_type="application/json")
 
 
@@ -88,8 +88,6 @@ async def ocr(request: Request):
 
 @router.get("/balance")
 async def balance(request: Request):
-    ctx = get_context(request.app)
-
     _id = util.str2ObjectId(request.state.session["_id"])
     result = await ctx.credit.balance(_id)
 
