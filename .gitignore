@@ -8,3 +8,5 @@ __pycache__/
 
 **/src/*.js
 db.sqlite3
+*.wasm
+/website/static/wasm/*

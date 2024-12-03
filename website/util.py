@@ -1,3 +1,6 @@
+import base64
+
+import tink
 from bson import ObjectId
 from google.cloud.vision_v1 import AnnotateImageResponse
 from pymongo import WriteConcern, ReadPreference
@@ -9,7 +12,7 @@ import secrets
 import hashlib
 import time
 import cbor2
-
+from tink import secret_key_access
 
 DOMAIN = "hybridocr.com"
 
@@ -168,3 +171,23 @@ def redis_auto_cast(data: dict, cast_keys=True, cast_values_to_int=True, cast_va
             except UnicodeDecodeError:
                 pass
     return data
+
+
+def create_keyset(key: bytes, key_id: int):
+    keyset = {
+        "primaryKeyId": key_id,
+        "key": [{
+            "keyData": {
+                "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmKey",
+                "value": str(base64.b64encode(b"1a20"+key), "utf-8"),
+                "keyMaterialType": "SYMMETRIC",
+            },
+            "status": "ENABLED",
+            "keyId": key_id,
+            "outputPrefixType": "TINK",
+        }],
+    }
+
+
+    payload = compact_json(keyset)
+    return tink.JsonKeysetReader(payload).read()
