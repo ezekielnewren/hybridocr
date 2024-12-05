@@ -10,4 +10,10 @@ export default defineConfig({
       'argon2id': '/node_modules/argon2id/dist/simd.wasm',
     },
   },
+  build: {
+    outDir: "dist",
+    rollupOptions: {
+      input: "src/util.ts"
+    }
+  }
 });

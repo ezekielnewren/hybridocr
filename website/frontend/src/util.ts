@@ -1,4 +1,4 @@
-import init, { _argon2id, _argon2i, _argon2d } from "../../static/wasm/hybridocr.js"
+import init, { _argon2id, _argon2i, _argon2d } from "hybridocr"
 import path from "path";
 import fs from "fs";
 
