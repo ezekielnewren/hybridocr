@@ -7,13 +7,14 @@ export function is_nodejs() {
 }
 
 async function setup_wasm() {
-    const rel_path = "/static/wasm/hybridocr_bg.wasm";
     if (is_nodejs()) {
-        const wasmPath = path.resolve(__dirname, "../.."+rel_path);
+        const wasmPath = path.resolve(__dirname, "../../../wasm/pkg/hybridocr_bg.wasm");
         const wasmBuffer = fs.readFileSync(wasmPath);
+        // @ts-ignore
         await init({module_or_path: wasmBuffer});
     } else {
-        await init({module_or_path: rel_path});
+        // @ts-ignore
+        await init({module_or_path: "/static/wasm/hybridocr_bg.wasm"});
     }
 }
 await setup_wasm();

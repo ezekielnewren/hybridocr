@@ -1,4 +1,4 @@
-## wasm-pack build --release --target web
+## RUSTFLAGS="-C target-feature=+simd128" wasm-pack build --release --target web
 [package]
 name = "hybridocr"
 version = "0.1.0"
@@ -17,3 +17,6 @@ hex = "0.4.3"
 
 [build-dependencies]
 wasm-pack = "0.13.1"
+
+[profile.release]
+opt-level = 3
