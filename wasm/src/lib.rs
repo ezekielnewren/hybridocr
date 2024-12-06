@@ -1,10 +1,8 @@
 use argon2::{Algorithm, Argon2, Params, Version};
 use wasm_bindgen::prelude::*;
 
-use image::{DynamicImage, GrayImage, ImageBuffer, Luma, Rgb, RgbImage, Rgba, RgbaImage};
-use imageproc::definitions::Image;
+use image::{EncodableLayout, GrayImage, Luma};
 use imageproc::geometric_transformations::{warp, Interpolation, Projection};
-use webp::{Decoder, Encoder};
 
 #[wasm_bindgen]
 pub fn _argon2id(password: &[u8], salt: &[u8], m: u32, t: u32, p: u32, length: u32) -> Vec<u8> {
@@ -32,76 +30,103 @@ pub fn argon2(alg: Algorithm, password: &[u8], salt: &[u8], m: u32, t: u32, p: u
 }
 
 
-// #[wasm_bindgen]
+#[wasm_bindgen]
 struct PixelBuffer {
     pub width: u32,
     pub height: u32,
     pub channels: u8,
     pub interleaved: bool,
-    pub data: Vec<u8>,
+}
+
+impl Clone for PixelBuffer {
+    fn clone(&self) -> Self {
+        Self {
+            width: self.width,
+            height: self.height,
+            channels: self.channels,
+            interleaved: self.interleaved,
+        }
+    }
+}
+
+impl Copy for PixelBuffer {
+
 }
 
 impl PixelBuffer {
-    pub fn new(width: u32, height: u32, channels: u8, interleaved: bool, data: Vec<u8>) -> Self {
-        Self {width, height, channels, interleaved, data}
+
+    pub fn new(width: u32, height: u32, channels: u8, interleaved: bool) -> Self {
+        Self {width, height, channels, interleaved}
     }
 
-    pub fn to_dynamic_image(&self) -> Result<DynamicImage, String> {
-        let mut dst: Vec<u8>;
+    pub fn as_channels(&self, src: Vec<u8>) -> Result<Vec<GrayImage>, String> {
+        let mut dst: Vec<GrayImage> = Vec::new();
+        let size: usize = (self.width*self.height) as usize;
+        let channel_size = size/self.channels as usize;
+        let r = size%self.channels as usize;
+        if r != 0 {
+            return Err(String::from("image size is not an integer multiple of channels"));
+        }
         if self.interleaved {
-            let size: usize = (self.width*self.height) as usize;
-            dst = vec![0u8; size];
-            let channel_size = size/self.channels as usize;
-            let r = size%self.channels as usize;
-            if r != 0 {
-                return Err(String::from("image size is not an integer multiple of channels"));
-            }
-            for pixel in 0..channel_size {
-                for channel in 0usize..self.channels as usize {
-                    dst[channel*channel_size+pixel] = self.data[pixel*self.channels as usize+channel];
+            for channel in 0usize..self.channels as usize {
+                let mut t = Vec::<u8>::new();
+                for pixel in 0..channel_size {
+                    t.push(src[pixel*self.channels as usize+channel]);
                 }
+                dst.push(GrayImage::from_vec(self.width, self.height, t).unwrap());
             }
         } else {
-            dst = self.data.clone();
+            dst = Vec::new();
+            for channel in 0usize..self.channels as usize {
+                let off = channel*channel_size;
+                let v = Vec::from(&src[off..off+channel_size]);
+                let img = GrayImage::from_vec(self.width, self.height, v).unwrap();
+                dst.push(img);
+            }
         }
-        if self.channels == 1 {
-            Ok(DynamicImage::ImageLuma8(ImageBuffer::from_vec(self.width, self.height, dst).unwrap()))
-        } else if self.channels == 3 {
-            Ok(DynamicImage::ImageRgb8(ImageBuffer::from_vec(self.width, self.height, dst).unwrap()))
-        } else if self.channels == 4 {
-            Ok(DynamicImage::ImageRgba8(ImageBuffer::from_vec(self.width, self.height, dst).unwrap()))
-        } else {
-            Err(String::from("Illegal parameters"))
-        }
+        Ok(dst)
     }
 
-    pub fn from_dynamic_image(image: &DynamicImage, interleave: bool) -> Result<Self, String> {
-        let channels = image.color().channel_count();
-        let src = image.as_bytes();
+    pub fn from_channels(image: Vec<GrayImage>, interleave: bool) -> Result<(Self, Vec<u8>), String> {
+        let channels = image.len();
+        let width = image[0].width() as usize;
+        let height = image[0].height() as usize;
+        for i in 1..image.len() {
+            if image[i].width() as usize != width {
+                return Err(String::from("image width of all channels must be the same"));
+            }
+            if image[i].height() as usize != height {
+                return Err(String::from("image height of all channels must be the same"));
+            }
+        }
+
         let mut dst: Vec<u8>;
         if interleave {
-            let size: usize = (image.width()*image.height()) as usize;
+            let size: usize = width*height;
             dst = vec![0u8; size];
-            let channel_size = size/channels as usize;
-            let r = size%channels as usize;
+            let channel_size = size/channels;
+            let r = size%channels;
             if r != 0 {
                 return Err(String::from("image size is not an integer multiple of channels"));
             }
-            for pixel in 0..channel_size {
-                for channel in 0usize..channels as usize {
-                    dst[pixel*channels as usize+channel] = src[channel*channel_size+pixel];
+            for channel in 0usize..channels {
+                let t = image[channel].as_bytes();
+                for pixel in 0..channel_size {
+                    dst[pixel*channels+channel] = t[pixel];
                 }
             }
         } else {
-            dst = Vec::from(src);
+            dst = Vec::new();
+            for channel in 0usize..channels {
+                dst.copy_from_slice(image[channel].as_bytes());
+            }
         }
-        Ok(Self {
-            width: image.width(),
-            height: image.height(),
-            channels,
+        Ok((Self {
+            width: width as u32,
+            height: height as u32,
+            channels: channels as u8,
             interleaved: interleave,
-            data: dst
-        })
+        }, dst))
     }
 }
 
@@ -113,11 +138,19 @@ pub fn distance(a: (f32, f32), b: (f32, f32)) -> f32 {
     ((a.0-b.0).powi(2) + (a.1-b.1).powi(2)).sqrt()
 }
 
+
 // #[wasm_bindgen]
+pub fn pertrans(image: PixelBuffer, data: Vec<u8>, src_points: [(f32, f32); 4]) -> Result<(PixelBuffer, Vec<u8>), String> {
+    let warp = perspective_transform(image, data, src_points)?;
+    Ok(warp)
+}
+
+
 pub fn perspective_transform(
     image: PixelBuffer,
+    src: Vec<u8>,
     src_points: [(f32, f32); 4],
-) -> Result<PixelBuffer, String> {
+) -> Result<(PixelBuffer, Vec<u8>), String> {
     let tl = src_points[0];
     let tr = src_points[1];
     let br = src_points[2];
@@ -141,24 +174,18 @@ pub fn perspective_transform(
     ];
 
     // Compute the perspective projection
+    let interleaved = image.interleaved;
     let projection = Projection::from_control_points(src_points, dst_points).unwrap();
-    let img = image.to_dynamic_image()?;
-
-
-    let default_pixel: Rgba<u8> = Rgba::from([0u8; 1]);
-    let x: Image<Rgba<u8>> = RgbaImage::from_pixel(1, 1, default_pixel);
-
-    let warped_image = warp(
-        &img.to_rgba8(),
-        &projection,
-        Interpolation::Bicubic,
-        default_pixel,
-    );
-    let output = PixelBuffer::from_dynamic_image(&warped_image, image.interleaved)?;
-
-    // let di = DynamicImage::from(warped_image);
-    // let encoder = Encoder::from_image(&di)?;
-    // let webp_binary = encoder.encode(75.0).to_vec();
-
-    Ok(output)
+    let default = Luma::from([0u8]);
+    let mut output = Vec::<GrayImage>::new();
+    for img in image.as_channels(src)? {
+        let warped_image = warp(
+            &img,
+            &projection,
+            Interpolation::Bicubic,
+            default,
+        );
+        output.push(warped_image);
+    }
+    PixelBuffer::from_channels(output, interleaved)
 }
