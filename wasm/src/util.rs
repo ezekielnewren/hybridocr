@@ -36,34 +36,27 @@ pub fn distance(a: Point, b: Point) -> f32 {
 }
 
 
-pub fn deinterleave(src: &Vec<u8>, channels: u8) -> Result<Vec<u8>, String> {
-    let channel_size = src.len() / channels as usize;
-    let r = src.len() % channels as usize;
-    if r != 0 {
-        return Err(String::from("image size is not an integer multiple of channels"));
+pub fn transpose(src: &[u8], width: usize, height: usize, dst: &mut [u8]) -> Result<(), String> {
+    if src.len() != dst.len() {
+        return Err(String::from("src and dst length must be the same"));
     }
-    let mut dst = vec![0u8; src.len()];
-    for channel in 0..channels as usize {
-        for pixel in 0..channel_size {
-            dst[channel*channel_size+pixel] = src[pixel*channels as usize+channel];
-        }
+    if width*height != src.len() {
+        return Err(String::from("the length of src must equal width*height"));
     }
-    Ok(dst)
-}
+    if width == 1 || height == 1 {
+        dst.copy_from_slice(&src);
+        return Ok(());
+    }
 
-pub fn interleave(src: &[u8], channels: u8) -> Result<Vec<u8>, String> {
-    let channel_size = src.len() / channels as usize;
-    let r = src.len() % channels as usize;
-    if r != 0 {
-        return Err(String::from("image size is not an integer multiple of channels"));
-    }
-    let mut dst = vec![0u8; src.len()];
-    for channel in 0..channels as usize {
-        for pixel in 0..channel_size {
-            dst[pixel*channels as usize+channel] = src[channel*channel_size+pixel];
+    for col in 0..width {
+        for row in 0..height {
+            let s = row*width+col;
+            let d = col*height+row;
+            dst[d] = src[s];
         }
     }
-    Ok(dst)
+
+    Ok(())
 }
 
 
@@ -81,10 +74,11 @@ impl PixelBuffer {
     pub fn as_channels(&self) -> Result<Vec<GrayImage>, String> {
         let mut dst: Vec<GrayImage> = Vec::new();
         let channel_size = self.data.len()/self.channels as usize;
-        let t: Vec<u8>;
+        let mut t: Vec<u8>;
         let planar: &[u8];
         if self.interleaved {
-            t = deinterleave(&self.data, self.channels)?;
+            t = vec![0u8; self.data.len()];
+            transpose(self.data.as_slice(), self.channels as usize, channel_size, t.as_mut_slice())?;
             planar = t.as_slice();
         } else {
             planar = self.data.as_slice();
@@ -100,10 +94,11 @@ impl PixelBuffer {
     }
 
     pub fn as_dynamic_image(&self) -> Result<DynamicImage, String> {
-        let t: Vec<u8>;
+        let mut t: Vec<u8>;
         let planar: &[u8];
         if self.interleaved {
-            t = deinterleave(&self.data, self.channels)?;
+            t = vec![0u8; self.data.len()];
+            transpose(self.data.as_slice(), self.channels as usize, (self.width*self.height) as usize, t.as_mut_slice())?;
             planar = t.as_slice();
         } else {
             planar = self.data.as_slice();
@@ -138,7 +133,8 @@ impl PixelBuffer {
             for c in channel {
                 src.extend_from_slice(c.as_bytes());
             }
-            dst = interleave(src.as_slice(), channel.len() as u8)?;
+            dst = vec![0u8; src.len()];
+            transpose(src.as_slice(), width*height, channel.len(), dst.as_mut_slice())?;
         } else {
             dst = Vec::new();
             for c in channel {
