@@ -1,4 +1,4 @@
-use hybridocr::{_argon2id, _perspective_transform};
+use hybridocr::{_argon2id, util::_perspective_transform};
 
 #[cfg(test)]
 mod tests {
@@ -6,8 +6,8 @@ mod tests {
     use std::io::{Cursor, Write};
     use std::path::Path;
     use std::time::Instant;
-    use image::{ExtendedColorType, ImageReader, ImageFormat};
-    use hybridocr::{PixelBuffer, Point, Quadrilateral};
+    use image::{ImageReader, ImageFormat};
+    use hybridocr::util::{PixelBuffer, Quadrilateral, Point};
     use super::*;
 
 
