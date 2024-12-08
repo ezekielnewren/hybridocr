@@ -1,6 +1,5 @@
 use argon2::{Algorithm, Argon2, Params, Version};
-use image::{DynamicImage, EncodableLayout, GrayImage, ImageBuffer, Luma, Rgb, RgbImage, Rgba, RgbaImage};
-use imageproc::drawing::Canvas;
+use image::{DynamicImage, GrayImage, ImageBuffer, Luma, Rgb, RgbImage, Rgba, RgbaImage};
 use imageproc::geometric_transformations::{warp_into, Interpolation, Projection};
 use serde::{Deserialize, Serialize};
 
@@ -103,7 +102,7 @@ impl PixelBuffer {
             (w, h) = (h, w);
         }
 
-        let mut src = self.data.clone();
+        let src = self.data.clone();
         transpose(src.as_slice(), w, h, self.data.as_mut_slice()).unwrap();
         self.interleaved = !self.interleaved;
     }

@@ -3,8 +3,6 @@ pub mod util;
 use argon2::{Algorithm};
 use wasm_bindgen::prelude::*;
 
-use image::{EncodableLayout};
-use serde::{Serialize, Deserialize};
 use crate::util::{PixelBuffer, Quadrilateral, _perspective_transform, argon2};
 
 #[wasm_bindgen]

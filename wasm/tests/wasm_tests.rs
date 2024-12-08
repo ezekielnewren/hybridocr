@@ -19,9 +19,7 @@ pub fn write_image(img: DynamicImage, fmt: ImageFormat, path: &Path) {
 
 #[cfg(test)]
 mod tests {
-    use image::{EncodableLayout, ImageBuffer, RgbImage};
     use imageproc::drawing::Canvas;
-    use hybridocr::util::transpose;
     use super::*;
 
     #[test]
@@ -44,9 +42,9 @@ mod tests {
     #[test]
     fn test_perspective_transform() {
         let fd = ImageReader::open("../tests/file/ocr_sample_from_smartphone_rgba.avif").unwrap();
-        let mut img_rgba = fd.decode().unwrap();
+        let img_rgba = fd.decode().unwrap();
         let img_rgb = DynamicImage::ImageRgb8(img_rgba.to_rgb8());
-        let img_gray = DynamicImage::ImageLuma8(img_rgba.to_luma8());
+        // let img_gray = DynamicImage::ImageLuma8(img_rgba.to_luma8());
 
         // verify that DynamicImage interleaves the channels into each pixel
         let cs = 3usize;
