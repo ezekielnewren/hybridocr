@@ -19,7 +19,9 @@ pub fn write_image(img: DynamicImage, fmt: ImageFormat, path: &Path) {
 
 #[cfg(test)]
 mod tests {
-    use image::EncodableLayout;
+    use image::{EncodableLayout, ImageBuffer, RgbImage};
+    use imageproc::drawing::Canvas;
+    use hybridocr::util::transpose;
     use super::*;
 
     #[test]
@@ -45,9 +47,28 @@ mod tests {
         let mut img_rgba = fd.decode().unwrap();
         let img_rgb = DynamicImage::ImageRgb8(img_rgba.to_rgb8());
         let img_gray = DynamicImage::ImageLuma8(img_rgba.to_luma8());
-        let img = img_gray;
 
-        let pb = PixelBuffer::from_dynamic_image(&img);
+        // verify that DynamicImage interleaves the channels into each pixel
+        let cs = 3usize;
+        let _raw = img_rgb.as_bytes();
+        let w = img_rgb.width() as usize;
+        let h = img_rgb.height() as usize;
+        for row in 0..h {
+            for col in 0..w {
+                let pixel = img_rgb.get_pixel(col as u32, row as u32);
+                for channel in 0..cs {
+                    let e = pixel[channel];
+                    let pixel_off = row*w+col;
+                    let a = _raw[pixel_off*cs+channel];
+                    assert_eq!(e, a, "row: {}, col: {}, channel: {}", row, col, channel);
+                }
+            }
+        }
+
+        let img = &img_rgba;
+
+        let mut pb = PixelBuffer::from_dynamic_image(&img);
+        pb.toggle_interleaved();
         assert_eq!((pb.width * pb.height * pb.channels as u32) as usize, pb.data.len());
 
         let quad = Quadrilateral {
@@ -58,9 +79,10 @@ mod tests {
         };
 
 
-        let result = _perspective_transform(pb, quad).unwrap();
+        let result = _perspective_transform(&pb, &quad).unwrap();
         let out = result.as_dynamic_image().unwrap();
 
+        assert_eq!(pb.interleaved, result.interleaved);
         write_image(out, ImageFormat::Png, Path::new("/tmp/output.png"));
     }
 

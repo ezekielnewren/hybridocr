@@ -72,98 +72,68 @@ pub struct PixelBuffer {
 
 impl PixelBuffer {
 
-}
+    pub fn new(width: u32, height: u32, channels: u8, interleaved: bool, src: &[u8]) -> Result<Self, String> {
+        if width*height*channels as u32 != src.len() as u32 {
+            return Err(String::from("width*height*channels must equal src.len()"));
+        }
 
-impl PixelBuffer {
-    pub fn as_channels(&self) -> Result<Vec<GrayImage>, String> {
-        let mut dst: Vec<GrayImage> = Vec::new();
-        let channel_size = self.data.len()/self.channels as usize;
-        let mut t: Vec<u8>;
-        let planar: &[u8];
-        if self.interleaved {
-            t = vec![0u8; self.data.len()];
-            transpose(self.data.as_slice(), self.channels as usize, channel_size, t.as_mut_slice())?;
-            planar = t.as_slice();
-        } else {
-            planar = self.data.as_slice();
-        }
-        for channel in 0usize..self.channels as usize {
-            let off = channel*channel_size;
-            let pixel_data: Vec<u8> = Vec::from(&planar[off..off+channel_size]);
-            assert_eq!(self.width*self.height, pixel_data.len() as u32);
-            let img: GrayImage = GrayImage::from_vec(self.width, self.height, pixel_data).unwrap();
-            dst.push(img);
-        }
-        Ok(dst)
+        Ok(Self {
+            width,
+            height,
+            channels,
+            interleaved,
+            data: src.to_vec(),
+        })
     }
 
     pub fn from_dynamic_image(img: &DynamicImage) -> Self {
-        Self {
-            width: img.width(),
-            height: img.height(),
-            channels: img.color().channel_count(),
-            interleaved: false,
-            data: Vec::from(img.as_bytes()),
+        Self::new(
+            img.width(),
+            img.height(),
+            img.color().channel_count(),
+            true,
+            img.as_bytes()
+        ).unwrap()
+    }
+
+    pub fn toggle_interleaved(&mut self) {
+        let mut w = self.channels as usize;
+        let mut h = (self.width*self.height) as usize;
+        if !self.interleaved {
+            (w, h) = (h, w);
+        }
+
+        let mut src = self.data.clone();
+        transpose(src.as_slice(), w, h, self.data.as_mut_slice()).unwrap();
+        self.interleaved = !self.interleaved;
+    }
+
+    pub fn as_bytes(&self) -> Vec<u8> {
+        if self.interleaved {
+            self.data.clone()
+        } else {
+            let mut t = vec![0u8; self.data.len()];
+            let w = (self.width * self.height) as usize;
+            let h = self.channels as usize;
+            transpose(self.data.as_slice(), w, h, t.as_mut_slice()).unwrap();
+            t
         }
     }
 
     pub fn as_dynamic_image(&self) -> Result<DynamicImage, String> {
-        let mut t: Vec<u8>;
-        let planar: &[u8];
-        if self.interleaved {
-            t = vec![0u8; self.data.len()];
-            transpose(self.data.as_slice(), self.channels as usize, (self.width*self.height) as usize, t.as_mut_slice())?;
-            planar = t.as_slice();
-        } else {
-            planar = self.data.as_slice();
-        }
+        let woven = self.as_bytes();
 
         if self.channels == 1 {
-            Ok(DynamicImage::ImageLuma8(ImageBuffer::from_vec(self.width, self.height, planar.to_vec()).unwrap()))
+            Ok(DynamicImage::ImageLuma8(ImageBuffer::from_vec(self.width, self.height, woven).unwrap()))
         } else if self.channels == 2 {
-            Ok(DynamicImage::ImageLumaA8(ImageBuffer::from_vec(self.width, self.height, planar.to_vec()).unwrap()))
+            Ok(DynamicImage::ImageLumaA8(ImageBuffer::from_vec(self.width, self.height, woven).unwrap()))
         } else if self.channels == 3 {
-            Ok(DynamicImage::ImageRgb8(ImageBuffer::from_vec(self.width, self.height, planar.to_vec()).unwrap()))
+            Ok(DynamicImage::ImageRgb8(ImageBuffer::from_vec(self.width, self.height, woven).unwrap()))
         } else if self.channels == 4 {
-            Ok(DynamicImage::ImageRgba8(ImageBuffer::from_vec(self.width, self.height, planar.to_owned()).unwrap()))
+            Ok(DynamicImage::ImageRgba8(ImageBuffer::from_vec(self.width, self.height, woven).unwrap()))
         } else {
             Err(String::from("Illegal parameters"))
         }
-    }
-
-    pub fn from_channels(channel: &Vec<GrayImage>, interleaved: bool) -> Result<Self, String> {
-        let width = channel[0].width() as usize;
-        let height = channel[0].height() as usize;
-        for i in 1..channel.len() {
-            if channel[i].width() as usize != width {
-                return Err(String::from("image width of all channels must be the same"));
-            }
-            if channel[i].height() as usize != height {
-                return Err(String::from("image height of all channels must be the same"));
-            }
-        }
-
-        let mut dst: Vec<u8>;
-        if interleaved {
-            let mut src = Vec::<u8>::new();
-            for c in channel {
-                src.extend_from_slice(c.as_bytes());
-            }
-            dst = vec![0u8; src.len()];
-            transpose(src.as_slice(), width*height, channel.len(), dst.as_mut_slice())?;
-        } else {
-            dst = Vec::new();
-            for c in channel {
-                dst.extend_from_slice(c.as_bytes());
-            }
-        }
-        Ok(Self {
-            width: width as u32,
-            height: height as u32,
-            channels: channel.len() as u8,
-            interleaved,
-            data: dst
-        })
     }
 }
 
@@ -201,16 +171,16 @@ impl Quadrilateral {
     }
 }
 
-pub fn _perspective_transform(pb: PixelBuffer, quad: Quadrilateral) -> Result<PixelBuffer, String> {
+pub fn _perspective_transform(pb: &PixelBuffer, quad: &Quadrilateral) -> Result<PixelBuffer, String> {
     let projection = Projection::from_control_points(quad.as_array(), quad.dst_rect()).unwrap();
     let out_dim = quad.output_dimension();
     let w = out_dim.0 as u32;
     let h = out_dim.1 as u32;
-    let mut output = Vec::<GrayImage>::new();
 
+    let src = pb.as_bytes();
     let out_img: DynamicImage;
     if pb.channels == 1 {
-        let gray = GrayImage::from_vec(pb.width, pb.height, pb.data).unwrap();
+        let gray = GrayImage::from_vec(pb.width, pb.height, src).unwrap();
         let dp = Luma([0]);
         let mut t = ImageBuffer::from_pixel(w, h, dp);
         warp_into(
@@ -222,7 +192,7 @@ pub fn _perspective_transform(pb: PixelBuffer, quad: Quadrilateral) -> Result<Pi
         );
         out_img = DynamicImage::from(t);
     } else if pb.channels == 3 {
-        let rgb = RgbImage::from_vec(pb.width, pb.height, pb.data).unwrap();
+        let rgb = RgbImage::from_vec(pb.width, pb.height, src).unwrap();
         let dp = Rgb([0, 0, 0]);
         let mut t = ImageBuffer::from_pixel(w, h, dp);
         warp_into(
@@ -234,7 +204,7 @@ pub fn _perspective_transform(pb: PixelBuffer, quad: Quadrilateral) -> Result<Pi
         );
         out_img = DynamicImage::from(t);
     } else if pb.channels == 4 {
-        let rgba = RgbaImage::from_vec(pb.width, pb.height, pb.data).unwrap();
+        let rgba = RgbaImage::from_vec(pb.width, pb.height, src).unwrap();
         let dp = Rgba([0u8, 0u8, 0u8, 0u8]);
         let mut t = ImageBuffer::from_pixel(w, h, dp);
         warp_into(
@@ -249,6 +219,10 @@ pub fn _perspective_transform(pb: PixelBuffer, quad: Quadrilateral) -> Result<Pi
         return Err(String::from("only 1, 3, or 4 channels are supported"));
     }
 
-    Ok(PixelBuffer::from_dynamic_image(&out_img))
+    let mut pb_out = PixelBuffer::from_dynamic_image(&out_img);
+    if !pb.interleaved {
+        pb_out.toggle_interleaved();
+    }
+    Ok(pb_out)
 }
 
