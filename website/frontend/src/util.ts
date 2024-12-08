@@ -1,4 +1,4 @@
-import init, { _argon2id, _argon2i, _argon2d } from "hybridocr"
+import init, { _argon2id, _argon2i, _argon2d, perspective_transform, examplePixelBuffer, exampleQuadrilateral } from "hybridocr"
 import path from "path";
 import fs from "fs";
 
@@ -86,4 +86,49 @@ export async function argon2i(password: Uint8Array, salt: Uint8Array, m: number,
 export async function argon2d(password: Uint8Array, salt: Uint8Array, m: number, t: number, p: number, length: number) {
     const hash = _argon2d(password, salt, m, t, p, length);
     return new Argon2Result("argon2d", 19, m, t, p, salt, hash);
+}
+
+
+export class Point {
+    x: number;
+    y: number;
+
+    constructor(x: number, y: number) {
+        this.x = x;
+        this.y = y;
+    }
+}
+
+export class Quadrilateral {
+    tl: Point;
+    tr: Point;
+    br: Point;
+    bl: Point;
+
+    constructor(tl: Point, tr: Point, br: Point, bl: Point) {
+        this.tl = tl;
+        this.tr = tr;
+        this.br = br;
+        this.bl = bl;
+    }
+}
+
+export class PixelBuffer {
+    width: number;
+    height: number;
+    channels: number;
+    interleaved: boolean;
+    data: Array<number>;
+
+    constructor(width: number, height: number, channels: number, interleaved: boolean, data: Array<number>) {
+        this.width = width;
+        this.height = height;
+        this.channels = channels;
+        this.interleaved = interleaved;
+        this.data = data;
+    }
+}
+
+export async function perspectiveTransform(img: PixelBuffer, quad: Quadrilateral): Promise<PixelBuffer> {
+    return perspective_transform(img, quad);
 }
