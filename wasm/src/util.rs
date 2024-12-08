@@ -1,7 +1,7 @@
 use argon2::{Algorithm, Argon2, Params, Version};
-use image::{DynamicImage, EncodableLayout, GrayImage, ImageBuffer, Luma};
-use imageproc::definitions::Image;
-use imageproc::geometric_transformations::{warp, warp_into, Interpolation, Projection};
+use image::{DynamicImage, EncodableLayout, GrayImage, ImageBuffer, Luma, Rgb, RgbImage, Rgba, RgbaImage};
+use imageproc::drawing::Canvas;
+use imageproc::geometric_transformations::{warp_into, Interpolation, Projection};
 use serde::{Deserialize, Serialize};
 
 
@@ -70,6 +70,9 @@ pub struct PixelBuffer {
     pub data: Vec<u8>,
 }
 
+impl PixelBuffer {
+
+}
 
 impl PixelBuffer {
     pub fn as_channels(&self) -> Result<Vec<GrayImage>, String> {
@@ -92,6 +95,16 @@ impl PixelBuffer {
             dst.push(img);
         }
         Ok(dst)
+    }
+
+    pub fn from_dynamic_image(img: &DynamicImage) -> Self {
+        Self {
+            width: img.width(),
+            height: img.height(),
+            channels: img.color().channel_count(),
+            interleaved: false,
+            data: Vec::from(img.as_bytes()),
+        }
     }
 
     pub fn as_dynamic_image(&self) -> Result<DynamicImage, String> {
@@ -188,27 +201,54 @@ impl Quadrilateral {
     }
 }
 
-pub fn _perspective_transform(image: PixelBuffer, quad: Quadrilateral) -> Result<PixelBuffer, String> {
+pub fn _perspective_transform(pb: PixelBuffer, quad: Quadrilateral) -> Result<PixelBuffer, String> {
     let projection = Projection::from_control_points(quad.as_array(), quad.dst_rect()).unwrap();
     let out_dim = quad.output_dimension();
+    let w = out_dim.0 as u32;
+    let h = out_dim.1 as u32;
     let mut output = Vec::<GrayImage>::new();
-    for img in image.as_channels()? {
-        let mut out_img: Image<Luma<u8>> = ImageBuffer::from_pixel(out_dim.0 as u32, out_dim.1 as u32, Luma([0u8]));
+
+    let out_img: DynamicImage;
+    if pb.channels == 1 {
+        let gray = GrayImage::from_vec(pb.width, pb.height, pb.data).unwrap();
+        let dp = Luma([0]);
+        let mut t = ImageBuffer::from_pixel(w, h, dp);
         warp_into(
-            &img,
+            &gray,
             &projection,
             Interpolation::Bicubic,
-            Luma::from([0u8]),
-            &mut out_img,
+            dp,
+            &mut t,
         );
-        output.push(out_img);
-        // let warped_image = warp(
-        //     &img,
-        //     &projection,
-        //     Interpolation::Bicubic,
-        //     Luma::from([0u8]),
-        // );
-        // output.push(warped_image);
+        out_img = DynamicImage::from(t);
+    } else if pb.channels == 3 {
+        let rgb = RgbImage::from_vec(pb.width, pb.height, pb.data).unwrap();
+        let dp = Rgb([0, 0, 0]);
+        let mut t = ImageBuffer::from_pixel(w, h, dp);
+        warp_into(
+            &rgb,
+            &projection,
+            Interpolation::Bicubic,
+            dp,
+            &mut t,
+        );
+        out_img = DynamicImage::from(t);
+    } else if pb.channels == 4 {
+        let rgba = RgbaImage::from_vec(pb.width, pb.height, pb.data).unwrap();
+        let dp = Rgba([0u8, 0u8, 0u8, 0u8]);
+        let mut t = ImageBuffer::from_pixel(w, h, dp);
+        warp_into(
+            &rgba,
+            &projection,
+            Interpolation::Bicubic,
+            dp,
+            &mut t,
+        );
+        out_img = DynamicImage::from(t);
+    } else {
+        return Err(String::from("only 1, 3, or 4 channels are supported"));
     }
-    PixelBuffer::from_channels(&output, image.interleaved)
+
+    Ok(PixelBuffer::from_dynamic_image(&out_img))
 }
+

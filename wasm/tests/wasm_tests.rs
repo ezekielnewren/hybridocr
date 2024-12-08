@@ -47,13 +47,7 @@ mod tests {
         let img_gray = DynamicImage::ImageLuma8(img_rgba.to_luma8());
         let img = img_gray;
 
-        let pb = PixelBuffer {
-            width: img.width(),
-            height: img.height(),
-            channels: img.color().channel_count(),
-            interleaved: true,
-            data: Vec::from(img.as_bytes()),
-        };
+        let pb = PixelBuffer::from_dynamic_image(&img);
         assert_eq!((pb.width * pb.height * pb.channels as u32) as usize, pb.data.len());
 
         let quad = Quadrilateral {
