@@ -1,15 +1,26 @@
+use std::path::{Path};
+use image::{ImageReader, DynamicImage, ImageFormat};
 use hybridocr::{_argon2id, util::_perspective_transform};
+use std::fs::File;
+use std::io::{Cursor, Write};
+use std::time::Instant;
+use hybridocr::util::{PixelBuffer, Quadrilateral, Point};
+
+pub fn write_image(img: DynamicImage, fmt: ImageFormat, path: &Path) {
+    let mut bytes = Vec::<u8>::new();
+    let mut buffer = Cursor::new(&mut bytes);
+    let _ = img.write_to(&mut buffer, fmt);
+
+    let mut fdo = File::create(path).unwrap();
+    fdo.write(bytes.as_slice()).unwrap();
+}
+
+
 
 #[cfg(test)]
 mod tests {
-    use std::fs::File;
-    use std::io::{Cursor, Write};
-    use std::path::Path;
-    use std::time::Instant;
-    use image::{ImageReader, ImageFormat};
-    use hybridocr::util::{PixelBuffer, Quadrilateral, Point};
+    use image::EncodableLayout;
     use super::*;
-
 
     #[test]
     fn test_argon2() {
@@ -30,8 +41,11 @@ mod tests {
 
     #[test]
     fn test_perspective_transform() {
-        let fd = ImageReader::open("../tests/file/ocr_sample_from_smartphone.webp").unwrap();
-        let img = fd.decode().unwrap();
+        let fd = ImageReader::open("../tests/file/ocr_sample_from_smartphone_rgba.avif").unwrap();
+        let mut img_rgba = fd.decode().unwrap();
+        let img_rgb = DynamicImage::ImageRgb8(img_rgba.to_rgb8());
+        let img_gray = DynamicImage::ImageLuma8(img_rgba.to_luma8());
+        let img = img_gray;
 
         let pb = PixelBuffer {
             width: img.width(),
@@ -53,12 +67,7 @@ mod tests {
         let result = _perspective_transform(pb, quad).unwrap();
         let out = result.as_dynamic_image().unwrap();
 
-        let mut bytes = Vec::<u8>::new();
-        let mut buffer = Cursor::new(&mut bytes);
-        let _ = out.write_to(&mut buffer, ImageFormat::WebP);
-
-        let mut fdo = File::create(Path::new("/tmp/ocr_sample_from_smartphone_corrected.webp")).unwrap();
-        fdo.write(bytes.as_slice()).unwrap();
+        write_image(out, ImageFormat::Png, Path::new("/tmp/output.png"));
     }
 
 }

@@ -1,6 +1,7 @@
 use argon2::{Algorithm, Argon2, Params, Version};
 use image::{DynamicImage, EncodableLayout, GrayImage, ImageBuffer, Luma};
-use imageproc::geometric_transformations::{warp, Interpolation, Projection};
+use imageproc::definitions::Image;
+use imageproc::geometric_transformations::{warp, warp_into, Interpolation, Projection};
 use serde::{Deserialize, Serialize};
 
 
@@ -106,6 +107,8 @@ impl PixelBuffer {
 
         if self.channels == 1 {
             Ok(DynamicImage::ImageLuma8(ImageBuffer::from_vec(self.width, self.height, planar.to_vec()).unwrap()))
+        } else if self.channels == 2 {
+            Ok(DynamicImage::ImageLumaA8(ImageBuffer::from_vec(self.width, self.height, planar.to_vec()).unwrap()))
         } else if self.channels == 3 {
             Ok(DynamicImage::ImageRgb8(ImageBuffer::from_vec(self.width, self.height, planar.to_vec()).unwrap()))
         } else if self.channels == 4 {
@@ -166,7 +169,7 @@ impl Quadrilateral {
         [(self.tl.x, self.tl.y), (self.tr.x, self.tr.y), (self.br.x, self.br.y), (self.bl.x, self.bl.y)]
     }
 
-    pub fn dst_rect(&self) -> [(f32, f32); 4] {
+    pub fn output_dimension(&self) -> (f32, f32) {
         let left_mid = midpoint(self.tl, self.bl);
         let right_mid = midpoint(self.tr, self.br);
         let width = distance(left_mid, right_mid);
@@ -175,21 +178,37 @@ impl Quadrilateral {
         let bot_mid = midpoint(self.bl, self.br);
         let height = distance(top_mid, bot_mid);
 
+        (width, height)
+    }
+
+    pub fn dst_rect(&self) -> [(f32, f32); 4] {
+        let (width, height) = self.output_dimension();
+
         [(0.0, 0.0), (width, 0.0), (width, height), (0.0, height)]
     }
 }
 
 pub fn _perspective_transform(image: PixelBuffer, quad: Quadrilateral) -> Result<PixelBuffer, String> {
     let projection = Projection::from_control_points(quad.as_array(), quad.dst_rect()).unwrap();
+    let out_dim = quad.output_dimension();
     let mut output = Vec::<GrayImage>::new();
     for img in image.as_channels()? {
-        let warped_image = warp(
+        let mut out_img: Image<Luma<u8>> = ImageBuffer::from_pixel(out_dim.0 as u32, out_dim.1 as u32, Luma([0u8]));
+        warp_into(
             &img,
             &projection,
             Interpolation::Bicubic,
             Luma::from([0u8]),
+            &mut out_img,
         );
-        output.push(warped_image);
+        output.push(out_img);
+        // let warped_image = warp(
+        //     &img,
+        //     &projection,
+        //     Interpolation::Bicubic,
+        //     Luma::from([0u8]),
+        // );
+        // output.push(warped_image);
     }
     PixelBuffer::from_channels(&output, image.interleaved)
 }
