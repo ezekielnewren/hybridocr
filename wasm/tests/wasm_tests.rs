@@ -1,6 +1,6 @@
 use std::path::{Path};
 use image::{ImageReader, DynamicImage, ImageFormat};
-use hybridocr::{_argon2id, util::_perspective_transform};
+use hybridocr::{_argon2id, util::_perspective_transform, util::_pt};
 use std::fs::File;
 use std::io::{Cursor, Write};
 use std::time::Instant;
@@ -81,6 +81,32 @@ mod tests {
         let out = result.as_dynamic_image().unwrap();
 
         assert_eq!(pb.interleaved, result.interleaved);
+        write_image(out, ImageFormat::Png, Path::new("/tmp/output.png"));
+    }
+
+    #[test]
+    pub fn test_custom_pt() {
+        let fd = ImageReader::open("../tests/file/ocr_sample_from_smartphone_rgba.avif").unwrap();
+        let img_rgba = fd.decode().unwrap();
+        let img_rgb = DynamicImage::ImageRgb8(img_rgba.to_rgb8());
+        let img_gray = DynamicImage::ImageLuma8(img_rgba.to_luma8());
+        let img = &img_gray;
+
+        let mut pb = PixelBuffer::from_dynamic_image(&img);
+        let src_interleaved = pb.interleaved;
+        assert_eq!((pb.width * pb.height * pb.channels as u32) as usize, pb.data.len());
+
+        let quad = Quadrilateral {
+            tl: Point{x: 50.0,   y: 335.0},
+            tr: Point{x: 1076.0, y: 305.0},
+            br: Point{x: 1130.0, y: 1688.0},
+            bl: Point{x: 29.0,   y: 1690.0},
+        };
+
+        let result = _pt(pb, quad).unwrap();
+        let out = result.as_dynamic_image().unwrap();
+
+        assert_eq!(src_interleaved, result.interleaved);
         write_image(out, ImageFormat::Png, Path::new("/tmp/output.png"));
     }
 

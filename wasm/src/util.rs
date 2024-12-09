@@ -85,6 +85,16 @@ impl PixelBuffer {
         })
     }
 
+    pub fn blank(width: u32, height: u32, channels: u8, interleaved: bool) -> Self {
+        Self {
+            width,
+            height,
+            channels,
+            interleaved,
+            data: vec![0u8; (width*height*channels as u32) as usize],
+        }
+    }
+
     pub fn from_dynamic_image(img: &DynamicImage) -> Self {
         Self::new(
             img.width(),
@@ -135,32 +145,39 @@ impl PixelBuffer {
         }
     }
 
-    pub fn get(&mut self, x: usize, y: usize, c: usize) -> u8 {
+
+    pub fn in_bounds(&self, x: f32, y: f32, c: u8) -> bool {
+        let (w, h) = (self.width as f32, self.height as f32);
+        0.0 <= x && x < w && 0.0 <= y && y < h && c < self.channels
+    }
+
+    pub fn get(&mut self, _x: f32, _y: f32, c: u8) -> u8 {
         // if the index is outside the matrix, return the default pixel i.e. black
-        if !(x < self.width as usize && y < self.height as usize && c < self.channels as usize) {
+        if !self.in_bounds(_x, _y, c) {
             return 0u8;
         }
         let (w, h) = (self.width as usize, self.height as usize);
+        let (x, y) = (_x as usize, _y as usize);
         if self.interleaved {
             let pixel_size = self.channels as usize;
-            self.data[y*pixel_size*w + x*pixel_size + c]
+            self.data[y*pixel_size*w + x*pixel_size + c as usize]
         } else {
             let channel_size = w*h;
-            self.data[c*channel_size + y*w + x]
+            self.data[c as usize*channel_size + y*w + x]
         }
     }
 
-    pub fn at_mut(&mut self, x: usize, y: usize, c: usize) -> &mut u8 {
-        if !(x < self.width as usize && y < self.height as usize && c < self.channels as usize) {
+    pub fn at_mut(&mut self, x: usize, y: usize, c: u8) -> &mut u8 {
+        if !self.in_bounds(x as f32, y as f32, c) {
             panic!("Index out of bounds: x={}, y={}, c={}", x, y, c);
         }
         let (w, h) = (self.width as usize, self.height as usize);
         if self.interleaved {
             let pixel_size = self.channels as usize;
-            &mut self.data[y*pixel_size*w + x*pixel_size + c]
+            &mut self.data[y*pixel_size*w + x*pixel_size + c as usize]
         } else {
             let channel_size = w*h;
-            &mut self.data[c*channel_size + y*w + x]
+            &mut self.data[c as usize*channel_size + y*w + x]
         }
     }
 }
@@ -198,6 +215,50 @@ impl Quadrilateral {
         [(0.0, 0.0), (width, 0.0), (width, height), (0.0, height)]
     }
 }
+
+
+pub fn get_transform(proj: &Projection) -> [f32; 9] {
+    unsafe {
+        let ptr = proj as *const Projection;
+        let x = ptr as *const [f32; 9];
+        *x.add(1)
+    }
+}
+
+
+pub fn _pt(mut src: PixelBuffer, quad: Quadrilateral) -> Result<PixelBuffer, String> {
+    let projection = Projection::from_control_points(quad.as_array(), quad.dst_rect()).unwrap();
+    let out_dim = quad.output_dimension();
+    let c = src.channels;
+    let mut dst = PixelBuffer::blank(out_dim.0 as u32, out_dim.1 as u32, c, src.interleaved);
+
+    let h = get_transform(&projection);
+
+    for dst_y in 0..dst.height as usize {
+        let y = dst_y as f32;
+        for dst_x in 0..dst.width as usize {
+            let x = dst_x as f32;
+
+            let denom = h[6] * x + h[7] * y + h[8];
+            if denom == 0.0 {
+                continue;
+            }
+
+            let src_x = (h[0] * x + h[1] * y + h[2]) / denom;
+            let src_y = (h[3] * x + h[4] * y + h[5]) / denom;
+
+            for c in 0..c {
+                if !src.in_bounds(src_x, src_y, c) {
+                    continue;
+                }
+                *dst.at_mut(dst_x, dst_y, c) = src.get(src_x, src_y, c);
+            }
+        }
+    }
+
+    Ok(dst)
+}
+
 
 pub fn _perspective_transform(pb: &PixelBuffer, quad: &Quadrilateral) -> Result<PixelBuffer, String> {
     let projection = Projection::from_control_points(quad.as_array(), quad.dst_rect()).unwrap();
