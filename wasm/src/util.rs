@@ -134,6 +134,35 @@ impl PixelBuffer {
             Err(String::from("Illegal parameters"))
         }
     }
+
+    pub fn get(&mut self, x: usize, y: usize, c: usize) -> u8 {
+        // if the index is outside the matrix, return the default pixel i.e. black
+        if !(x < self.width as usize && y < self.height as usize && c < self.channels as usize) {
+            return 0u8;
+        }
+        let (w, h) = (self.width as usize, self.height as usize);
+        if self.interleaved {
+            let pixel_size = self.channels as usize;
+            self.data[y*pixel_size*w + x*pixel_size + c]
+        } else {
+            let channel_size = w*h;
+            self.data[c*channel_size + y*w + x]
+        }
+    }
+
+    pub fn at_mut(&mut self, x: usize, y: usize, c: usize) -> &mut u8 {
+        if !(x < self.width as usize && y < self.height as usize && c < self.channels as usize) {
+            panic!("Index out of bounds: x={}, y={}, c={}", x, y, c);
+        }
+        let (w, h) = (self.width as usize, self.height as usize);
+        if self.interleaved {
+            let pixel_size = self.channels as usize;
+            &mut self.data[y*pixel_size*w + x*pixel_size + c]
+        } else {
+            let channel_size = w*h;
+            &mut self.data[c*channel_size + y*w + x]
+        }
+    }
 }
 
 
