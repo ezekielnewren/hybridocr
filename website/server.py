@@ -119,6 +119,15 @@ async def check_your_email(request: Request):
     })
 
 
+@app.get('/argon2')
+async def check_your_email(request: Request):
+    return templates.TemplateResponse('argon2.html', {
+        "request": request,
+        "production": ctx.config["production"],
+        "gtag_id": ctx.config["webserver"]["gtag_id"],
+    })
+
+
 @app.get('/about')
 async def about(request: Request):
     return templates.TemplateResponse('about.html', {

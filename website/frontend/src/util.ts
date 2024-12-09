@@ -1,13 +1,13 @@
-import init, { _argon2id, _argon2i, _argon2d, perspective_transform, examplePixelBuffer, exampleQuadrilateral } from "hybridocr"
-import path from "path";
-import fs from "fs";
+import init, { _argon2id, _argon2i, _argon2d, perspective_transform } from "hybridocr"
 
 export function is_nodejs() {
     return typeof process !== 'undefined';
 }
 
 async function setup_wasm() {
-    if (is_nodejs()) {
+    if (process.env.NODE_ENV !== "production") {
+        let path = await import('path');
+        let fs = await import('fs');
         const wasmPath = path.resolve(__dirname, "../../../wasm/pkg/hybridocr_bg.wasm");
         const wasmBuffer = fs.readFileSync(wasmPath);
         // @ts-ignore

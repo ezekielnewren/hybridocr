@@ -6,12 +6,10 @@ export default defineConfig({
     // webAssembly: true,    // Enable WASM support in Vitest
   },
   resolve: {
-    alias: {
-      'argon2id': '/node_modules/argon2id/dist/simd.wasm',
-    },
   },
   build: {
     outDir: "dist",
+    target: "esnext",
     rollupOptions: {
       input: "src/util.ts"
     }
