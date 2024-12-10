@@ -20,6 +20,7 @@ pub fn write_image(img: DynamicImage, fmt: ImageFormat, path: &Path) {
 #[cfg(test)]
 mod tests {
     use imageproc::drawing::Canvas;
+    use hybridocr::util::Interp;
     use super::*;
 
     #[test]
@@ -103,7 +104,7 @@ mod tests {
             bl: Point{x: 29.0,   y: 1690.0},
         };
 
-        let result = _pt(pb, quad).unwrap();
+        let result = _pt(pb, quad, Interp::Biquadratic as isize).unwrap();
         let out = result.as_dynamic_image().unwrap();
 
         assert_eq!(src_interleaved, result.interleaved);
