@@ -104,8 +104,12 @@ mod tests {
             bl: Point{x: 29.0,   y: 1690.0},
         };
 
-        let result = _pt(pb, quad, Interp::Bicubic as isize).unwrap();
+        let start = Instant::now();
+        let result = _pt(pb, quad, Interp::Biquadratic as isize).unwrap();
+        let t = start.elapsed();
+        let view = t.as_millis();
         let out = result.as_dynamic_image().unwrap();
+
 
         assert_eq!(src_interleaved, result.interleaved);
         write_image(out, ImageFormat::Png, Path::new("/tmp/output.png"));
