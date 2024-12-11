@@ -3,7 +3,7 @@ pub mod util;
 use argon2::{Algorithm};
 use wasm_bindgen::prelude::*;
 
-use crate::util::{PixelBuffer, Quadrilateral, _perspective_transform, argon2};
+use crate::util::{PixelBuffer, Quadrilateral, _pt, argon2, Interp};
 
 #[wasm_bindgen]
 pub fn _argon2id(password: &[u8], salt: &[u8], m: u32, t: u32, p: u32, length: u32) -> Vec<u8> {
@@ -28,7 +28,7 @@ pub fn _argon2d(password: &[u8], salt: &[u8], m: u32, t: u32, p: u32, length: u3
 pub fn perspective_transform(_image: JsValue, _quad: JsValue) -> JsValue {
     let image = serde_wasm_bindgen::from_value::<PixelBuffer>(_image).unwrap();
     let quad = serde_wasm_bindgen::from_value::<Quadrilateral>(_quad).unwrap();
-    let result = _perspective_transform(&image, &quad);
+    let result = _pt(image, quad, Interp::Bicubic as isize);
     match result {
         Ok(v) => serde_wasm_bindgen::to_value(&v).unwrap(),
         Err(e) => serde_wasm_bindgen::to_value(&e).unwrap(),

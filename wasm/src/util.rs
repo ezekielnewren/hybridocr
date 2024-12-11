@@ -1,7 +1,5 @@
 use argon2::{Algorithm, Argon2, Params, Version};
-use image::{DynamicImage, GrayImage, ImageBuffer, Luma, Rgb, RgbImage, Rgba, RgbaImage};
-use imageproc::geometric_transformations::{warp_into, Interpolation, Projection};
-use nalgebra::{DMatrix, DVector, OMatrix, OVector, SVD, U8};
+use nalgebra::{DMatrix, DVector};
 use serde::{Deserialize, Serialize};
 
 
@@ -131,16 +129,6 @@ impl PixelBuffer {
         }
     }
 
-    pub fn from_dynamic_image(img: &DynamicImage) -> Self {
-        Self::new(
-            img.width(),
-            img.height(),
-            img.color().channel_count(),
-            true,
-            img.as_bytes()
-        ).unwrap()
-    }
-
     pub fn toggle_interleaved(&mut self) {
         let mut w = self.channels as usize;
         let mut h = (self.width*self.height) as usize;
@@ -164,23 +152,6 @@ impl PixelBuffer {
             t
         }
     }
-
-    pub fn as_dynamic_image(&self) -> Result<DynamicImage, String> {
-        let woven = self.as_bytes();
-
-        if self.channels == 1 {
-            Ok(DynamicImage::ImageLuma8(ImageBuffer::from_vec(self.width, self.height, woven).unwrap()))
-        } else if self.channels == 2 {
-            Ok(DynamicImage::ImageLumaA8(ImageBuffer::from_vec(self.width, self.height, woven).unwrap()))
-        } else if self.channels == 3 {
-            Ok(DynamicImage::ImageRgb8(ImageBuffer::from_vec(self.width, self.height, woven).unwrap()))
-        } else if self.channels == 4 {
-            Ok(DynamicImage::ImageRgba8(ImageBuffer::from_vec(self.width, self.height, woven).unwrap()))
-        } else {
-            Err(String::from("Illegal parameters"))
-        }
-    }
-
 
     pub fn in_bounds(&self, x: f32, y: f32, c: u8) -> bool {
         let (w, h) = (self.width as f32, self.height as f32);
@@ -325,29 +296,6 @@ pub fn get_homography_matrix(src: &Quadrilateral, dst: &Quadrilateral) -> [f32; 
     let mut h = [1.0; 9];
     h[..8].copy_from_slice(solution.as_slice());
     h
-}
-
-fn normalize(mx: [f32; 9]) -> [f32; 9] {
-    [
-        mx[0] / mx[8],
-        mx[1] / mx[8],
-        mx[2] / mx[8],
-        mx[3] / mx[8],
-        mx[4] / mx[8],
-        mx[5] / mx[8],
-        mx[6] / mx[8],
-        mx[7] / mx[8],
-        1.0,
-    ]
-}
-
-
-pub fn get_transform(proj: &Projection) -> [f32; 9] {
-    unsafe {
-        let ptr = proj as *const Projection;
-        let x = ptr as *const [f32; 9];
-        *x.add(1)
-    }
 }
 
 
@@ -501,58 +449,5 @@ pub fn _pt(src: PixelBuffer, quad: Quadrilateral, interpolation: isize) -> Resul
 }
 
 
-pub fn _perspective_transform(pb: &PixelBuffer, quad: &Quadrilateral) -> Result<PixelBuffer, String> {
-    let projection = Projection::from_control_points(quad.as_array(), quad.dst_rect()).unwrap();
-    let out_dim = quad.output_dimension();
-    let w = out_dim.0 as u32;
-    let h = out_dim.1 as u32;
 
-    let src = pb.as_bytes();
-    let out_img: DynamicImage;
-    if pb.channels == 1 {
-        let gray = GrayImage::from_vec(pb.width, pb.height, src).unwrap();
-        let dp = Luma([0]);
-        let mut t = ImageBuffer::from_pixel(w, h, dp);
-        warp_into(
-            &gray,
-            &projection,
-            Interpolation::Bicubic,
-            dp,
-            &mut t,
-        );
-        out_img = DynamicImage::from(t);
-    } else if pb.channels == 3 {
-        let rgb = RgbImage::from_vec(pb.width, pb.height, src).unwrap();
-        let dp = Rgb([0, 0, 0]);
-        let mut t = ImageBuffer::from_pixel(w, h, dp);
-        warp_into(
-            &rgb,
-            &projection,
-            Interpolation::Bicubic,
-            dp,
-            &mut t,
-        );
-        out_img = DynamicImage::from(t);
-    } else if pb.channels == 4 {
-        let rgba = RgbaImage::from_vec(pb.width, pb.height, src).unwrap();
-        let dp = Rgba([0u8, 0u8, 0u8, 0u8]);
-        let mut t = ImageBuffer::from_pixel(w, h, dp);
-        warp_into(
-            &rgba,
-            &projection,
-            Interpolation::Bicubic,
-            dp,
-            &mut t,
-        );
-        out_img = DynamicImage::from(t);
-    } else {
-        return Err(String::from("only 1, 3, or 4 channels are supported"));
-    }
-
-    let mut pb_out = PixelBuffer::from_dynamic_image(&out_img);
-    if !pb.interleaved {
-        pb_out.toggle_interleaved();
-    }
-    Ok(pb_out)
-}
 

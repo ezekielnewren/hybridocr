@@ -1,10 +1,10 @@
 use std::path::{Path};
-use image::{ImageReader, DynamicImage, ImageFormat};
-use hybridocr::{_argon2id, util::_perspective_transform, util::_pt};
+use image::{ImageReader, DynamicImage, ImageFormat, ImageBuffer, GrayImage, Luma, RgbImage, Rgb, RgbaImage, Rgba};
+use hybridocr::{_argon2id, util::_pt};
 use std::fs::File;
 use std::io::{Cursor, Write};
 use std::time::Instant;
-use imageproc::geometric_transformations::Projection;
+use imageproc::geometric_transformations::{warp_into, Interpolation, Projection};
 use hybridocr::util::{PixelBuffer, Quadrilateral, Point};
 
 pub fn write_image(img: DynamicImage, fmt: ImageFormat, path: &Path) {
@@ -29,6 +29,87 @@ pub fn get_transform(proj: &Projection) -> Vec<[f32; 9]> {
     out
 }
 
+
+pub fn from_dynamic_image(img: &DynamicImage) -> PixelBuffer {
+    PixelBuffer::new(
+        img.width(),
+        img.height(),
+        img.color().channel_count(),
+        true,
+        img.as_bytes()
+    ).unwrap()
+}
+
+pub fn as_dynamic_image(pb: &PixelBuffer) -> Result<DynamicImage, String> {
+    let woven = pb.as_bytes();
+
+    if pb.channels == 1 {
+        Ok(DynamicImage::ImageLuma8(ImageBuffer::from_vec(pb.width, pb.height, woven).unwrap()))
+    } else if pb.channels == 2 {
+        Ok(DynamicImage::ImageLumaA8(ImageBuffer::from_vec(pb.width, pb.height, woven).unwrap()))
+    } else if pb.channels == 3 {
+        Ok(DynamicImage::ImageRgb8(ImageBuffer::from_vec(pb.width, pb.height, woven).unwrap()))
+    } else if pb.channels == 4 {
+        Ok(DynamicImage::ImageRgba8(ImageBuffer::from_vec(pb.width, pb.height, woven).unwrap()))
+    } else {
+        Err(String::from("Illegal parameters"))
+    }
+}
+
+pub fn _perspective_transform(pb: &PixelBuffer, quad: &Quadrilateral) -> Result<PixelBuffer, String> {
+    let projection = Projection::from_control_points(quad.as_array(), quad.dst_rect()).unwrap();
+    let out_dim = quad.output_dimension();
+    let w = out_dim.0 as u32;
+    let h = out_dim.1 as u32;
+
+    let src = pb.as_bytes();
+    let out_img: DynamicImage;
+    if pb.channels == 1 {
+        let gray = GrayImage::from_vec(pb.width, pb.height, src).unwrap();
+        let dp = Luma([0]);
+        let mut t = ImageBuffer::from_pixel(w, h, dp);
+        warp_into(
+            &gray,
+            &projection,
+            Interpolation::Bicubic,
+            dp,
+            &mut t,
+        );
+        out_img = DynamicImage::from(t);
+    } else if pb.channels == 3 {
+        let rgb = RgbImage::from_vec(pb.width, pb.height, src).unwrap();
+        let dp = Rgb([0, 0, 0]);
+        let mut t = ImageBuffer::from_pixel(w, h, dp);
+        warp_into(
+            &rgb,
+            &projection,
+            Interpolation::Bicubic,
+            dp,
+            &mut t,
+        );
+        out_img = DynamicImage::from(t);
+    } else if pb.channels == 4 {
+        let rgba = RgbaImage::from_vec(pb.width, pb.height, src).unwrap();
+        let dp = Rgba([0u8, 0u8, 0u8, 0u8]);
+        let mut t = ImageBuffer::from_pixel(w, h, dp);
+        warp_into(
+            &rgba,
+            &projection,
+            Interpolation::Bicubic,
+            dp,
+            &mut t,
+        );
+        out_img = DynamicImage::from(t);
+    } else {
+        return Err(String::from("only 1, 3, or 4 channels are supported"));
+    }
+
+    let mut pb_out = from_dynamic_image(&out_img);
+    if !pb.interleaved {
+        pb_out.toggle_interleaved();
+    }
+    Ok(pb_out)
+}
 
 #[cfg(test)]
 mod tests {
@@ -80,9 +161,10 @@ mod tests {
 
         let img = &img_rgba;
 
-        let mut pb = PixelBuffer::from_dynamic_image(&img);
+        let mut pb = from_dynamic_image(&img);
         pb.toggle_interleaved();
         assert_eq!((pb.width * pb.height * pb.channels as u32) as usize, pb.data.len());
+        let interleaved = pb.interleaved;
 
         let quad = Quadrilateral {
             tl: Point{x: 50.0,   y: 335.0},
@@ -92,10 +174,10 @@ mod tests {
         };
 
 
-        let result = _perspective_transform(&pb, &quad).unwrap();
-        let out = result.as_dynamic_image().unwrap();
+        let result = _pt(pb, quad, Interp::Bicubic as isize).unwrap();
+        let out = as_dynamic_image(&result).unwrap();
 
-        assert_eq!(pb.interleaved, result.interleaved);
+        assert_eq!(interleaved, result.interleaved);
         write_image(out, ImageFormat::Png, Path::new("/tmp/output.png"));
     }
 
@@ -103,11 +185,11 @@ mod tests {
     pub fn test_custom_pt() {
         let fd = ImageReader::open("../tests/file/ocr_sample_from_smartphone_rgba.avif").unwrap();
         let img_rgba = fd.decode().unwrap();
-        let img_rgb = DynamicImage::ImageRgb8(img_rgba.to_rgb8());
+        let _img_rgb = DynamicImage::ImageRgb8(img_rgba.to_rgb8());
         let img_gray = DynamicImage::ImageLuma8(img_rgba.to_luma8());
         let img = &img_gray;
 
-        let mut pb = PixelBuffer::from_dynamic_image(&img);
+        let pb = from_dynamic_image(&img);
         let src_interleaved = pb.interleaved;
         assert_eq!((pb.width * pb.height * pb.channels as u32) as usize, pb.data.len());
 
@@ -122,7 +204,8 @@ mod tests {
         let result = _pt(pb, quad, Interp::Biquadratic as isize).unwrap();
         let t = start.elapsed();
         let view = t.as_millis();
-        let out = result.as_dynamic_image().unwrap();
+        assert!(view > 0);
+        let out = as_dynamic_image(&result).unwrap();
 
 
         assert_eq!(src_interleaved, result.interleaved);
@@ -143,11 +226,12 @@ mod tests {
         let result = get_transform(&projection);
         let transform = result[0];
         let inverse = result[1];
+        assert_ne!(transform, inverse);
 
         let d = quad.dst_quad();
         let mat = get_homography_matrix(&d, &quad);
 
-        assert_ne!(transform, inverse);
+        assert_eq!(inverse, mat);
     }
 
 }
