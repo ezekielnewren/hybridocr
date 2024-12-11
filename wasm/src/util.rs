@@ -103,46 +103,36 @@ impl PixelBuffer {
         0.0 <= x && x < w && 0.0 <= y && y < h && c < self.channels
     }
 
-    pub fn get(&self, mut _x: f32, mut _y: f32, c: u8, closest: bool) -> u8 {
-        if !self.in_bounds(_x, _y, c) {
+    pub unsafe fn unsafe_index(&self, x: usize, y: usize, c: u8) -> usize {
+        let (w, h) = (self.width as usize, self.height as usize);
+        if self.interleaved {
+            let pixel_size = self.channels as usize;
+            y*pixel_size*w + x*pixel_size + c as usize
+        } else {
+            let channel_size = w*h;
+            c as usize*channel_size + y*w + x
+        }
+    }
+
+    pub fn at(&self, mut x: f32, mut y: f32, c: u8, closest: bool) -> u8 {
+        if !self.in_bounds(x, y, c) {
             if closest {
-                if _x < 0.0 {
-                    _x = 0.0;
-                } else if _x >= self.width as f32 {
-                    _x = self.width as f32-1.0;
-                }
-                if _y < 0.0 {
-                    _y = 0.0;
-                } else if _y >= self.height as f32 {
-                    _y = self.height as f32-1.0;
-                }
+                x = x.clamp(0.0, self.width as f32-1.0);
+                y = y.clamp(0.0, self.height as f32-1.0);
             } else {
                 return 0u8;
             }
         }
-        let (w, h) = (self.width as usize, self.height as usize);
-        let (x, y) = (_x as usize, _y as usize);
-        if self.interleaved {
-            let pixel_size = self.channels as usize;
-            self.data[y*pixel_size*w + x*pixel_size + c as usize]
-        } else {
-            let channel_size = w*h;
-            self.data[c as usize*channel_size + y*w + x]
-        }
+        let i = unsafe { self.unsafe_index(x as usize, y as usize, c) };
+        self.data[i]
     }
 
     pub fn at_mut(&mut self, x: usize, y: usize, c: u8) -> &mut u8 {
         if !self.in_bounds(x as f32, y as f32, c) {
             panic!("Index out of bounds: x={}, y={}, c={}", x, y, c);
         }
-        let (w, h) = (self.width as usize, self.height as usize);
-        if self.interleaved {
-            let pixel_size = self.channels as usize;
-            &mut self.data[y*pixel_size*w + x*pixel_size + c as usize]
-        } else {
-            let channel_size = w*h;
-            &mut self.data[c as usize*channel_size + y*w + x]
-        }
+        let i = unsafe { self.unsafe_index(x, y, c) };
+        &mut self.data[i]
     }
 }
 
@@ -253,10 +243,10 @@ pub fn blend_cubic(src: &PixelBuffer, x: f32, y: f32, c: u8) -> u8 {
     for rowi in 0..4 {
         let y_off = y+rowi as f32-2.0;
         let row = [
-            src.get(x-2.0, y_off, c, true),
-            src.get(x-1.0, y_off, c, true),
-            src.get(x+0.0, y_off, c, true),
-            src.get(x+1.0, y_off, c, true),
+            src.at(x-2.0, y_off, c, true),
+            src.at(x-1.0, y_off, c, true),
+            src.at(x+0.0, y_off, c, true),
+            src.at(x+1.0, y_off, c, true),
         ];
 
         let value = weight_cubic(&row, x-x.floor());
