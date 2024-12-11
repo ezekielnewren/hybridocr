@@ -147,19 +147,6 @@ pub struct Quadrilateral {
 
 
 impl Quadrilateral {
-    pub fn as_tuple_f32(&self) -> (f32, f32, f32, f32, f32, f32, f32, f32) {
-        (
-            self.tl.x,
-            self.tl.y,
-            self.tr.x,
-            self.tr.y,
-            self.br.x,
-            self.br.y,
-            self.bl.x,
-            self.bl.y
-        )
-    }
-
     pub fn output_dimension(&self) -> (f32, f32) {
         let left_mid = midpoint(&self.tl, &self.bl);
         let right_mid = midpoint(&self.tr, &self.br);
@@ -176,46 +163,37 @@ impl Quadrilateral {
         let (width, height) = self.output_dimension();
 
         Self {
-            tl: Point{x: 0.0, y: 0.0},
+            tl: Point{x: 0.0,   y: 0.0},
             tr: Point{x: width, y: 0.0},
             br: Point{x: width, y: height},
-            bl: Point{x: 0.0, y: height}
+            bl: Point{x: 0.0,   y: height}
         }
     }
 }
 
 
-pub fn get_y_not_and_x_not(src: &Point, dst: &Point, out: &mut Vec<f32>) {
-    out.push(0.0);
-    out.push(0.0);
-    out.push(0.0);
-    out.push(-src.x);
-    out.push(-src.y);
-    out.push(-1.0);
-    out.push(dst.y*src.x);
-    out.push(dst.y*src.y);
+pub fn calculate_homography_matrix(s: &Quadrilateral, d: &Quadrilateral) -> [f32; 9] {
+    let a = DMatrix::from_row_slice(8, 8, &[
+        0.0,    0.0,    0.0, -s.tl.x, -s.tl.y, -1.0,  d.tl.y*s.tl.x,  d.tl.y*s.tl.y,
+        s.tl.x, s.tl.y, 1.0,  0.0,     0.0,     0.0, -d.tl.x*s.tl.x, -d.tl.x*s.tl.y,
+        0.0,    0.0,    0.0, -s.tr.x, -s.tr.y, -1.0,  d.tr.y*s.tr.x,  d.tr.y*s.tr.y,
+        s.tr.x, s.tr.y, 1.0,  0.0,     0.0,     0.0, -d.tr.x*s.tr.x, -d.tr.x*s.tr.y,
+        0.0,    0.0,    0.0, -s.br.x, -s.br.y, -1.0,  d.br.y*s.br.x,  d.br.y*s.br.y,
+        s.br.x, s.br.y, 1.0,  0.0,     0.0,     0.0, -d.br.x*s.br.x, -d.br.x*s.br.y,
+        0.0,    0.0,    0.0, -s.bl.x, -s.bl.y, -1.0,  d.bl.y*s.bl.x,  d.bl.y*s.bl.y,
+        s.bl.x, s.bl.y, 1.0,  0.0,     0.0,     0.0, -d.bl.x*s.bl.x, -d.bl.x*s.bl.y,
+    ]);
 
-    out.push(src.x);
-    out.push(src.y);
-    out.push(1.0);
-    out.push(0.0);
-    out.push(0.0);
-    out.push(0.0);
-    out.push(-dst.x*src.x);
-    out.push(-dst.x*src.y);
-}
-
-
-pub fn get_homography_matrix(src: &Quadrilateral, dst: &Quadrilateral) -> [f32; 9] {
-    let mut _a = Vec::<f32>::new();
-    get_y_not_and_x_not(&src.tl, &dst.tl, &mut _a);
-    get_y_not_and_x_not(&src.tr, &dst.tr, &mut _a);
-    get_y_not_and_x_not(&src.br, &dst.br, &mut _a);
-    get_y_not_and_x_not(&src.bl, &dst.bl, &mut _a);
-    let a = DMatrix::from_row_slice(8, 8, &_a);
-
-    let _b = [-dst.tl.y, dst.tl.x, -dst.tr.y, dst.tr.x, -dst.br.y, dst.br.x, -dst.bl.y, dst.bl.x];
-    let b = DVector::from_column_slice(&_b);
+    let b = DVector::from_column_slice(&[
+        -d.tl.y,
+         d.tl.x,
+        -d.tr.y,
+         d.tr.x,
+        -d.br.y,
+         d.br.x,
+        -d.bl.y,
+         d.bl.x
+    ]);
 
     let solution = a.lu().solve(&b).unwrap();
     let mut h = [1.0; 9];
@@ -262,7 +240,7 @@ pub fn _pt(src: PixelBuffer, quad: Quadrilateral) -> Result<PixelBuffer, String>
     let c = src.channels;
     let mut dst = PixelBuffer::blank(out_dim.0 as u32, out_dim.1 as u32, c, src.interleaved);
 
-    let h = get_homography_matrix(&quad.dst_quad(), &quad);
+    let h = calculate_homography_matrix(&quad.dst_quad(), &quad);
 
     for c in 0..c {
         for dst_y in 0..dst.height as usize {

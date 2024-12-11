@@ -139,7 +139,7 @@ pub fn _perspective_transform(pb: &PixelBuffer, quad: &Quadrilateral) -> Result<
 mod tests {
     use imageproc::drawing::Canvas;
     use imageproc::geometric_transformations::Projection;
-    use hybridocr::util::{get_homography_matrix};
+    use hybridocr::util::{calculate_homography_matrix};
     use super::*;
 
     #[test]
@@ -253,7 +253,7 @@ mod tests {
         assert_ne!(transform, inverse);
 
         let d = quad.dst_quad();
-        let mat = get_homography_matrix(&d, &quad);
+        let mat = calculate_homography_matrix(&d, &quad);
 
         assert_eq!(inverse, mat);
     }
