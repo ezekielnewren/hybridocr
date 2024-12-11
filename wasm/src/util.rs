@@ -10,14 +10,6 @@ pub fn argon2(alg: Algorithm, password: &[u8], salt: &[u8], m: u32, t: u32, p: u
     buff
 }
 
-pub enum Interp {
-    Nearest = 0isize,
-    Bilinear = 1isize,
-    Biquadratic = 2isize,
-    Bicubic = 3isize,
-    Lanczos2 = 4isize,
-    Lanczos3 = 5isize,
-}
 
 #[derive(Serialize, Deserialize)]
 pub struct Point {
@@ -25,88 +17,15 @@ pub struct Point {
     pub y: f32,
 }
 
-impl Clone for Point {
-    fn clone(&self) -> Self {
-        Self{ x: self.x, y: self.y }
-    }
-}
 
-impl Copy for Point {}
-
-
-pub fn midpoint(a: Point, b: Point) -> Point {
+pub fn midpoint(a: &Point, b: &Point) -> Point {
     Point{x: (a.x+b.x)/2.0, y: (a.y+b.y)/2.0}
 }
 
-pub fn distance(a: Point, b: Point) -> f32 {
+
+pub fn distance(a: &Point, b: &Point) -> f32 {
     ((a.x-b.x).powi(2) + (a.y-b.y).powi(2)).sqrt()
 }
-
-
-pub fn sinc(x: f32) -> f32 {
-    if x.abs() < f32::EPSILON {
-        1.0
-    } else {
-        let t = std::f32::consts::PI*x;
-        t.sin()/t
-    }
-}
-
-
-pub fn lanczos_kernel(x: f32, _a: u8) -> f32 {
-    #[cfg(debug_assertions)]
-    {
-        if !(_a == 2 || _a == 3) {
-            panic!("a must be 2 or 3 for the lanczos kernel");
-        }
-    }
-    let a = _a as f32;
-
-    if -a < x && x < a {
-        sinc(x)*sinc(x/a)
-    } else {
-        0.0
-    }
-}
-
-
-fn interpolate_lanczos(src: &PixelBuffer, x: f32, y: f32, c: u8, a: u8) -> u8 {
-    let mut result = 0.0;
-    let mut weight_sum = 0.0;
-
-    let a_i = a as isize; // Support size as integer
-    let x_floor = x.floor() as isize;
-    let y_floor = y.floor() as isize;
-
-    for dy in -a_i..=a_i {
-        for dx in -a_i..=a_i {
-            let neighbor_x = x_floor + dx;
-            let neighbor_y = y_floor + dy;
-
-            // Distance to current neighbor
-            let dist_x = x - (neighbor_x as f32);
-            let dist_y = y - (neighbor_y as f32);
-
-            // Calculate kernel weights
-            let weight_x = lanczos_kernel(dist_x, a);
-            let weight_y = lanczos_kernel(dist_y, a);
-            let weight = weight_x * weight_y;
-
-            // Accumulate weighted pixel value
-            let pixel = src.get(neighbor_x as f32, neighbor_y as f32, c, true);
-            result += pixel as f32 * weight;
-            weight_sum += weight;
-        }
-    }
-
-    // Normalize result to account for kernel weights
-    if weight_sum > 0.0 {
-        (result / weight_sum).round() as u8
-    } else {
-        0
-    }
-}
-
 
 
 pub fn transpose(src: &[u8], width: usize, height: usize, dst: &mut [u8]) -> Result<(), String> {
@@ -123,9 +42,7 @@ pub fn transpose(src: &[u8], width: usize, height: usize, dst: &mut [u8]) -> Res
 
     for col in 0..width {
         for row in 0..height {
-            let s = row*width+col;
-            let d = col*height+row;
-            dst[d] = src[s];
+            dst[col*height+row] = src[row*width+col];
         }
     }
 
@@ -141,6 +58,7 @@ pub struct PixelBuffer {
     pub interleaved: bool,
     pub data: Vec<u8>,
 }
+
 
 impl PixelBuffer {
 
@@ -178,18 +96,6 @@ impl PixelBuffer {
         let src = self.data.clone();
         transpose(src.as_slice(), w, h, self.data.as_mut_slice()).unwrap();
         self.interleaved = !self.interleaved;
-    }
-
-    pub fn as_bytes(&self) -> Vec<u8> {
-        if self.interleaved {
-            self.data.clone()
-        } else {
-            let mut t = vec![0u8; self.data.len()];
-            let w = (self.width * self.height) as usize;
-            let h = self.channels as usize;
-            transpose(self.data.as_slice(), w, h, t.as_mut_slice()).unwrap();
-            t
-        }
     }
 
     pub fn in_bounds(&self, x: f32, y: f32, c: u8) -> bool {
@@ -251,10 +157,6 @@ pub struct Quadrilateral {
 
 
 impl Quadrilateral {
-    pub fn as_array(&self) -> [(f32, f32); 4] {
-        [(self.tl.x, self.tl.y), (self.tr.x, self.tr.y), (self.br.x, self.br.y), (self.bl.x, self.bl.y)]
-    }
-
     pub fn as_tuple_f32(&self) -> (f32, f32, f32, f32, f32, f32, f32, f32) {
         (
             self.tl.x,
@@ -269,21 +171,15 @@ impl Quadrilateral {
     }
 
     pub fn output_dimension(&self) -> (f32, f32) {
-        let left_mid = midpoint(self.tl, self.bl);
-        let right_mid = midpoint(self.tr, self.br);
-        let width = distance(left_mid, right_mid);
+        let left_mid = midpoint(&self.tl, &self.bl);
+        let right_mid = midpoint(&self.tr, &self.br);
+        let width = distance(&left_mid, &right_mid);
 
-        let top_mid = midpoint(self.tl, self.tr);
-        let bot_mid = midpoint(self.bl, self.br);
-        let height = distance(top_mid, bot_mid);
+        let top_mid = midpoint(&self.tl, &self.tr);
+        let bot_mid = midpoint(&self.bl, &self.br);
+        let height = distance(&top_mid, &bot_mid);
 
         (width.floor(), height.floor())
-    }
-
-    pub fn dst_rect(&self) -> [(f32, f32); 4] {
-        let (width, height) = self.output_dimension();
-
-        [(0.0, 0.0), (width, 0.0), (width, height), (0.0, height)]
     }
 
     pub fn dst_quad(&self) -> Self {
@@ -338,83 +234,6 @@ pub fn get_homography_matrix(src: &Quadrilateral, dst: &Quadrilateral) -> [f32; 
 }
 
 
-pub fn weight_linear(span: &[u8], w: f32) -> u8 {
-    #[cfg(debug_assertions)]
-    {
-        if span.len() != 2 {
-            panic!("must have exactly 2 elements");
-        }
-        if !(0.0 <= w && w <= 1.0) {
-            panic!("weight must be between 0.0 and 1.0");
-        }
-    }
-    let a = span[0] as f32;
-    let b = span[1] as f32;
-
-    (a+(b-a)*w) as u8
-}
-
-pub fn blend_linear(src: &PixelBuffer, x: f32, y: f32, c: u8) -> u8 {
-    let top = [
-        src.get(x-1.0, y-1.0, c, true),
-        src.get(x, y-1.0, c, true),
-    ];
-    let bot = [
-        src.get(x, y, c, true),
-        src.get(x-1.0, y, c, true),
-    ];
-    let w = x-x.floor();
-    let col = [
-        weight_linear(&top, w),
-        weight_linear(&bot, w),
-    ];
-    weight_linear(&col, y-y.floor())
-}
-
-
-pub fn weight_quadratic(span: &[u8], w: f32) -> u8 {
-    #[cfg(debug_assertions)]
-    {
-        if span.len() != 3 {
-            panic!("must have exactly 3 elements");
-        }
-        if !(0.0 <= w && w <= 1.0) {
-            panic!("weight must be between 0.0 and 1.0");
-        }
-    }
-
-    let p0 = span[0] as f32;
-    let p1 = span[1] as f32;
-    let p2 = span[2] as f32;
-
-    let a = 2.0*p2 - 4.0*p1 + 2.0*p0;
-    let b = -p2 + 4.0*p1 - 3.0*p0;
-    let c = p0;
-
-    let result = a*w*w + b*w + c;
-
-    result.clamp(0.0, 255.0) as u8
-}
-
-
-pub fn blend_quadratic(src: &PixelBuffer, x: f32, y: f32, c: u8) -> u8 {
-    let mut t = [0u8; 3];
-    for rowi in 0..3 {
-        let y_off = y+rowi as f32-1.0;
-        let row = [
-            src.get(x-1.0, y_off, c, true),
-            src.get(x, y_off, c, true),
-            src.get(x+1.0, y_off, c, true),
-        ];
-
-        let value = weight_quadratic(&row, x-x.floor());
-        t[rowi as usize] = value;
-    }
-
-    weight_quadratic(&t, y-y.floor())
-}
-
-
 pub fn weight_cubic(span: &[u8], w: f32) -> u8 {
     let p0 = span[0] as f32;
     let p1 = span[1] as f32;
@@ -448,7 +267,7 @@ pub fn blend_cubic(src: &PixelBuffer, x: f32, y: f32, c: u8) -> u8 {
 }
 
 
-pub fn _pt(src: PixelBuffer, quad: Quadrilateral, interpolation: isize) -> Result<PixelBuffer, String> {
+pub fn _pt(src: PixelBuffer, quad: Quadrilateral) -> Result<PixelBuffer, String> {
     let out_dim = quad.output_dimension();
     let c = src.channels;
     let mut dst = PixelBuffer::blank(out_dim.0 as u32, out_dim.1 as u32, c, src.interleaved);
@@ -472,16 +291,7 @@ pub fn _pt(src: PixelBuffer, quad: Quadrilateral, interpolation: isize) -> Resul
                 if !src.in_bounds(src_x, src_y, c) {
                     continue;
                 }
-                let value: u8 = match interpolation {
-                    0 => src.get(src_x, src_y, c, false),
-                    1 => blend_linear(&src, src_x, src_y, c),
-                    2 => blend_quadratic(&src, src_x, src_y, c),
-                    3 => blend_cubic(&src, src_x, src_y, c),
-                    4 => interpolate_lanczos(&src, src_x, src_y, c, 2),
-                    5 => interpolate_lanczos(&src, src_x, src_y, c, 3),
-                    _ => panic!("Invalid interpolation"),
-                };
-                *dst.at_mut(dst_x, dst_y, c) = value;
+                *dst.at_mut(dst_x, dst_y, c) = blend_cubic(&src, src_x, src_y, c)
             }
         }
     }

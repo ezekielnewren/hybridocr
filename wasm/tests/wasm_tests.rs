@@ -5,7 +5,7 @@ use std::fs::File;
 use std::io::{Cursor, Write};
 use std::time::Instant;
 use imageproc::geometric_transformations::{warp_into, Interpolation, Projection};
-use hybridocr::util::{PixelBuffer, Quadrilateral, Point};
+use hybridocr::util::{PixelBuffer, Quadrilateral, Point, transpose};
 
 pub fn write_image(img: DynamicImage, fmt: ImageFormat, path: &Path) {
     let mut bytes = Vec::<u8>::new();
@@ -40,8 +40,20 @@ pub fn from_dynamic_image(img: &DynamicImage) -> PixelBuffer {
     ).unwrap()
 }
 
+pub fn as_bytes(pb: &PixelBuffer) -> Vec<u8> {
+    if pb.interleaved {
+        pb.data.clone()
+    } else {
+        let mut t = vec![0u8; pb.data.len()];
+        let w = (pb.width * pb.height) as usize;
+        let h = pb.channels as usize;
+        transpose(pb.data.as_slice(), w, h, t.as_mut_slice()).unwrap();
+        t
+    }
+}
+
 pub fn as_dynamic_image(pb: &PixelBuffer) -> Result<DynamicImage, String> {
-    let woven = pb.as_bytes();
+    let woven = as_bytes(&pb);
 
     if pb.channels == 1 {
         Ok(DynamicImage::ImageLuma8(ImageBuffer::from_vec(pb.width, pb.height, woven).unwrap()))
@@ -56,13 +68,25 @@ pub fn as_dynamic_image(pb: &PixelBuffer) -> Result<DynamicImage, String> {
     }
 }
 
+
+pub fn as_array(quad: &Quadrilateral) -> [(f32, f32); 4] {
+    [(quad.tl.x, quad.tl.y), (quad.tr.x, quad.tr.y), (quad.br.x, quad.br.y), (quad.bl.x, quad.bl.y)]
+}
+
+
+pub fn dst_rect(quad: &Quadrilateral) -> [(f32, f32); 4] {
+    let (width, height) = quad.output_dimension();
+
+    [(0.0, 0.0), (width, 0.0), (width, height), (0.0, height)]
+}
+
 pub fn _perspective_transform(pb: &PixelBuffer, quad: &Quadrilateral) -> Result<PixelBuffer, String> {
-    let projection = Projection::from_control_points(quad.as_array(), quad.dst_rect()).unwrap();
+    let projection = Projection::from_control_points(as_array(&quad), dst_rect(&quad)).unwrap();
     let out_dim = quad.output_dimension();
     let w = out_dim.0 as u32;
     let h = out_dim.1 as u32;
 
-    let src = pb.as_bytes();
+    let src = as_bytes(&pb);
     let out_img: DynamicImage;
     if pb.channels == 1 {
         let gray = GrayImage::from_vec(pb.width, pb.height, src).unwrap();
@@ -115,7 +139,7 @@ pub fn _perspective_transform(pb: &PixelBuffer, quad: &Quadrilateral) -> Result<
 mod tests {
     use imageproc::drawing::Canvas;
     use imageproc::geometric_transformations::Projection;
-    use hybridocr::util::{get_homography_matrix, Interp};
+    use hybridocr::util::{get_homography_matrix};
     use super::*;
 
     #[test]
@@ -174,7 +198,7 @@ mod tests {
         };
 
 
-        let result = _pt(pb, quad, Interp::Lanczos3 as isize).unwrap();
+        let result = _pt(pb, quad).unwrap();
         let out = as_dynamic_image(&result).unwrap();
 
         assert_eq!(interleaved, result.interleaved);
@@ -201,7 +225,7 @@ mod tests {
         };
 
         let start = Instant::now();
-        let result = _pt(pb, quad, Interp::Lanczos3 as isize).unwrap();
+        let result = _pt(pb, quad).unwrap();
         let t = start.elapsed();
         let view = t.as_millis();
         assert!(view > 0);
@@ -220,8 +244,8 @@ mod tests {
             br: Point{x: 1130.0, y: 1688.0},
             bl: Point{x: 29.0,   y: 1690.0},
         };
-        let src = quad.as_array();
-        let dst = quad.dst_rect();
+        let src = as_array(&quad);
+        let dst = dst_rect(&quad);
         let projection = Projection::from_control_points(src, dst).unwrap();
         let result = get_transform(&projection);
         let transform = result[0];
