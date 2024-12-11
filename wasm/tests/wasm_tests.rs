@@ -174,7 +174,7 @@ mod tests {
         };
 
 
-        let result = _pt(pb, quad, Interp::Bicubic as isize).unwrap();
+        let result = _pt(pb, quad, Interp::Lanczos3 as isize).unwrap();
         let out = as_dynamic_image(&result).unwrap();
 
         assert_eq!(interleaved, result.interleaved);
@@ -201,7 +201,7 @@ mod tests {
         };
 
         let start = Instant::now();
-        let result = _pt(pb, quad, Interp::Biquadratic as isize).unwrap();
+        let result = _pt(pb, quad, Interp::Lanczos3 as isize).unwrap();
         let t = start.elapsed();
         let view = t.as_millis();
         assert!(view > 0);

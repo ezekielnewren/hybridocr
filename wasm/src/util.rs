@@ -70,6 +70,45 @@ pub fn lanczos_kernel(x: f32, _a: u8) -> f32 {
 }
 
 
+fn interpolate_lanczos(src: &PixelBuffer, x: f32, y: f32, c: u8, a: u8) -> u8 {
+    let mut result = 0.0;
+    let mut weight_sum = 0.0;
+
+    let a_i = a as isize; // Support size as integer
+    let x_floor = x.floor() as isize;
+    let y_floor = y.floor() as isize;
+
+    for dy in -a_i..=a_i {
+        for dx in -a_i..=a_i {
+            let neighbor_x = x_floor + dx;
+            let neighbor_y = y_floor + dy;
+
+            // Distance to current neighbor
+            let dist_x = x - (neighbor_x as f32);
+            let dist_y = y - (neighbor_y as f32);
+
+            // Calculate kernel weights
+            let weight_x = lanczos_kernel(dist_x, a);
+            let weight_y = lanczos_kernel(dist_y, a);
+            let weight = weight_x * weight_y;
+
+            // Accumulate weighted pixel value
+            let pixel = src.get(neighbor_x as f32, neighbor_y as f32, c, true);
+            result += pixel as f32 * weight;
+            weight_sum += weight;
+        }
+    }
+
+    // Normalize result to account for kernel weights
+    if weight_sum > 0.0 {
+        (result / weight_sum).round() as u8
+    } else {
+        0
+    }
+}
+
+
+
 pub fn transpose(src: &[u8], width: usize, height: usize, dst: &mut [u8]) -> Result<(), String> {
     if src.len() != dst.len() {
         return Err(String::from("src and dst length must be the same"));
@@ -438,6 +477,8 @@ pub fn _pt(src: PixelBuffer, quad: Quadrilateral, interpolation: isize) -> Resul
                     1 => blend_linear(&src, src_x, src_y, c),
                     2 => blend_quadratic(&src, src_x, src_y, c),
                     3 => blend_cubic(&src, src_x, src_y, c),
+                    4 => interpolate_lanczos(&src, src_x, src_y, c, 2),
+                    5 => interpolate_lanczos(&src, src_x, src_y, c, 3),
                     _ => panic!("Invalid interpolation"),
                 };
                 *dst.at_mut(dst_x, dst_y, c) = value;
