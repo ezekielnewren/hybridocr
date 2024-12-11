@@ -1,6 +1,7 @@
 use argon2::{Algorithm, Argon2, Params, Version};
 use image::{DynamicImage, GrayImage, ImageBuffer, Luma, Rgb, RgbImage, Rgba, RgbaImage};
 use imageproc::geometric_transformations::{warp_into, Interpolation, Projection};
+use nalgebra::{DMatrix, DVector, OMatrix, OVector, SVD, U8};
 use serde::{Deserialize, Serialize};
 
 
@@ -16,8 +17,8 @@ pub enum Interp {
     Bilinear = 1isize,
     Biquadratic = 2isize,
     Bicubic = 3isize,
-    Lanczos4x4 = 4isize,
-    Lanczos6x6 = 5isize,
+    Lanczos2 = 4isize,
+    Lanczos3 = 5isize,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -41,6 +42,33 @@ pub fn midpoint(a: Point, b: Point) -> Point {
 
 pub fn distance(a: Point, b: Point) -> f32 {
     ((a.x-b.x).powi(2) + (a.y-b.y).powi(2)).sqrt()
+}
+
+
+pub fn sinc(x: f32) -> f32 {
+    if x.abs() < f32::EPSILON {
+        1.0
+    } else {
+        let t = std::f32::consts::PI*x;
+        t.sin()/t
+    }
+}
+
+
+pub fn lanczos_kernel(x: f32, _a: u8) -> f32 {
+    #[cfg(debug_assertions)]
+    {
+        if !(_a == 2 || _a == 3) {
+            panic!("a must be 2 or 3 for the lanczos kernel");
+        }
+    }
+    let a = _a as f32;
+
+    if -a < x && x < a {
+        sinc(x)*sinc(x/a)
+    } else {
+        0.0
+    }
 }
 
 
@@ -217,6 +245,19 @@ impl Quadrilateral {
         [(self.tl.x, self.tl.y), (self.tr.x, self.tr.y), (self.br.x, self.br.y), (self.bl.x, self.bl.y)]
     }
 
+    pub fn as_tuple_f32(&self) -> (f32, f32, f32, f32, f32, f32, f32, f32) {
+        (
+            self.tl.x,
+            self.tl.y,
+            self.tr.x,
+            self.tr.y,
+            self.br.x,
+            self.br.y,
+            self.bl.x,
+            self.bl.y
+        )
+    }
+
     pub fn output_dimension(&self) -> (f32, f32) {
         let left_mid = midpoint(self.tl, self.bl);
         let right_mid = midpoint(self.tr, self.br);
@@ -226,7 +267,7 @@ impl Quadrilateral {
         let bot_mid = midpoint(self.bl, self.br);
         let height = distance(top_mid, bot_mid);
 
-        (width, height)
+        (width.floor(), height.floor())
     }
 
     pub fn dst_rect(&self) -> [(f32, f32); 4] {
@@ -234,6 +275,70 @@ impl Quadrilateral {
 
         [(0.0, 0.0), (width, 0.0), (width, height), (0.0, height)]
     }
+
+    pub fn dst_quad(&self) -> Self {
+        let (width, height) = self.output_dimension();
+
+        Self {
+            tl: Point{x: 0.0, y: 0.0},
+            tr: Point{x: width, y: 0.0},
+            br: Point{x: width, y: height},
+            bl: Point{x: 0.0, y: height}
+        }
+    }
+}
+
+
+pub fn get_y_not_and_x_not(src: &Point, dst: &Point, out: &mut Vec<f32>) {
+    out.push(0.0);
+    out.push(0.0);
+    out.push(0.0);
+    out.push(-src.x);
+    out.push(-src.y);
+    out.push(-1.0);
+    out.push(dst.y*src.x);
+    out.push(dst.y*src.y);
+
+    out.push(src.x);
+    out.push(src.y);
+    out.push(1.0);
+    out.push(0.0);
+    out.push(0.0);
+    out.push(0.0);
+    out.push(-dst.x*src.x);
+    out.push(-dst.x*src.y);
+}
+
+
+pub fn get_homography_matrix(src: &Quadrilateral, dst: &Quadrilateral) -> [f32; 9] {
+    let mut _a = Vec::<f32>::new();
+    get_y_not_and_x_not(&src.tl, &dst.tl, &mut _a);
+    get_y_not_and_x_not(&src.tr, &dst.tr, &mut _a);
+    get_y_not_and_x_not(&src.br, &dst.br, &mut _a);
+    get_y_not_and_x_not(&src.bl, &dst.bl, &mut _a);
+    let a = DMatrix::from_row_slice(8, 8, &_a);
+
+    let _b = [-dst.tl.y, dst.tl.x, -dst.tr.y, dst.tr.x, -dst.br.y, dst.br.x, -dst.bl.y, dst.bl.x];
+    let b = DVector::from_column_slice(&_b);
+
+    let solution = a.lu().solve(&b).unwrap();
+    let mut h = [1.0; 9];
+    h[..8].copy_from_slice(solution.as_slice());
+    h
+}
+
+fn normalize(mx: [f32; 9]) -> [f32; 9] {
+    [
+        mx[0] / mx[8],
+        mx[1] / mx[8],
+        mx[2] / mx[8],
+        mx[3] / mx[8],
+        mx[4] / mx[8],
+        mx[5] / mx[8],
+        mx[6] / mx[8],
+        mx[7] / mx[8],
+        1.0,
+    ]
 }
 
 
@@ -357,12 +462,11 @@ pub fn blend_cubic(src: &PixelBuffer, x: f32, y: f32, c: u8) -> u8 {
 
 
 pub fn _pt(src: PixelBuffer, quad: Quadrilateral, interpolation: isize) -> Result<PixelBuffer, String> {
-    let projection = Projection::from_control_points(quad.as_array(), quad.dst_rect()).unwrap();
     let out_dim = quad.output_dimension();
     let c = src.channels;
     let mut dst = PixelBuffer::blank(out_dim.0 as u32, out_dim.1 as u32, c, src.interleaved);
 
-    let h = get_transform(&projection);
+    let h = get_homography_matrix(&quad.dst_quad(), &quad);
 
     for c in 0..c {
         for dst_y in 0..dst.height as usize {
@@ -370,13 +474,13 @@ pub fn _pt(src: PixelBuffer, quad: Quadrilateral, interpolation: isize) -> Resul
             for dst_x in 0..dst.width as usize {
                 let x = dst_x as f32;
 
-                let denom = h[6] * x + h[7] * y + h[8];
+                let denom = h[6]*x + h[7]*y + h[8];
                 if denom == 0.0 {
                     continue;
                 }
 
-                let src_x = (h[0] * x + h[1] * y + h[2]) / denom;
-                let src_y = (h[3] * x + h[4] * y + h[5]) / denom;
+                let src_x = (h[0]*x + h[1]*y + h[2])/denom;
+                let src_y = (h[3]*x + h[4]*y + h[5])/denom;
 
                 if !src.in_bounds(src_x, src_y, c) {
                     continue;

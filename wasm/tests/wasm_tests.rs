@@ -4,6 +4,7 @@ use hybridocr::{_argon2id, util::_perspective_transform, util::_pt};
 use std::fs::File;
 use std::io::{Cursor, Write};
 use std::time::Instant;
+use imageproc::geometric_transformations::Projection;
 use hybridocr::util::{PixelBuffer, Quadrilateral, Point};
 
 pub fn write_image(img: DynamicImage, fmt: ImageFormat, path: &Path) {
@@ -17,10 +18,23 @@ pub fn write_image(img: DynamicImage, fmt: ImageFormat, path: &Path) {
 
 
 
+pub fn get_transform(proj: &Projection) -> Vec<[f32; 9]> {
+    let mut out = Vec::<[f32; 9]>::new();
+    unsafe {
+        let ptr = proj as *const Projection;
+        let x = ptr as *const [f32; 9];
+        out.push(*x.add(0));
+        out.push(*x.add(1));
+    }
+    out
+}
+
+
 #[cfg(test)]
 mod tests {
     use imageproc::drawing::Canvas;
-    use hybridocr::util::Interp;
+    use imageproc::geometric_transformations::Projection;
+    use hybridocr::util::{get_homography_matrix, Interp};
     use super::*;
 
     #[test]
@@ -113,6 +127,27 @@ mod tests {
 
         assert_eq!(src_interleaved, result.interleaved);
         write_image(out, ImageFormat::Png, Path::new("/tmp/output.png"));
+    }
+
+    #[test]
+    pub fn test_homography_matrix() {
+        let quad = Quadrilateral {
+            tl: Point{x: 50.0,   y: 335.0},
+            tr: Point{x: 1076.0, y: 305.0},
+            br: Point{x: 1130.0, y: 1688.0},
+            bl: Point{x: 29.0,   y: 1690.0},
+        };
+        let src = quad.as_array();
+        let dst = quad.dst_rect();
+        let projection = Projection::from_control_points(src, dst).unwrap();
+        let result = get_transform(&projection);
+        let transform = result[0];
+        let inverse = result[1];
+
+        let d = quad.dst_quad();
+        let mat = get_homography_matrix(&d, &quad);
+
+        assert_ne!(transform, inverse);
     }
 
 }
