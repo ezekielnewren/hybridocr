@@ -1,6 +1,5 @@
 use argon2::{Algorithm, Argon2, Params, Version};
 use nalgebra::{DMatrix, DVector};
-use serde::{Deserialize, Serialize};
 
 
 pub fn argon2(alg: Algorithm, password: &[u8], salt: &[u8], m: u32, t: u32, p: u32, length: u32) -> Vec<u8> {
@@ -11,7 +10,6 @@ pub fn argon2(alg: Algorithm, password: &[u8], salt: &[u8], m: u32, t: u32, p: u
 }
 
 
-#[derive(Serialize, Deserialize)]
 pub struct Point {
     pub x: f32,
     pub y: f32,
@@ -74,7 +72,6 @@ pub fn transpose(src: &[u8], width: usize, height: usize, dst: &mut [u8]) -> Res
 }
 
 
-#[derive(Serialize, Deserialize)]
 pub struct PixelBuffer {
     pub width: usize,
     pub height: usize,
@@ -250,7 +247,6 @@ impl FloatBuffer {
 }
 
 
-#[derive(Serialize, Deserialize)]
 pub struct Quadrilateral {
     pub tl: Point,
     pub tr: Point,

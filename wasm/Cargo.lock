@@ -959,7 +959,6 @@ dependencies = [
  "image",
  "imageproc",
  "nalgebra 0.33.2",
- "serde",
  "wasm-bindgen",
  "wasm-pack",
 ]
