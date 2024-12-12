@@ -11,10 +11,10 @@ crate-type = ["cdylib", "rlib"]
 wasm-bindgen = { version = "0.2" }
 argon2 = "0.5.3"
 nalgebra = "0.33.2"
+image = { version = "0.25.5", features = ["avif-native"] }
 
 [dev-dependencies]
 imageproc = "0.25.0"
-image = { version = "0.25.5", features = ["avif-native"] }
 hex = "0.4.3"
 
 [build-dependencies]
@@ -22,3 +22,4 @@ wasm-pack = "0.13.1"
 
 [profile.release]
 opt-level = 3
+debug = 0
