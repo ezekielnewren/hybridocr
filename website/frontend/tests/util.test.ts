@@ -38,7 +38,7 @@ describe("util", () => {
         let path = "../../tests/file/ocr_sample_from_smartphone_rgb.avif";
         let img = sharp(path);
         let meta = await img.metadata();
-        let raw = Array.from(await img.raw().toBuffer());
+        let raw = Uint8Array.from(await img.raw().toBuffer());
 
         let apb = new util.PixelBuffer(
             meta.width as number,

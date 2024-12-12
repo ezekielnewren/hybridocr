@@ -118,9 +118,9 @@ export class PixelBuffer {
     height: number;
     channels: number;
     interleaved: boolean;
-    data: Array<number>;
+    data: Uint8Array;
 
-    constructor(width: number, height: number, channels: number, interleaved: boolean, data: Array<number>) {
+    constructor(width: number, height: number, channels: number, interleaved: boolean, data: Uint8Array) {
         this.width = width;
         this.height = height;
         this.channels = channels;
@@ -130,5 +130,28 @@ export class PixelBuffer {
 }
 
 export async function perspectiveTransform(img: PixelBuffer, quad: Quadrilateral): Promise<PixelBuffer> {
-    return perspective_transform(img, quad);
+    let x = perspective_transform(
+        img.width,
+        img.height,
+        img.channels,
+        img.interleaved,
+        img.data,
+        Float32Array.from([
+            quad.tl.x,
+            quad.tl.y,
+            quad.tr.x,
+            quad.tr.y,
+            quad.br.x,
+            quad.br.y,
+            quad.bl.x,
+            quad.bl.y,
+        ])
+    );
+    const dv = new DataView(x.buffer);
+    const w = dv.getUint32(0, true);
+    const h = dv.getUint32(4, true);
+    const c = dv.getUint8(8);
+    const interleaved = dv.getUint8(9) > 0;
+    const data = x.subarray(10);
+    return new PixelBuffer(w, h, c, interleaved, data);
 }

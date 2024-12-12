@@ -271,7 +271,7 @@ mod tests {
         let mut pb = PixelBuffer::new(3, 5, 3, true, x.as_slice()).unwrap();
         // pb.toggle_interleaved();
 
-        let fb = FloatBuffer::from_pixel_buffer(pb, 2);
+        let fb = FloatBuffer::from_pixel_buffer(pb, 2, true);
 
         assert!(fb.width > 0);
     }

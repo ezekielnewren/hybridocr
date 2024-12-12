@@ -172,7 +172,7 @@ pub struct FloatBuffer {
 
 impl FloatBuffer {
 
-    pub fn from_pixel_buffer(src: PixelBuffer, margin: usize) -> Self {
+    pub fn from_pixel_buffer(src: PixelBuffer, margin: usize, fill_margin: bool) -> Self {
         let mut dst = Self {
             width: margin+src.width+margin,
             height: margin+src.height+margin,
@@ -207,6 +207,39 @@ impl FloatBuffer {
                         let v = src_slice[col] as f32;
                         dst_slice[col] = v;
                     }
+                }
+            }
+        }
+
+        if fill_margin {
+            for channel in 0..dst.channels {
+                // middle rows
+                for row in margin..dst.height-margin {
+                    let row_off = channel*dst.height*dst.width + row*dst.width;
+                    let row_slice = &mut dst.data[row_off..row_off+dst.width];
+                    // left
+                    let first = row_slice[margin];
+                    for i in 0..margin {
+                        row_slice[i] = first;
+                    }
+                    let last = row_slice[dst.width-1-margin];
+                    for i in 0..margin {
+                        row_slice[dst.width-1-i] = last;
+                    }
+                }
+
+                // top rows
+                let row_top_off = channel*dst.height*dst.width + margin*dst.width;
+                for i in 0..margin {
+                    let row_off = channel*dst.height*dst.width + i*dst.width;
+                    dst.data.copy_within(row_top_off..row_top_off+dst.width, row_off);
+                }
+
+                // bottom rows
+                let row_bot_off = channel*dst.height*dst.width + (dst.height-1-margin)*dst.width;
+                for i in 0..margin {
+                    let row_off = channel*dst.height*dst.width + (dst.height-1-i)*dst.width;
+                    dst.data.copy_within(row_bot_off..row_bot_off+dst.width, row_off);
                 }
             }
         }
@@ -317,18 +350,14 @@ pub fn blend_cubic(src: &PixelBuffer, x: f32, y: f32, c: usize) -> u8 {
 }
 
 
-pub fn _pt(mut src: PixelBuffer, quad: Quadrilateral) -> Result<PixelBuffer, String> {
+pub fn _pt(src: PixelBuffer, quad: Quadrilateral) -> Result<PixelBuffer, String> {
     let out_dim = quad.output_dimension();
     let c = src.channels;
     let mut dst = PixelBuffer::blank(out_dim.0 as usize, out_dim.1 as usize, c, false);
     let interleaved = src.interleaved;
-    // convert to planar
-    // if src.interleaved {
-    //     src.toggle_interleaved();
-    // }
     let h = calculate_homography_matrix(&quad.dst_quad(), &quad);
 
-    let fb = FloatBuffer::from_pixel_buffer(src, 2);
+    let fb = FloatBuffer::from_pixel_buffer(src, 2, false);
 
     for channel in 0..dst.channels {
         for row in 0..dst.height {
