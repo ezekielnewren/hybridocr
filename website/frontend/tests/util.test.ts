@@ -55,7 +55,9 @@ describe("util", () => {
             new util.Point(29.0,   1690.0)
         );
 
+        const start = performance.now();
         let out = await perspectiveTransform(apb, aq);
+        const time = (performance.now()-start)/1000;
         expect(out).not.toBeNull();
         let xxx = Buffer.from(out.data);
         let xx = sharp(xxx, {
