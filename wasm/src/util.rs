@@ -18,6 +18,30 @@ pub struct Point {
 }
 
 
+pub struct HMatrix {
+    h00: f32,
+    h01: f32,
+    h02: f32,
+    h10: f32,
+    h11: f32,
+    h12: f32,
+    h20: f32,
+    h21: f32,
+    h22: f32,
+}
+
+impl HMatrix {
+    pub fn map(&self, c: &Point) -> Point {
+        let denom = self.h20*c.x + self.h21*c.y + self.h22;
+        Point{
+            x: (self.h00*c.x + self.h01*c.y + self.h02)/denom,
+            y: (self.h10*c.x + self.h11*c.y + self.h12)/denom,
+        }
+    }
+
+}
+
+
 pub fn midpoint(a: &Point, b: &Point) -> Point {
     Point{x: (a.x+b.x)/2.0, y: (a.y+b.y)/2.0}
 }
@@ -172,7 +196,7 @@ impl Quadrilateral {
 }
 
 
-pub fn calculate_homography_matrix(s: &Quadrilateral, d: &Quadrilateral) -> [f32; 9] {
+pub fn calculate_homography_matrix(s: &Quadrilateral, d: &Quadrilateral) -> HMatrix {
     let a = DMatrix::from_row_slice(8, 8, &[
         0.0,    0.0,    0.0, -s.tl.x, -s.tl.y, -1.0,  d.tl.y*s.tl.x,  d.tl.y*s.tl.y,
         s.tl.x, s.tl.y, 1.0,  0.0,     0.0,     0.0, -d.tl.x*s.tl.x, -d.tl.x*s.tl.y,
@@ -196,77 +220,76 @@ pub fn calculate_homography_matrix(s: &Quadrilateral, d: &Quadrilateral) -> [f32
     ]);
 
     let solution = a.lu().solve(&b).unwrap();
-    let mut h = [1.0; 9];
-    h[..8].copy_from_slice(solution.as_slice());
-    h
+    let t = solution.as_slice();
+    HMatrix{
+        h00: t[0],
+        h01: t[1],
+        h02: t[2],
+        h10: t[3],
+        h11: t[4],
+        h12: t[5],
+        h20: t[6],
+        h21: t[7],
+        h22: 1f32,
+    }
 }
 
 
-pub fn weight_cubic(span: &[u8], w: f32) -> u8 {
-    let p0 = span[0] as f32;
-    let p1 = span[1] as f32;
-    let p2 = span[2] as f32;
-    let p3 = span[3] as f32;
-
+pub fn weight_cubic(p0: f32, p1: f32, p2: f32, p3: f32, w: f32) -> f32 {
     let value = p1 + 0.5 * w * (p2 - p0
         + w * (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3
         + w * (3.0 * (p1 - p2) + p3 - p0)));
 
-    value.clamp(0.0, 255.0) as u8
+    value.clamp(0.0, 255.0)
 }
 
 
 pub fn blend_cubic(src: &PixelBuffer, x: f32, y: f32, c: u8) -> u8 {
-    let mut t = [0u8; 4];
-    for rowi in 0..4 {
+    let mut t = [0f32; 4];
+    for rowi in 0..4usize {
         let y_off = y+rowi as f32-2.0;
-        let row = [
-            src.at(x-2.0, y_off, c, true),
-            src.at(x-1.0, y_off, c, true),
-            src.at(x+0.0, y_off, c, true),
-            src.at(x+1.0, y_off, c, true),
-        ];
+        let p0 = src.at(x-2.0, y_off, c, true) as f32;
+        let p1 = src.at(x-1.0, y_off, c, true) as f32;
+        let p2 = src.at(x+0.0, y_off, c, true) as f32;
+        let p3 = src.at(x+1.0, y_off, c, true) as f32;
 
-        let value = weight_cubic(&row, x-x.floor());
-        t[rowi as usize] = value;
+        let value = weight_cubic(p0, p1, p2, p3, x-x.floor());
+        t[rowi] = value;
     }
 
-    weight_cubic(&t, y-y.floor())
+    weight_cubic(t[0], t[1], t[2], t[3], y-y.floor()) as u8
 }
 
 
-pub fn _pt(src: PixelBuffer, quad: Quadrilateral) -> Result<PixelBuffer, String> {
+pub fn _pt(mut src: PixelBuffer, quad: Quadrilateral) -> Result<PixelBuffer, String> {
     let out_dim = quad.output_dimension();
     let c = src.channels;
-    let mut dst = PixelBuffer::blank(out_dim.0 as u32, out_dim.1 as u32, c, src.interleaved);
+    let mut dst = PixelBuffer::blank(out_dim.0 as u32, out_dim.1 as u32, c, false);
+    let interleaved = src.interleaved;
+    // convert to planar
+    if src.interleaved {
+        src.toggle_interleaved();
+    }
 
     let h = calculate_homography_matrix(&quad.dst_quad(), &quad);
 
     for c in 0..c {
         for dst_y in 0..dst.height as usize {
-            let y = dst_y as f32;
             for dst_x in 0..dst.width as usize {
-                let x = dst_x as f32;
+                let dp = Point{x: dst_x as f32, y: dst_y as f32};
 
-                let denom = h[6]*x + h[7]*y + h[8];
-                if denom == 0.0 {
+                let sp = h.map(&dp);
+                if !src.in_bounds(sp.x, sp.y, c) {
                     continue;
                 }
-
-                let src_x = (h[0]*x + h[1]*y + h[2])/denom;
-                let src_y = (h[3]*x + h[4]*y + h[5])/denom;
-
-                if !src.in_bounds(src_x, src_y, c) {
-                    continue;
-                }
-                *dst.at_mut(dst_x, dst_y, c) = blend_cubic(&src, src_x, src_y, c)
+                *dst.at_mut(dst_x, dst_y, c) = blend_cubic(&src, sp.x, sp.y, c)
             }
         }
     }
 
+    if interleaved != dst.interleaved {
+        dst.toggle_interleaved();
+    }
     Ok(dst)
 }
-
-
-
 
