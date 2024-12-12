@@ -32,9 +32,9 @@ pub fn get_transform(proj: &Projection) -> Vec<[f32; 9]> {
 
 pub fn from_dynamic_image(img: &DynamicImage) -> PixelBuffer {
     PixelBuffer::new(
-        img.width(),
-        img.height(),
-        img.color().channel_count(),
+        img.width() as usize,
+        img.height() as usize,
+        img.color().channel_count() as usize,
         true,
         img.as_bytes()
     ).unwrap()
@@ -45,8 +45,8 @@ pub fn as_bytes(pb: &PixelBuffer) -> Vec<u8> {
         pb.data.clone()
     } else {
         let mut t = vec![0u8; pb.data.len()];
-        let w = (pb.width * pb.height) as usize;
-        let h = pb.channels as usize;
+        let w = pb.width*pb.height;
+        let h = pb.channels;
         transpose(pb.data.as_slice(), w, h, t.as_mut_slice()).unwrap();
         t
     }
@@ -56,13 +56,13 @@ pub fn as_dynamic_image(pb: &PixelBuffer) -> Result<DynamicImage, String> {
     let woven = as_bytes(&pb);
 
     if pb.channels == 1 {
-        Ok(DynamicImage::ImageLuma8(ImageBuffer::from_vec(pb.width, pb.height, woven).unwrap()))
+        Ok(DynamicImage::ImageLuma8(ImageBuffer::from_vec(pb.width as u32, pb.height as u32, woven).unwrap()))
     } else if pb.channels == 2 {
-        Ok(DynamicImage::ImageLumaA8(ImageBuffer::from_vec(pb.width, pb.height, woven).unwrap()))
+        Ok(DynamicImage::ImageLumaA8(ImageBuffer::from_vec(pb.width as u32, pb.height as u32, woven).unwrap()))
     } else if pb.channels == 3 {
-        Ok(DynamicImage::ImageRgb8(ImageBuffer::from_vec(pb.width, pb.height, woven).unwrap()))
+        Ok(DynamicImage::ImageRgb8(ImageBuffer::from_vec(pb.width as u32, pb.height as u32, woven).unwrap()))
     } else if pb.channels == 4 {
-        Ok(DynamicImage::ImageRgba8(ImageBuffer::from_vec(pb.width, pb.height, woven).unwrap()))
+        Ok(DynamicImage::ImageRgba8(ImageBuffer::from_vec(pb.width as u32, pb.height as u32, woven).unwrap()))
     } else {
         Err(String::from("Illegal parameters"))
     }
@@ -89,7 +89,7 @@ pub fn _perspective_transform(pb: &PixelBuffer, quad: &Quadrilateral) -> Result<
     let src = as_bytes(&pb);
     let out_img: DynamicImage;
     if pb.channels == 1 {
-        let gray = GrayImage::from_vec(pb.width, pb.height, src).unwrap();
+        let gray = GrayImage::from_vec(pb.width as u32, pb.height as u32, src).unwrap();
         let dp = Luma([0]);
         let mut t = ImageBuffer::from_pixel(w, h, dp);
         warp_into(
@@ -101,7 +101,7 @@ pub fn _perspective_transform(pb: &PixelBuffer, quad: &Quadrilateral) -> Result<
         );
         out_img = DynamicImage::from(t);
     } else if pb.channels == 3 {
-        let rgb = RgbImage::from_vec(pb.width, pb.height, src).unwrap();
+        let rgb = RgbImage::from_vec(pb.width as u32, pb.height as u32, src).unwrap();
         let dp = Rgb([0, 0, 0]);
         let mut t = ImageBuffer::from_pixel(w, h, dp);
         warp_into(
@@ -113,7 +113,7 @@ pub fn _perspective_transform(pb: &PixelBuffer, quad: &Quadrilateral) -> Result<
         );
         out_img = DynamicImage::from(t);
     } else if pb.channels == 4 {
-        let rgba = RgbaImage::from_vec(pb.width, pb.height, src).unwrap();
+        let rgba = RgbaImage::from_vec(pb.width as u32, pb.height as u32, src).unwrap();
         let dp = Rgba([0u8, 0u8, 0u8, 0u8]);
         let mut t = ImageBuffer::from_pixel(w, h, dp);
         warp_into(
@@ -139,7 +139,7 @@ pub fn _perspective_transform(pb: &PixelBuffer, quad: &Quadrilateral) -> Result<
 mod tests {
     use imageproc::drawing::Canvas;
     use imageproc::geometric_transformations::Projection;
-    use hybridocr::util::{calculate_homography_matrix};
+    use hybridocr::util::{calculate_homography_matrix, FloatBuffer};
     use super::*;
 
     #[test]
@@ -187,7 +187,7 @@ mod tests {
 
         let mut pb = from_dynamic_image(&img);
         pb.toggle_interleaved();
-        assert_eq!((pb.width * pb.height * pb.channels as u32) as usize, pb.data.len());
+        assert_eq!(pb.width*pb.height*pb.channels, pb.data.len());
         let interleaved = pb.interleaved;
 
         let quad = Quadrilateral {
@@ -215,7 +215,7 @@ mod tests {
 
         let pb = from_dynamic_image(&img);
         let src_interleaved = pb.interleaved;
-        assert_eq!((pb.width * pb.height * pb.channels as u32) as usize, pb.data.len());
+        assert_eq!(pb.width*pb.height*pb.channels, pb.data.len());
 
         let quad = Quadrilateral {
             tl: Point{x: 50.0,   y: 335.0},
@@ -256,6 +256,24 @@ mod tests {
         let mat = calculate_homography_matrix(&d, &quad);
 
         // assert_eq!(inverse, mat);
+    }
+
+    #[test]
+    pub fn test_float_buffer() {
+        let x: Vec<u8> = vec![
+            0xa0, 0xb0, 0xc0, 0xa1, 0xb1, 0xc1, 0xa2, 0xb2, 0xc2,
+            0xa3, 0xb3, 0xc3, 0xa4, 0xb4, 0xc4, 0xa5, 0xb5, 0xc5,
+            0xa6, 0xb6, 0xc6, 0xa7, 0xb7, 0xc7, 0xa8, 0xb8, 0xc8,
+            0xa9, 0xb9, 0xc9, 0xaa, 0xba, 0xca, 0xab, 0xbb, 0xcb,
+            0xac, 0xbc, 0xcc, 0xad, 0xbd, 0xcd, 0xae, 0xbe, 0xce,
+        ];
+
+        let mut pb = PixelBuffer::new(3, 5, 3, true, x.as_slice()).unwrap();
+        // pb.toggle_interleaved();
+
+        let fb = FloatBuffer::from_pixel_buffer(pb, 2);
+
+        assert!(fb.width > 0);
     }
 
 }
