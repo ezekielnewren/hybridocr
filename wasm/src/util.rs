@@ -241,7 +241,7 @@ pub fn _pt(mut src: PixelBuffer, quad: Quadrilateral) -> Result<PixelBuffer, Str
 
             let mut kernel = [0f32; 16];
             let mut p: &[u8];
-            let mut src_off = channel*src.height*src.width + (y-0)*src.width + (x-0);
+            let mut src_off = channel*src.height*src.width + (y-2)*src.width + (x-2);
 
             p = &src.data[src_off..src_off+4]; src_off += src.width;
             kernel[0] = p[0] as f32;
