@@ -83,7 +83,7 @@ pub struct PixelBuffer {
 
 impl PixelBuffer {
 
-    pub fn new(width: usize, height: usize, channels: usize, interleaved: bool, src: &[u8]) -> Result<Self, String> {
+    pub fn new(width: usize, height: usize, channels: usize, interleaved: bool, src: Vec<u8>) -> Result<Self, String> {
         if width*height*channels != src.len() {
             return Err(String::from("width*height*channels must equal src.len()"));
         }
@@ -93,7 +93,7 @@ impl PixelBuffer {
             height,
             channels,
             interleaved,
-            data: src.to_vec(),
+            data: src,
         })
     }
 
@@ -104,6 +104,7 @@ impl PixelBuffer {
             channels,
             interleaved,
             data: vec![0u8; width*height*channels],
+            // data: Vec::<u8>::with_capacity(width*height*channels),
         }
     }
 
@@ -225,20 +226,35 @@ pub fn _pt(mut src: PixelBuffer, quad: Quadrilateral) -> Result<PixelBuffer, Str
             let (x, y) = (sp.x as usize, sp.y as usize);
 
 
+            let mut kernel = [0f32; 16];
             let mut p: &[u8];
             let mut src_off = channel*src.height*src.width + (y-0)*src.width + (x-0);
 
             p = &src.data[src_off..src_off+4]; src_off += src.width;
-            let r0 = weight_cubic(p[0] as f32, p[1] as f32, p[2] as f32, p[3] as f32, x_weight);
-
+            kernel[0] = p[0] as f32;
+            kernel[1] = p[1] as f32;
+            kernel[2] = p[2] as f32;
+            kernel[3] = p[3] as f32;
             p = &src.data[src_off..src_off+4]; src_off += src.width;
-            let r1 = weight_cubic(p[0] as f32, p[1] as f32, p[2] as f32, p[3] as f32, x_weight);
-
+            kernel[4] = p[0] as f32;
+            kernel[5] = p[1] as f32;
+            kernel[6] = p[2] as f32;
+            kernel[7] = p[3] as f32;
             p = &src.data[src_off..src_off+4]; src_off += src.width;
-            let r2 = weight_cubic(p[0] as f32, p[1] as f32, p[2] as f32, p[3] as f32, x_weight);
-
+            kernel[8] = p[0] as f32;
+            kernel[9] = p[1] as f32;
+            kernel[10] = p[2] as f32;
+            kernel[11] = p[3] as f32;
             p = &src.data[src_off..src_off+4];
-            let r3 = weight_cubic(p[0] as f32, p[1] as f32, p[2] as f32, p[3] as f32, x_weight);
+            kernel[12] = p[0] as f32;
+            kernel[13] = p[1] as f32;
+            kernel[14] = p[2] as f32;
+            kernel[15] = p[3] as f32;
+
+            let r0 = weight_cubic(kernel[0],  kernel[1],  kernel[2],  kernel[3],  x_weight);
+            let r1 = weight_cubic(kernel[4],  kernel[5],  kernel[6],  kernel[7],  x_weight);
+            let r2 = weight_cubic(kernel[8],  kernel[9],  kernel[10], kernel[11], x_weight);
+            let r3 = weight_cubic(kernel[12], kernel[13], kernel[14], kernel[15], x_weight);
 
             *dst_cell = weight_cubic(r0, r1, r2, r3, y_weight) as u8;
 

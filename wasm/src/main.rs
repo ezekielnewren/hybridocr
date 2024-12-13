@@ -14,7 +14,7 @@ pub fn main() {
         img.height() as usize,
         img.color().channel_count() as usize,
         true,
-        img.as_bytes()
+        img.as_bytes().to_vec()
     ).unwrap();
 
     let quad = Quadrilateral {

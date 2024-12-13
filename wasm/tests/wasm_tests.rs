@@ -36,7 +36,7 @@ pub fn from_dynamic_image(img: &DynamicImage) -> PixelBuffer {
         img.height() as usize,
         img.color().channel_count() as usize,
         true,
-        img.as_bytes()
+        img.as_bytes().to_vec()
     ).unwrap()
 }
 

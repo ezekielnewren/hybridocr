@@ -26,7 +26,7 @@ pub fn _argon2d(password: &[u8], salt: &[u8], m: u32, t: u32, p: u32, length: u3
 
 #[wasm_bindgen]
 pub fn perspective_transform(w: u32, h: u32, c: u8, interleaved: bool, data: Vec<u8>, _quad: Vec<f32>) -> Vec<u8> {
-    let pb = PixelBuffer::new(w as usize, h as usize, c as usize, interleaved, data.as_slice()).unwrap();
+    let pb = PixelBuffer::new(w as usize, h as usize, c as usize, interleaved, data).unwrap();
     let quad = Quadrilateral{
         tl: Point{x: _quad[0], y: _quad[1] },
         tr: Point{x: _quad[2], y: _quad[3] },
