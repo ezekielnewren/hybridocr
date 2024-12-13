@@ -139,7 +139,7 @@ pub fn _perspective_transform(pb: &PixelBuffer, quad: &Quadrilateral) -> Result<
 mod tests {
     use imageproc::drawing::Canvas;
     use imageproc::geometric_transformations::Projection;
-    use hybridocr::util::{calculate_homography_matrix, FloatBuffer};
+    use hybridocr::util::{calculate_homography_matrix};
     use super::*;
 
     #[test]
@@ -209,7 +209,7 @@ mod tests {
     pub fn test_custom_pt() {
         let fd = ImageReader::open("../tests/file/ocr_sample_from_smartphone_rgba.avif").unwrap();
         let img_rgba = fd.decode().unwrap();
-        let _img_rgb = DynamicImage::ImageRgb8(img_rgba.to_rgb8());
+        // let _img_rgb = DynamicImage::ImageRgb8(img_rgba.to_rgb8());
         let img_gray = DynamicImage::ImageLuma8(img_rgba.to_luma8());
         let img = &img_gray;
 
@@ -258,22 +258,22 @@ mod tests {
         // assert_eq!(inverse, mat);
     }
 
-    #[test]
-    pub fn test_float_buffer() {
-        let x: Vec<u8> = vec![
-            0xa0, 0xb0, 0xc0, 0xa1, 0xb1, 0xc1, 0xa2, 0xb2, 0xc2,
-            0xa3, 0xb3, 0xc3, 0xa4, 0xb4, 0xc4, 0xa5, 0xb5, 0xc5,
-            0xa6, 0xb6, 0xc6, 0xa7, 0xb7, 0xc7, 0xa8, 0xb8, 0xc8,
-            0xa9, 0xb9, 0xc9, 0xaa, 0xba, 0xca, 0xab, 0xbb, 0xcb,
-            0xac, 0xbc, 0xcc, 0xad, 0xbd, 0xcd, 0xae, 0xbe, 0xce,
-        ];
-
-        let mut pb = PixelBuffer::new(3, 5, 3, true, x.as_slice()).unwrap();
-        // pb.toggle_interleaved();
-
-        let fb = FloatBuffer::from_pixel_buffer(pb, 2, true);
-
-        assert!(fb.width > 0);
-    }
+    // #[test]
+    // pub fn test_float_buffer() {
+    //     let x: Vec<u8> = vec![
+    //         0xa0, 0xb0, 0xc0, 0xa1, 0xb1, 0xc1, 0xa2, 0xb2, 0xc2,
+    //         0xa3, 0xb3, 0xc3, 0xa4, 0xb4, 0xc4, 0xa5, 0xb5, 0xc5,
+    //         0xa6, 0xb6, 0xc6, 0xa7, 0xb7, 0xc7, 0xa8, 0xb8, 0xc8,
+    //         0xa9, 0xb9, 0xc9, 0xaa, 0xba, 0xca, 0xab, 0xbb, 0xcb,
+    //         0xac, 0xbc, 0xcc, 0xad, 0xbd, 0xcd, 0xae, 0xbe, 0xce,
+    //     ];
+    //
+    //     let mut pb = PixelBuffer::new(3, 5, 3, true, x.as_slice()).unwrap();
+    //     // pb.toggle_interleaved();
+    //
+    //     let fb = FloatBuffer::from_pixel_buffer(pb, 2, true);
+    //
+    //     assert!(fb.width > 0);
+    // }
 
 }

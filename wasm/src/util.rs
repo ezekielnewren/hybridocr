@@ -29,11 +29,11 @@ pub struct HMatrix {
 }
 
 impl HMatrix {
-    pub fn map(&self, c: &Point) -> Point {
-        let denom = self.h20*c.x + self.h21*c.y + self.h22;
+    pub fn map(&self, x: f32, y: f32) -> Point {
+        let denom = self.h20*x + self.h21*y + self.h22;
         Point{
-            x: (self.h00*c.x + self.h01*c.y + self.h02)/denom,
-            y: (self.h10*c.x + self.h11*c.y + self.h12)/denom,
+            x: (self.h00*x + self.h01*y + self.h02)/denom,
+            y: (self.h10*x + self.h11*y + self.h12)/denom,
         }
     }
 
@@ -118,132 +118,6 @@ impl PixelBuffer {
         transpose(src.as_slice(), w, h, self.data.as_mut_slice()).unwrap();
         self.interleaved = !self.interleaved;
     }
-
-    pub fn in_bounds(&self, x: f32, y: f32, c: usize) -> bool {
-        let (w, h) = (self.width as f32, self.height as f32);
-        0.0 <= x && x < w && 0.0 <= y && y < h && c < self.channels
-    }
-
-    pub unsafe fn unsafe_index(&self, x: usize, y: usize, c: usize) -> usize {
-        let (w, h) = (self.width, self.height);
-        if self.interleaved {
-            let pixel_size = self.channels;
-            y*pixel_size*w + x*pixel_size + c
-        } else {
-            let channel_size = w*h;
-            c*channel_size + y*w + x
-        }
-    }
-
-    pub fn at(&self, mut x: f32, mut y: f32, c: usize, closest: bool) -> u8 {
-        if !self.in_bounds(x, y, c) {
-            if closest {
-                x = x.clamp(0.0, self.width as f32-1.0);
-                y = y.clamp(0.0, self.height as f32-1.0);
-            } else {
-                return 0u8;
-            }
-        }
-        let i = unsafe { self.unsafe_index(x as usize, y as usize, c) };
-        self.data[i]
-    }
-
-    pub fn at_mut(&mut self, x: usize, y: usize, c: usize) -> &mut u8 {
-        if !self.in_bounds(x as f32, y as f32, c) {
-            panic!("Index out of bounds: x={}, y={}, c={}", x, y, c);
-        }
-        let i = unsafe { self.unsafe_index(x, y, c) };
-        &mut self.data[i]
-    }
-}
-
-
-pub struct FloatBuffer {
-    pub width: usize,
-    pub height: usize,
-    pub channels: usize,
-    pub margin: usize,
-    pub data: Vec<f32>,
-}
-
-
-impl FloatBuffer {
-
-    pub fn from_pixel_buffer(src: PixelBuffer, margin: usize, fill_margin: bool) -> Self {
-        let mut dst = Self {
-            width: margin+src.width+margin,
-            height: margin+src.height+margin,
-            channels: src.channels,
-            margin,
-            data: vec![0f32; src.channels*(margin+src.width+margin)*(margin+src.height+margin)],
-        };
-
-
-        if src.interleaved {
-            for channel in 0..src.channels {
-                for row in 0..src.height {
-                    let off = (channel*dst.height*dst.width)+(row+margin)*dst.width+margin;
-                    let dst_slice: &mut [f32] = &mut dst.data[off..off+src.width];
-                    assert_eq!(src.width, dst_slice.len());
-                    for col in 0..src.width {
-                        let v = src.data[row*src.width*src.channels+col*src.channels+channel] as f32;
-                        dst_slice[col] = v;
-                    }
-                }
-            }
-        } else {
-            for channel in 0..src.channels {
-                for row in 0..src.height {
-                    let off = (channel*dst.height*dst.width)+(row+margin)*dst.width+margin;
-                    let dst_slice: &mut [f32] = &mut dst.data[off..off+src.width];
-                    let off = (channel*src.height*src.width)+row*src.width;
-                    let src_slice: &[u8] = &src.data[off..off+src.width];
-                    assert_eq!(src.width, dst_slice.len());
-                    assert_eq!(src.width, src_slice.len());
-                    for col in 0..src.width {
-                        let v = src_slice[col] as f32;
-                        dst_slice[col] = v;
-                    }
-                }
-            }
-        }
-
-        if fill_margin {
-            for channel in 0..dst.channels {
-                // middle rows
-                for row in margin..dst.height-margin {
-                    let row_off = channel*dst.height*dst.width + row*dst.width;
-                    let row_slice = &mut dst.data[row_off..row_off+dst.width];
-                    // left
-                    let first = row_slice[margin];
-                    for i in 0..margin {
-                        row_slice[i] = first;
-                    }
-                    let last = row_slice[dst.width-1-margin];
-                    for i in 0..margin {
-                        row_slice[dst.width-1-i] = last;
-                    }
-                }
-
-                // top rows
-                let row_top_off = channel*dst.height*dst.width + margin*dst.width;
-                for i in 0..margin {
-                    let row_off = channel*dst.height*dst.width + i*dst.width;
-                    dst.data.copy_within(row_top_off..row_top_off+dst.width, row_off);
-                }
-
-                // bottom rows
-                let row_bot_off = channel*dst.height*dst.width + (dst.height-1-margin)*dst.width;
-                for i in 0..margin {
-                    let row_off = channel*dst.height*dst.width + (dst.height-1-i)*dst.width;
-                    dst.data.copy_within(row_bot_off..row_bot_off+dst.width, row_off);
-                }
-            }
-        }
-
-        dst
-    }
-
 }
 
 
@@ -329,63 +203,54 @@ pub fn weight_cubic(p0: f32, p1: f32, p2: f32, p3: f32, w: f32) -> f32 {
 }
 
 
-pub fn blend_cubic(src: &PixelBuffer, x: f32, y: f32, c: usize) -> u8 {
-    let mut t = [0f32; 4];
-    for rowi in 0..4usize {
-        let y_off = y+rowi as f32-2.0;
-        let p0 = src.at(x-2.0, y_off, c, true) as f32;
-        let p1 = src.at(x-1.0, y_off, c, true) as f32;
-        let p2 = src.at(x+0.0, y_off, c, true) as f32;
-        let p3 = src.at(x+1.0, y_off, c, true) as f32;
-
-        let value = weight_cubic(p0, p1, p2, p3, x-x.floor());
-        t[rowi] = value;
+pub fn _pt(mut src: PixelBuffer, quad: Quadrilateral) -> Result<PixelBuffer, String> {
+    let interleaved = src.interleaved;
+    if interleaved {
+        src.toggle_interleaved();
     }
 
-    weight_cubic(t[0], t[1], t[2], t[3], y-y.floor()) as u8
-}
-
-
-pub fn _pt(src: PixelBuffer, quad: Quadrilateral) -> Result<PixelBuffer, String> {
     let out_dim = quad.output_dimension();
-    let c = src.channels;
-    let mut dst = PixelBuffer::blank(out_dim.0 as usize, out_dim.1 as usize, c, false);
-    let interleaved = src.interleaved;
+    let mut dst = PixelBuffer::blank(out_dim.0 as usize, out_dim.1 as usize, src.channels, false);
     let h = calculate_homography_matrix(&quad.dst_quad(), &quad);
 
-    let fb = FloatBuffer::from_pixel_buffer(src, 2, false);
-
     for channel in 0..dst.channels {
-        for row in 0..dst.height {
-            let dst_off = channel*dst.height*dst.width + row*dst.width;
-            let dst_slice = &mut dst.data[dst_off..dst_off+dst.width];
-            for col in 0..dst.width {
-                let dp = Point{x: col as f32, y: row as f32};
-                let sp = h.map(&dp);
-                // assert!(src.in_bounds(sp.x, sp.y, channel));
-                let weight = sp.x-sp.x.floor();
+        let mut row = 0usize;
+        let mut col = 0usize;
 
-                let src_off = channel*fb.height*fb.width + (sp.y+0.0) as usize*fb.width + sp.x as usize;
-                let ss = &fb.data[src_off..src_off+4];
-                let r0 = weight_cubic(ss[0], ss[1], ss[2], ss[3], weight);
+        let dst_off = channel*dst.height*dst.width;
+        for dst_cell in &mut dst.data[dst_off..dst_off+dst.height*dst.width] {
+            let sp = h.map(col as f32, row as f32);
+            let x_weight = sp.x-sp.x.floor();
+            let y_weight = sp.y-sp.y.floor();
+            let (x, y) = (sp.x as usize, sp.y as usize);
 
-                let src_off = channel*fb.height*fb.width + (sp.y+1.0) as usize*fb.width + sp.x as usize;
-                let ss = &fb.data[src_off..src_off+4];
-                let r1 = weight_cubic(ss[0], ss[1], ss[2], ss[3], weight);
 
-                let src_off = channel*fb.height*fb.width + (sp.y+2.0) as usize*fb.width + sp.x as usize;
-                let ss = &fb.data[src_off..src_off+4];
-                let r2 = weight_cubic(ss[0], ss[1], ss[2], ss[3], weight);
+            let mut p: &[u8];
+            let mut src_off = channel*src.height*src.width + (y-0)*src.width + (x-0);
 
-                let src_off = channel*fb.height*fb.width + (sp.y+3.0) as usize*fb.width + sp.x as usize;
-                let ss = &fb.data[src_off..src_off+4];
-                let r3 = weight_cubic(ss[0], ss[1], ss[2], ss[3], weight);
+            p = &src.data[src_off..src_off+4]; src_off += src.width;
+            let r0 = weight_cubic(p[0] as f32, p[1] as f32, p[2] as f32, p[3] as f32, x_weight);
 
-                let w = weight_cubic(r0, r1, r2, r3, sp.y-sp.y.floor());
-                dst_slice[col] = w as u8;
+            p = &src.data[src_off..src_off+4]; src_off += src.width;
+            let r1 = weight_cubic(p[0] as f32, p[1] as f32, p[2] as f32, p[3] as f32, x_weight);
+
+            p = &src.data[src_off..src_off+4]; src_off += src.width;
+            let r2 = weight_cubic(p[0] as f32, p[1] as f32, p[2] as f32, p[3] as f32, x_weight);
+
+            p = &src.data[src_off..src_off+4];
+            let r3 = weight_cubic(p[0] as f32, p[1] as f32, p[2] as f32, p[3] as f32, x_weight);
+
+            *dst_cell = weight_cubic(r0, r1, r2, r3, y_weight) as u8;
+
+            col += 1;
+            if col >= dst.width {
+                col = 0usize;
+                row += 1;
             }
         }
     }
+
+
 
     if interleaved != dst.interleaved {
         dst.toggle_interleaved();
