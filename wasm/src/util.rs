@@ -80,7 +80,6 @@ pub struct PixelBuffer {
     pub data: Vec<u8>,
 }
 
-
 impl PixelBuffer {
 
     pub fn new(width: usize, height: usize, channels: usize, interleaved: bool, src: Vec<u8>) -> Result<Self, String> {
@@ -104,7 +103,6 @@ impl PixelBuffer {
             channels,
             interleaved,
             data: vec![0u8; width*height*channels],
-            // data: Vec::<u8>::with_capacity(width*height*channels),
         }
     }
 
@@ -118,6 +116,21 @@ impl PixelBuffer {
         let src = self.data.clone();
         transpose(src.as_slice(), w, h, self.data.as_mut_slice()).unwrap();
         self.interleaved = !self.interleaved;
+    }
+
+    pub fn in_bounds(&self, quad: &Quadrilateral, margin: usize) -> bool {
+        let (x_min, x_max) = (margin as f32, (self.width-1-margin) as f32);
+        let (y_min, y_max) = (margin as f32, (self.height-1-margin) as f32);
+        for p in [&quad.tl, &quad.tr, &quad.br, &quad.bl] {
+            if !(x_min <= p.x && p.x <= x_max) {
+                return false;
+            }
+            if !(y_min <= p.y && p.y <= y_max) {
+                return false;
+            }
+        }
+
+        true
     }
 }
 
@@ -199,12 +212,12 @@ pub fn weight_cubic(p0: f32, p1: f32, p2: f32, p3: f32, w: f32) -> f32 {
     let value = p1 + 0.5 * w * (p2 - p0
         + w * (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3
         + w * (3.0 * (p1 - p2) + p3 - p0)));
-
     value.clamp(0.0, 255.0)
 }
 
 
 pub fn _pt(mut src: PixelBuffer, quad: Quadrilateral) -> Result<PixelBuffer, String> {
+    assert!(src.in_bounds(&quad, 2));
     let interleaved = src.interleaved;
     if interleaved {
         src.toggle_interleaved();
@@ -265,8 +278,6 @@ pub fn _pt(mut src: PixelBuffer, quad: Quadrilateral) -> Result<PixelBuffer, Str
             }
         }
     }
-
-
 
     if interleaved != dst.interleaved {
         dst.toggle_interleaved();
