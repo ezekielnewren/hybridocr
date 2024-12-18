@@ -11,7 +11,17 @@ export default defineConfig({
     outDir: "dist",
     target: "esnext",
     rollupOptions: {
-      input: "src/util.ts"
-    }
+      input: [
+        "src/util.ts",
+        "src/ui.ts"
+      ],
+      output: {
+        format: "es",
+        entryFileNames: "[name].js",
+        chunkFileNames: "[name].js",
+        assetFileNames: "[name][extname]"
+      }
+    },
+    minify: true
   }
 });
