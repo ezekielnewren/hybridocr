@@ -5,6 +5,7 @@ dist/
 node_modules/
 __pycache__/
 /ignore/
+.parcel-cache/
 
 **/src/*.js
 db.sqlite3
