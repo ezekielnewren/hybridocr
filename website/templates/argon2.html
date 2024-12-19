@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     {% include '_header.html' %}
-    <script src="/static/js/util.js"></script>
+    <script src="/static/js/util.js" type="module"></script>
+    <script src="/static/js/ui.js"></script>
 </head>
 <body>
 {% include '_banner.html' %}
@@ -11,16 +12,17 @@
     <label>password: <input id="password" type="text"></label>
     <label>salt: <input id="salt" type="text"></label>
     <label>m: <input id="m" type="number"></label>
-    <label>t: <input id="t"type="number"></label>
-    <label>p: <input id="p"type="number"></label>
+    <label>t: <input id="t" type="number"></label>
+    <label>p: <input id="p" type="number"></label>
     <label>length: <input id="length" type="number"></label>
     <pre id="view"></pre>
     <input id="fire" type="button" value="go">
 </div>
 {% include '_footer.html' %}
-<script>
-    document.getElementById("fire").addEventListener("click", () => {
+<script type="module">
+    document.getElementById("fire").addEventListener("click", async () => {
         console.log("go clicked");
+        // await setup_wasm();
         const ePassword = document.getElementById("password");
         const eSalt = document.getElementById("salt");
         const eM = document.getElementById("m");
@@ -29,16 +31,16 @@
         const eLength = document.getElementById("length");
         const eView = document.getElementById("view");
 
-        const hash = argon2id(
+        const argon2_result = await util.argon2id(
             ePassword.value,
             eSalt.value,
-            eM.value,
-            eT.value,
-            eP.value,
-            eLength.value,
+            Number(eM.value),
+            Number(eT.value),
+            Number(eP.value),
+            Number(eLength.value),
         );
 
-        eView.innerHTML = hash;
+        eView.innerHTML = util.toHex(argon2_result.hash);
     });
 </script>
 </body>

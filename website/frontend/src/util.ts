@@ -1,30 +1,6 @@
 import init, { _argon2id, _argon2i, _argon2d, perspective_transform } from "hybridocr"
 
-export async function setup_wasm() {
-    if (process.env.NODE_ENV !== "production") {
-        let path = await import('path');
-        let fs = await import('fs');
-        const wasmPath = path.resolve(__dirname, "../../../wasm/pkg/hybridocr_bg.wasm");
-        const wasmBuffer = fs.readFileSync(wasmPath);
-        // @ts-ignore
-        await init({module_or_path: wasmBuffer});
-    } else {
-        // @ts-ignore
-        await init({module_or_path: "/static/wasm/hybridocr_bg.wasm"});
-    }
-}
-await setup_wasm();
-
 export namespace util {
-    export function is_nodejs() {
-        return process.env.NODE_ENV !== "production";
-    }
-
-    export function toHex(data: Uint8Array): string {
-        return Array.from(data)
-            .map(byte => byte.toString(16).padStart(2, "0"))
-            .join("");
-    }
 
     export function toB64(data: Uint8Array, padding: boolean = true, urlSafe: boolean = false) {
         const binaryString = Array.from(data)
@@ -40,6 +16,7 @@ export namespace util {
         }
         return r;
     }
+
 
     class Argon2Result {
         readonly algorithm: string;
@@ -86,6 +63,17 @@ export namespace util {
     export async function argon2d(password: Uint8Array, salt: Uint8Array, m: number, t: number, p: number, length: number) {
         const hash = _argon2d(password, salt, m, t, p, length);
         return new Argon2Result("argon2d", 19, m, t, p, salt, hash);
+    }
+
+    export function is_nodejs() {
+        return process.env.NODE_ENV !== "production";
+    }
+
+
+    export function toHex(data: Uint8Array): string {
+        return Array.from(data)
+            .map(byte => byte.toString(16).padStart(2, "0"))
+            .join("");
     }
 
 
@@ -155,4 +143,24 @@ export namespace util {
         const data = x.subarray(10);
         return new PixelBuffer(w, h, c, interleaved, data);
     }
+
+    export async function setup_wasm() {
+        if (process.env.NODE_ENV !== "production") {
+            let path = await import('path');
+            let fs = await import('fs');
+            const wasmPath = path.resolve(__dirname, "../../../wasm/pkg/hybridocr_bg.wasm");
+            const wasmBuffer = fs.readFileSync(wasmPath);
+            // @ts-ignore
+            await init({module_or_path: wasmBuffer});
+        } else {
+            // @ts-ignore
+            await init({module_or_path: "/static/wasm/hybridocr_bg.wasm"});
+        }
+    }
 }
+
+
+
+(async () => {
+    await util.setup_wasm();
+})();
