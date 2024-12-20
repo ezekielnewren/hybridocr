@@ -98,30 +98,34 @@ export namespace util {
     }
 
 
-    export async function argon2id(_password: Uint8Array, _salt: Uint8Array, m: number, t: number, p: number, length: number) {
+    async function argon2(_password: Uint8Array, _salt: Uint8Array, m: number, t: number, p: number, length: number, str_type: string, lambda: any) {
         const wasm = (await get_wasm()).instance.exports as any;
-
         let password = WasmMemory.from_Uint8Array(wasm, _password);
         let salt = WasmMemory.from_Uint8Array(wasm, _salt);
 
-        const result = WasmMemory.from_u64(wasm._argon2id(password.ptr, password.len, salt.ptr, salt.len, m, t, p, length));
+        const result = WasmMemory.from_u64(lambda(password.ptr, password.len, salt.ptr, salt.len, m, t, p, length));
 
         let hash = result.copy_to(wasm);
         result.free(wasm);
         salt.free(wasm);
         password.free(wasm);
 
-        return new Argon2Result("argon2id", 19, m, t, p, _salt, hash);
+        return new Argon2Result(str_type, 19, m, t, p, _salt, hash);
     }
 
-    export async function argon2i(password: Uint8Array, salt: Uint8Array, m: number, t: number, p: number, length: number) {
-        const hash = _argon2i(password, salt, m, t, p, length);
-        return new Argon2Result("argon2i", 19, m, t, p, salt, hash);
+    export async function argon2id(_password: Uint8Array, _salt: Uint8Array, m: number, t: number, p: number, length: number) {
+        const wasm = (await get_wasm()).instance.exports as any;
+        return argon2(_password, _salt, m, t, p, length, "argon2id", wasm._argon2id);
     }
 
-    export async function argon2d(password: Uint8Array, salt: Uint8Array, m: number, t: number, p: number, length: number) {
-        const hash = _argon2d(password, salt, m, t, p, length);
-        return new Argon2Result("argon2d", 19, m, t, p, salt, hash);
+    export async function argon2i(_password: Uint8Array, _salt: Uint8Array, m: number, t: number, p: number, length: number) {
+        const wasm = (await get_wasm()).instance.exports as any;
+        return argon2(_password, _salt, m, t, p, length, "argon2i", wasm._argon2i);
+    }
+
+    export async function argon2d(_password: Uint8Array, _salt: Uint8Array, m: number, t: number, p: number, length: number) {
+        const wasm = (await get_wasm()).instance.exports as any;
+        return argon2(_password, _salt, m, t, p, length, "argon2d", wasm._argon2d);
     }
 
     export function is_nodejs() {
