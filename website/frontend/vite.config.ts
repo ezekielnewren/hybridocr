@@ -22,6 +22,6 @@ export default defineConfig({
         assetFileNames: "[name][extname]"
       }
     },
-    minify: true
+    minify: false
   }
 });
