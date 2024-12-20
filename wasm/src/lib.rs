@@ -1,49 +1,51 @@
+use std::alloc::{alloc, dealloc, Layout};
+use argon2::{Algorithm};
+
 pub mod util;
 
-use argon2::{Algorithm};
-use wasm_bindgen::prelude::*;
-
-use crate::util::{PixelBuffer, Quadrilateral, _pt, argon2, Point};
-
-#[wasm_bindgen]
-pub fn _argon2id(password: &[u8], salt: &[u8], m: u32, t: u32, p: u32, length: u32) -> Vec<u8> {
-    argon2(Algorithm::Argon2id, password, salt, m, t, p, length)
+#[no_mangle]
+pub fn add(left: usize, right: usize) -> usize {
+    left + right
 }
 
 
-#[wasm_bindgen]
-pub fn _argon2i(password: &[u8], salt: &[u8], m: u32, t: u32, p: u32, length: u32) -> Vec<u8> {
-    argon2(Algorithm::Argon2i, password, salt, m, t, p, length)
+// #[no_mangle]
+// pub fn _argon2id(password: &[u8], salt: &[u8], m: u32, t: u32, p: u32, length: u32) -> Vec<u8> {
+//     let hash = util::argon2(Algorithm::Argon2id, password, salt, m, t, p, length);
+//     hash
+// }
+
+#[no_mangle]
+pub fn _argon2id(
+    password_ptr: *const u8, password_len: usize,
+    salt_ptr: *const u8, salt_len: usize,
+    m: u32, t: u32, p: u32, length: u32
+) -> u64 {
+    let password = unsafe { std::slice::from_raw_parts(password_ptr, password_len) };
+    let salt = unsafe { std::slice::from_raw_parts(salt_ptr, salt_len) };
+    let hash = util::argon2(Algorithm::Argon2id, password, salt, m, t, p, length);
+    let ptr = allocate(hash.len()) as *mut u8;
+    let dst = unsafe { std::slice::from_raw_parts_mut(ptr, hash.len()) };
+    dst.copy_from_slice(hash.as_slice());
+    (ptr as u64) << 32 | hash.len() as u64
 }
 
 
-#[wasm_bindgen]
-pub fn _argon2d(password: &[u8], salt: &[u8], m: u32, t: u32, p: u32, length: u32) -> Vec<u8> {
-    argon2(Algorithm::Argon2d, password, salt, m, t, p, length)
-}
-
-
-
-#[wasm_bindgen]
-pub fn perspective_transform(w: u32, h: u32, c: u8, interleaved: bool, data: Vec<u8>, _quad: Vec<f32>) -> Vec<u8> {
-    let pb = PixelBuffer::new(w as usize, h as usize, c as usize, interleaved, data).unwrap();
-    let quad = Quadrilateral{
-        tl: Point{x: _quad[0], y: _quad[1] },
-        tr: Point{x: _quad[2], y: _quad[3] },
-        br: Point{x: _quad[4], y: _quad[5] },
-        bl: Point{x: _quad[6], y: _quad[7] },
-    };
-    let result = _pt(pb, quad).unwrap();
-    let mut out = Vec::<u8>::new();
-    out.extend_from_slice(&(result.width as u32).to_le_bytes());
-    out.extend_from_slice(&(result.height as u32).to_le_bytes());
-    out.extend_from_slice(&(result.channels as u8).to_le_bytes());
-    if result.interleaved {
-        out.push(1u8);
-    } else {
-        out.push(0u8);
+#[no_mangle]
+pub fn allocate(size: usize) -> *mut u8 {
+    let layout = Layout::from_size_align(size, 1).unwrap();
+    let ptr = unsafe { alloc(layout) };
+    if ptr.is_null() {
+        panic!("Could not allocate memory");
     }
-    out.extend_from_slice(result.data.as_slice());
-    out
+    ptr
+}
+
+#[no_mangle]
+pub fn deallocate(ptr: *mut u8, size: usize) {
+    let layout = Layout::from_size_align(size, 1).unwrap();
+    unsafe {
+        dealloc(ptr, layout);
+    }
 }
 

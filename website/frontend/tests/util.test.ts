@@ -1,9 +1,23 @@
 import { describe, expect, test } from 'vitest'
-import * as util from "../src/util.js"
+// import * as util from "../src/util.js"
+import {get_wasm, util} from "../src/util.js"
 import sharp, { Metadata } from "sharp";
-import {perspectiveTransform} from "../src/util.js";
+// import {perspectiveTransform} from "../src/util.js";
 
 describe("util", () => {
+
+    test("add", async () => {
+        const wasm = (await util.get_wasm()).instance.exports as any;
+
+        // const memory = new Uint8Array(wasm.memory.buffer);
+
+
+        const sum = wasm.add(2, 3);
+
+
+
+        expect(sum).toBe(5);
+    })
 
     test("rustargon2", async () => {
         const test_vector: [string, string, number, number, number, number, string][] = [
