@@ -21,14 +21,16 @@ pub fn _argon2id(
     _password: *mut u8,
     _salt: *mut u8,
     m: u32, t: u32, p: u32, length: u32
-) -> u64 {
-    let password = util::Data::from_pointer(_password);
-    let salt = util::Data::from_pointer(_salt);
+) -> *mut u8 {
+    let mut password = util::Data::from_pointer(_password);
+    let mut salt = util::Data::from_pointer(_salt);
     let hash = util::argon2(Algorithm::Argon2id, password.as_slice_mut(), salt.as_slice_mut(), m, t, p, length);
     let ptr = util::Data::new(hash.len());
     let dst = ptr.as_slice_mut();
     dst.copy_from_slice(hash.as_slice());
-    (ptr.ptr as u64) << 32 | hash.len() as u64
+    salt.free();
+    password.free();
+    ptr.ptr
 }
 
 
@@ -39,7 +41,7 @@ pub fn allocate(size: usize) -> *mut u8 {
     let ptr = unsafe { alloc(layout) };
     for i in 0..ptr_size {
         unsafe {
-            *ptr.add(i) = ((size>>(i*8))&0xff) as u8;
+            *ptr.add(i) = (size>>(i*8)) as u8;
         }
     }
     if ptr.is_null() {

@@ -1,10 +1,30 @@
 
 export namespace util {
-    const ptr_size: number = 4;
+    // const ptr_size: number = 4;
 
     let g_wasm: WebAssembly.WebAssemblyInstantiatedSource | null = null;
     let g_wasm_init: Promise<void> | null = null;
     let g_wasm_path: string | null = null;
+
+
+    function check_type(value: any, type: any) {
+        if (typeof type === "function") {
+            if (value instanceof type || typeof value === type.name.toLowerCase()) {
+                return;
+            }
+            throw new TypeError(`Type mismatch: Expected ${type.name}, but received ${typeof value}`);
+        }
+
+        if (typeof type === "string") {
+            if (typeof value === type.toLowerCase()) {
+                return;
+            }
+            throw new TypeError(`Type mismatch: Expected ${type}, but received ${typeof value}`);
+        }
+
+        throw new Error("Invalid type passed to check_type");
+    }
+
 
     export function toB64(data: Uint8Array, padding: boolean = true, urlSafe: boolean = false) {
         const binaryString = Array.from(data)
@@ -54,37 +74,67 @@ export namespace util {
     }
 
 
-    class WasmMemory {
+    class Data {
         public wasm: any;
-        public ptr: number | bigint;
-        public len: number | bigint;
+        _ptr_size: number;
+        _ptr: bigint;
+        _len: bigint;
 
-        private constructor(wasm: any, ptr: number | bigint, len: number | bigint) {
+        private constructor(wasm: any, ptr_size: number, ptr: bigint, len: bigint) {
+            check_type(ptr, BigInt);
+            check_type(len, BigInt);
             this.wasm = wasm;
-            this.ptr = ptr;
-            this.len = len;
+            this._ptr_size = ptr_size;
+            this._ptr = ptr;
+            this._len = len;
         }
 
-        static new(wasm: any, len: number) {
-            return this.from_pointer(wasm, wasm.allocate(len));
+        static new(wasm: any, len: bigint) {
+            check_type(len, BigInt);
+            return this.from_pointer(wasm, wasm.allocate(Number(len)));
         }
 
-        static from_pointer(wasm: any, ptr: number) {
+        static from_pointer(wasm: any, ptr: any) {
+            let ptr_size;
+            if (typeof ptr === "number") {
+                ptr_size = 4;
+            } else if (typeof ptr === "bigint") {
+                ptr_size = 8;
+            } else {
+                throw new Error("ptr must be of type number or bigint");
+            }
+            ptr = Number(ptr);
             let memory = new DataView(wasm.memory.buffer);
             const len = ptr_size == 4 ? memory.getUint32(ptr, true) : memory.getBigUint64(ptr, true);
-            return new WasmMemory(wasm, ptr, len);
+            return new Data(wasm, ptr_size, BigInt(ptr), BigInt(len));
+        }
+
+        static from(wasm: any, src: Uint8Array) {
+            let t = this.new(wasm, BigInt(src.length));
+            t.as_Uint8Array().set(src);
+            return t;
+        }
+
+        to() {
+            let t = new Uint8Array(this.len());
+            t.set(this.as_Uint8Array());
+            return t;
+        }
+
+        ptr() {
+            return Number(this._ptr);
+        }
+
+        len() {
+            return Number(this._len)
         }
 
         as_Uint8Array(): Uint8Array {
-            return new Uint8Array(this.wasm.memory.buffer, this.ptr as number+ptr_size, this.len as number);
+            return new Uint8Array(this.wasm.memory.buffer, Number(this._ptr)+this._ptr_size, Number(this._len));
         }
 
         free() {
-            if (typeof this.ptr === "number" && typeof this.len === "number") {
-                this.wasm.deallocate(this.ptr as number-ptr_size, this.len as number+ptr_size);
-            } else {
-                this.wasm.deallocate(this.ptr as bigint-BigInt(ptr_size), this.len as bigint+BigInt(ptr_size));
-            }
+            this.wasm.deallocate(Number(this._ptr), Number(this._len));
         }
 
 
@@ -93,17 +143,12 @@ export namespace util {
 
     async function argon2(_password: Uint8Array, _salt: Uint8Array, m: number, t: number, p: number, length: number, str_type: string, lambda: any) {
         const wasm = (await get_wasm()).instance.exports as any;
-        let password = WasmMemory.new(wasm, _password.length);
-        password.as_Uint8Array().set(_password);
-        let salt = WasmMemory.new(wasm, _salt.length);
-        salt.as_Uint8Array().set(_salt);
+        let password = Data.from(wasm, _password);
+        let salt = Data.from(wasm, _salt);
 
-        const result = WasmMemory.from_pointer(wasm, lambda(password.ptr, password.len, salt.ptr, salt.len, m, t, p, length));
-        let hash = new Uint8Array(result.len as number);
-        hash.set(result.as_Uint8Array());
+        const result = Data.from_pointer(wasm, lambda(password.ptr(), salt.ptr(), m, t, p, length));
+        let hash = result.to();
         result.free();
-        salt.free();
-        password.free();
 
         return new Argon2Result(str_type, 19, m, t, p, _salt, hash);
     }
@@ -175,32 +220,32 @@ export namespace util {
         }
     }
 
-    export async function perspectiveTransform(img: PixelBuffer, quad: Quadrilateral): Promise<PixelBuffer> {
-        let x = perspective_transform(
-            img.width,
-            img.height,
-            img.channels,
-            img.interleaved,
-            img.data,
-            Float32Array.from([
-                quad.tl.x,
-                quad.tl.y,
-                quad.tr.x,
-                quad.tr.y,
-                quad.br.x,
-                quad.br.y,
-                quad.bl.x,
-                quad.bl.y,
-            ])
-        );
-        const dv = new DataView(x.buffer);
-        const w = dv.getUint32(0, true);
-        const h = dv.getUint32(4, true);
-        const c = dv.getUint8(8);
-        const interleaved = dv.getUint8(9) > 0;
-        const data = x.subarray(10);
-        return new PixelBuffer(w, h, c, interleaved, data);
-    }
+    // export async function perspectiveTransform(img: PixelBuffer, quad: Quadrilateral): Promise<PixelBuffer> {
+    //     let x = perspective_transform(
+    //         img.width,
+    //         img.height,
+    //         img.channels,
+    //         img.interleaved,
+    //         img.data,
+    //         Float32Array.from([
+    //             quad.tl.x,
+    //             quad.tl.y,
+    //             quad.tr.x,
+    //             quad.tr.y,
+    //             quad.br.x,
+    //             quad.br.y,
+    //             quad.bl.x,
+    //             quad.bl.y,
+    //         ])
+    //     );
+    //     const dv = new DataView(x.buffer);
+    //     const w = dv.getUint32(0, true);
+    //     const h = dv.getUint32(4, true);
+    //     const c = dv.getUint8(8);
+    //     const interleaved = dv.getUint8(9) > 0;
+    //     const data = x.subarray(10);
+    //     return new PixelBuffer(w, h, c, interleaved, data);
+    // }
 
     async function setup_wasm() {
         try {

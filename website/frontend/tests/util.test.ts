@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 // import * as util from "../src/util.js"
-import {get_wasm, util} from "../src/util.js"
+import {util} from "../src/util.js"
 import sharp, { Metadata } from "sharp";
 // import {perspectiveTransform} from "../src/util.js";
 
@@ -48,41 +48,41 @@ describe("util", () => {
         }
     })
 
-    test("testPerspectiveTransform", async () => {
-        let path = "../../tests/file/ocr_sample_from_smartphone_rgb.avif";
-        let img = sharp(path);
-        let meta = await img.metadata();
-        let raw = Uint8Array.from(await img.raw().toBuffer());
-
-        let apb = new util.PixelBuffer(
-            meta.width as number,
-            meta.height as number,
-            meta.channels as number,
-            true,
-            raw
-        );
-
-        let aq = new util.Quadrilateral(
-            new util.Point(50.0,   335.0),
-            new util.Point(1076.0, 305.0),
-            new util.Point(1130.0, 1688.0),
-            new util.Point(29.0,   1690.0)
-        );
-
-        const start = performance.now();
-        let out = await perspectiveTransform(apb, aq);
-        const time = (performance.now()-start)/1000;
-        expect(out).not.toBeNull();
-        let xxx = Buffer.from(out.data);
-        let xx = sharp(xxx, {
-            raw: {
-                width: out.width,
-                height: out.height,
-                channels: out.channels as 1 | 3 | 4 | 2,
-            }
-        });
-        await xx.avif().toFile("/tmp/output.avif");
-    })
+    // test("testPerspectiveTransform", async () => {
+    //     let path = "../../tests/file/ocr_sample_from_smartphone_rgb.avif";
+    //     let img = sharp(path);
+    //     let meta = await img.metadata();
+    //     let raw = Uint8Array.from(await img.raw().toBuffer());
+    //
+    //     let apb = new util.PixelBuffer(
+    //         meta.width as number,
+    //         meta.height as number,
+    //         meta.channels as number,
+    //         true,
+    //         raw
+    //     );
+    //
+    //     let aq = new util.Quadrilateral(
+    //         new util.Point(50.0,   335.0),
+    //         new util.Point(1076.0, 305.0),
+    //         new util.Point(1130.0, 1688.0),
+    //         new util.Point(29.0,   1690.0)
+    //     );
+    //
+    //     const start = performance.now();
+    //     let out = await perspectiveTransform(apb, aq);
+    //     const time = (performance.now()-start)/1000;
+    //     expect(out).not.toBeNull();
+    //     let xxx = Buffer.from(out.data);
+    //     let xx = sharp(xxx, {
+    //         raw: {
+    //             width: out.width,
+    //             height: out.height,
+    //             channels: out.channels as 1 | 3 | 4 | 2,
+    //         }
+    //     });
+    //     await xx.avif().toFile("/tmp/output.avif");
+    // })
 
 
 });
