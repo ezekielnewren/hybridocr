@@ -1,6 +1,6 @@
+
 export namespace util {
-    type Pointer = number;
-    type usize = number;
+    const ptr_size: number = 4;
 
     let g_wasm: WebAssembly.WebAssemblyInstantiatedSource | null = null;
     let g_wasm_init: Promise<void> | null = null;
@@ -55,60 +55,55 @@ export namespace util {
 
 
     class WasmMemory {
-        public ptr: Pointer;
-        public len: usize;
+        public wasm: any;
+        public ptr: number | bigint;
+        public len: number | bigint;
 
-        constructor(ptr: Pointer, len: usize) {
-            this.ptr = Number(ptr);
-            this.len = Number(len);
+        private constructor(wasm: any, ptr: number | bigint, len: number | bigint) {
+            this.wasm = wasm;
+            this.ptr = ptr;
+            this.len = len;
         }
 
-        static from_u64(packed: bigint): WasmMemory {
-            let ptr: Pointer = Number(packed >> 32n);
-            let len: usize = Number(packed & 0xffffffffn);
-            return new WasmMemory(ptr, len);
+        static new(wasm: any, len: number) {
+            return this.from_pointer(wasm, wasm.allocate(len));
         }
 
-        static from_Uint8Array(wasm: any, src: Uint8Array): WasmMemory {
-            let dst: WasmMemory = new WasmMemory(wasm.allocate(src.length), src.length);
-            dst.copy_from(wasm, src);
-            return dst;
+        static from_pointer(wasm: any, ptr: number) {
+            let memory = new DataView(wasm.memory.buffer);
+            const len = ptr_size == 4 ? memory.getUint32(ptr, true) : memory.getBigUint64(ptr, true);
+            return new WasmMemory(wasm, ptr, len);
         }
 
-        copy_from(wasm: any, src: Uint8Array) {
-            let memory = new Uint8Array(wasm.memory.buffer);
-            for (let i=0; i<this.len; i++) {
-                memory[Number(this.ptr)+i] = src[i];
+        as_Uint8Array(): Uint8Array {
+            return new Uint8Array(this.wasm.memory.buffer, this.ptr as number+ptr_size, this.len as number);
+        }
+
+        free() {
+            if (typeof this.ptr === "number" && typeof this.len === "number") {
+                this.wasm.deallocate(this.ptr as number-ptr_size, this.len as number+ptr_size);
+            } else {
+                this.wasm.deallocate(this.ptr as bigint-BigInt(ptr_size), this.len as bigint+BigInt(ptr_size));
             }
         }
 
-        copy_to(wasm: any): Uint8Array {
-            let dst = new Uint8Array(Number(this.len));
-            let memory = new Uint8Array(wasm.memory.buffer);
-            for (let i=0; i<this.len; i++) {
-                dst[i] = memory[Number(this.ptr)+i];
-            }
-            return dst;
-        }
-
-        free(wasm: any) {
-            wasm.deallocate(this.ptr, this.len);
-        }
 
     }
 
 
     async function argon2(_password: Uint8Array, _salt: Uint8Array, m: number, t: number, p: number, length: number, str_type: string, lambda: any) {
         const wasm = (await get_wasm()).instance.exports as any;
-        let password = WasmMemory.from_Uint8Array(wasm, _password);
-        let salt = WasmMemory.from_Uint8Array(wasm, _salt);
+        let password = WasmMemory.new(wasm, _password.length);
+        password.as_Uint8Array().set(_password);
+        let salt = WasmMemory.new(wasm, _salt.length);
+        salt.as_Uint8Array().set(_salt);
 
-        const result = WasmMemory.from_u64(lambda(password.ptr, password.len, salt.ptr, salt.len, m, t, p, length));
-
-        let hash = result.copy_to(wasm);
-        result.free(wasm);
-        salt.free(wasm);
-        password.free(wasm);
+        const result = WasmMemory.from_pointer(wasm, lambda(password.ptr, password.len, salt.ptr, salt.len, m, t, p, length));
+        let hash = new Uint8Array(result.len as number);
+        hash.set(result.as_Uint8Array());
+        result.free();
+        salt.free();
+        password.free();
 
         return new Argon2Result(str_type, 19, m, t, p, _salt, hash);
     }

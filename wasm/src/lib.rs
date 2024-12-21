@@ -1,6 +1,14 @@
 use std::alloc::{alloc, dealloc, Layout};
 use argon2::{Algorithm};
 
+// use dlmalloc::GlobalDlmalloc;
+// #[global_allocator]
+// static ALLOC: GlobalDlmalloc = GlobalDlmalloc;
+
+use wee_alloc::WeeAlloc;
+#[global_allocator]
+static ALLOC: WeeAlloc = WeeAlloc::INIT;
+
 pub mod util;
 
 #[no_mangle]
@@ -8,33 +16,32 @@ pub fn add(left: usize, right: usize) -> usize {
     left + right
 }
 
-
-// #[no_mangle]
-// pub fn _argon2id(password: &[u8], salt: &[u8], m: u32, t: u32, p: u32, length: u32) -> Vec<u8> {
-//     let hash = util::argon2(Algorithm::Argon2id, password, salt, m, t, p, length);
-//     hash
-// }
-
 #[no_mangle]
 pub fn _argon2id(
-    password_ptr: *const u8, password_len: usize,
-    salt_ptr: *const u8, salt_len: usize,
+    _password: *mut u8,
+    _salt: *mut u8,
     m: u32, t: u32, p: u32, length: u32
 ) -> u64 {
-    let password = unsafe { std::slice::from_raw_parts(password_ptr, password_len) };
-    let salt = unsafe { std::slice::from_raw_parts(salt_ptr, salt_len) };
-    let hash = util::argon2(Algorithm::Argon2id, password, salt, m, t, p, length);
-    let ptr = allocate(hash.len()) as *mut u8;
-    let dst = unsafe { std::slice::from_raw_parts_mut(ptr, hash.len()) };
+    let password = util::WasmMemory::from_pointer(_password);
+    let salt = util::WasmMemory::from_pointer(_salt);
+    let hash = util::argon2(Algorithm::Argon2id, password.as_slice_mut(), salt.as_slice_mut(), m, t, p, length);
+    let ptr = util::WasmMemory::new(hash.len());
+    let dst = ptr.as_slice_mut();
     dst.copy_from_slice(hash.as_slice());
-    (ptr as u64) << 32 | hash.len() as u64
+    (ptr.ptr as u64) << 32 | hash.len() as u64
 }
 
 
 #[no_mangle]
 pub fn allocate(size: usize) -> *mut u8 {
-    let layout = Layout::from_size_align(size, 1).unwrap();
+    let ptr_size = size_of::<usize>();
+    let layout = Layout::from_size_align(ptr_size+size, 1).unwrap();
     let ptr = unsafe { alloc(layout) };
+    for i in 0..ptr_size {
+        unsafe {
+            *ptr.add(i) = ((size>>(i*8))&0xff) as u8;
+        }
+    }
     if ptr.is_null() {
         panic!("Could not allocate memory");
     }
@@ -43,7 +50,14 @@ pub fn allocate(size: usize) -> *mut u8 {
 
 #[no_mangle]
 pub fn deallocate(ptr: *mut u8, size: usize) {
-    let layout = Layout::from_size_align(size, 1).unwrap();
+    let ptr_size = size_of::<usize>();
+    let layout = Layout::from_size_align(ptr_size+size, 1).unwrap();
+    let mut _size = 0usize;
+    for i in 0..ptr_size {
+        let b = unsafe { *ptr.add(i) as usize };
+        _size |= b<<(i*8);
+    }
+    assert_eq!(size, _size, "mismatched allocation size");
     unsafe {
         dealloc(ptr, layout);
     }

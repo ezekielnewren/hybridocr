@@ -1,4 +1,5 @@
 use argon2::{Algorithm, Argon2, Params, Version};
+use crate::allocate;
 // use nalgebra::{DMatrix, DVector};
 
 
@@ -9,6 +10,35 @@ pub fn argon2(alg: Algorithm, password: &[u8], salt: &[u8], m: u32, t: u32, p: u
     buff
 }
 
+pub struct WasmMemory {
+    pub ptr: *mut u8,
+    pub len: usize,
+}
+
+impl WasmMemory {
+
+    pub fn new(len: usize) -> Self {
+        Self::from_pointer(allocate(len))
+    }
+
+    pub fn from_pointer(ptr: *mut u8) -> Self {
+        let mut _size = 0usize;
+        for i in 0..size_of::<usize>() {
+            let b = unsafe { *ptr.add(i) as usize };
+            _size |= b<<(i*8);
+        }
+        Self { ptr, len: _size }
+    }
+
+    pub fn as_slice_mut(&self) -> &mut [u8] {
+        unsafe { std::slice::from_raw_parts_mut(self.ptr.add(size_of::<usize>()), self.len) }
+    }
+
+    pub fn as_slice(&self) -> &[u8] {
+        unsafe { std::slice::from_raw_parts(self.ptr.add(size_of::<usize>()), self.len) }
+    }
+
+}
 
 // pub struct Point {
 //     pub x: f32,
