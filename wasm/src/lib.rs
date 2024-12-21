@@ -1,10 +1,6 @@
 use std::alloc::{alloc, dealloc, Layout};
 use argon2::{Algorithm};
 
-// use dlmalloc::GlobalDlmalloc;
-// #[global_allocator]
-// static ALLOC: GlobalDlmalloc = GlobalDlmalloc;
-
 use wee_alloc::WeeAlloc;
 #[global_allocator]
 static ALLOC: WeeAlloc = WeeAlloc::INIT;
