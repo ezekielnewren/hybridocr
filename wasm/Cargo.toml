@@ -10,3 +10,9 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 wee_alloc = "0.4.5"
 argon2 = "0.5.3"
+nalgebra = "0.33.2"
+
+[dev-dependencies]
+image = { version = "0.25.5", features = ["avif-native"] }
+imageproc = "0.25.0"
+hex = "0.4.3"

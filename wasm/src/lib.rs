@@ -2,15 +2,25 @@ use std::alloc::{alloc, dealloc, Layout};
 use argon2::{Algorithm};
 
 use wee_alloc::WeeAlloc;
+use crate::util::{Data, PixelBuffer, Point, Quadrilateral, _pt};
+
 #[global_allocator]
 static ALLOC: WeeAlloc = WeeAlloc::INIT;
 
 pub mod util;
 
+
 #[no_mangle]
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
+pub fn sandbox(_points: *mut u8) -> f32 {
+    let points = Data::from_pointer(_points);
+    let t = points.as_slice();
+    let a = unsafe {
+        let ptr = t.as_ptr() as *mut f32;
+        std::slice::from_raw_parts(ptr, t.len())
+    };
+    a[0]
 }
+
 
 #[no_mangle]
 pub fn _argon2id(
@@ -22,11 +32,54 @@ pub fn _argon2id(
     let mut salt = util::Data::from_pointer(_salt);
     let hash = util::argon2(Algorithm::Argon2id, password.as_slice_mut(), salt.as_slice_mut(), m, t, p, length);
     let ptr = util::Data::new(hash.len());
-    let dst = ptr.as_slice_mut();
-    dst.copy_from_slice(hash.as_slice());
+    ptr.as_slice_mut().copy_from_slice(hash.as_slice());
     salt.free();
     password.free();
     ptr.ptr
+}
+
+
+#[no_mangle]
+pub fn perspective_transform(width: u32, height: u32, channels: u32, interleaved: bool, _data: *mut u8, _points: *mut u8) -> *mut u8 {
+    let mut data = Data::from_pointer(_data);
+    let mut points = Data::from_pointer(_points);
+
+    let pb = PixelBuffer::new(width as usize, height as usize, channels as usize, interleaved, data.as_slice().to_vec()).unwrap();
+    let t = points.as_slice_mut();
+    let mut p = [0f32; 8];
+    for i in 0..t.len()/4 {
+        let v = f32::from_le_bytes(t[0..4].try_into().unwrap());
+        p[i] = v;
+    }
+    let quad = Quadrilateral {
+        tl: Point{ x: p[0], y: p[1] },
+        tr: Point{ x: p[2], y: p[3] },
+        bl: Point{ x: p[4], y: p[5] },
+        br: Point{ x: p[6], y: p[7] },
+    };
+
+    let result = _pt(pb, quad);
+    match result {
+        Ok(v) => {
+            let out = Data::new(10+v.data.len());
+            let m = out.as_slice_mut();
+            m[0..4].copy_from_slice(&(v.width as u32).to_le_bytes());
+            m[4..8].copy_from_slice(&(v.height as u32).to_le_bytes());
+            m[8] = v.channels as u8;
+            m[9] = if v.interleaved { 1 } else { 0 };
+            m[10..].copy_from_slice(v.data.as_slice());
+            data.free();
+            points.free();
+            out.ptr
+        }
+        Err(e) => {
+            let t = e.as_bytes();
+            let out = Data::new(t.len());
+            out.as_slice_mut().copy_from_slice(t);
+            out.ptr
+        }
+    }
+
 }
 
 

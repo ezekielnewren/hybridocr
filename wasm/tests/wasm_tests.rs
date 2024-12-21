@@ -1,6 +1,6 @@
 use std::path::{Path};
 use image::{ImageReader, DynamicImage, ImageFormat, ImageBuffer, GrayImage, Luma, RgbImage, Rgb, RgbaImage, Rgba};
-use hybridocr::{_argon2id, util::_pt};
+use hybridocr::{util::_pt};
 use std::fs::File;
 use std::io::{Cursor, Write};
 use std::time::Instant;
@@ -137,8 +137,10 @@ pub fn _perspective_transform(pb: &PixelBuffer, quad: &Quadrilateral) -> Result<
 
 #[cfg(test)]
 mod tests {
+    use argon2::Algorithm;
     use imageproc::drawing::Canvas;
     use imageproc::geometric_transformations::Projection;
+    use hybridocr::util;
     use hybridocr::util::{calculate_homography_matrix};
     use super::*;
 
@@ -148,7 +150,7 @@ mod tests {
         let password = b"password";
         let salt = b"saltsaltsaltsalt";
         let start = Instant::now();
-        let buff = _argon2id(password, salt, 8192, 10, 1, output_length);
+        let buff = util::argon2(Algorithm::Argon2id, password, salt, 8192, 10, 1, output_length);
         let duration = start.elapsed();
 
         let result = hex::encode(&buff);

@@ -6,17 +6,16 @@ import sharp, { Metadata } from "sharp";
 
 describe("util", () => {
 
-    test("add", async () => {
+    test("sandbox", async () => {
         const wasm = (await util.get_wasm()).instance.exports as any;
 
-        // const memory = new Uint8Array(wasm.memory.buffer);
+        let a = 3235.26342;
+        let _a = util.Data.new(wasm, 4n);
+        let dv = _a.as_DataView();
+        dv.setFloat32(0, a, true);
+        let x = wasm.sandbox(_a.ptr());
 
-
-        const sum = wasm.add(2, 3);
-
-
-
-        expect(sum).toBe(5);
+        expect(x).not.toBeNull();
     })
 
     test("rustargon2", async () => {
@@ -48,41 +47,41 @@ describe("util", () => {
         }
     })
 
-    // test("testPerspectiveTransform", async () => {
-    //     let path = "../../tests/file/ocr_sample_from_smartphone_rgb.avif";
-    //     let img = sharp(path);
-    //     let meta = await img.metadata();
-    //     let raw = Uint8Array.from(await img.raw().toBuffer());
-    //
-    //     let apb = new util.PixelBuffer(
-    //         meta.width as number,
-    //         meta.height as number,
-    //         meta.channels as number,
-    //         true,
-    //         raw
-    //     );
-    //
-    //     let aq = new util.Quadrilateral(
-    //         new util.Point(50.0,   335.0),
-    //         new util.Point(1076.0, 305.0),
-    //         new util.Point(1130.0, 1688.0),
-    //         new util.Point(29.0,   1690.0)
-    //     );
-    //
-    //     const start = performance.now();
-    //     let out = await perspectiveTransform(apb, aq);
-    //     const time = (performance.now()-start)/1000;
-    //     expect(out).not.toBeNull();
-    //     let xxx = Buffer.from(out.data);
-    //     let xx = sharp(xxx, {
-    //         raw: {
-    //             width: out.width,
-    //             height: out.height,
-    //             channels: out.channels as 1 | 3 | 4 | 2,
-    //         }
-    //     });
-    //     await xx.avif().toFile("/tmp/output.avif");
-    // })
+    test("testPerspectiveTransform", async () => {
+        let path = "../../tests/file/ocr_sample_from_smartphone_rgb.avif";
+        let img = sharp(path);
+        let meta = await img.metadata();
+        let raw = Uint8Array.from(await img.raw().toBuffer());
+
+        let apb = new util.PixelBuffer(
+            meta.width as number,
+            meta.height as number,
+            meta.channels as number,
+            true,
+            raw
+        );
+
+        let aq = new util.Quadrilateral(
+            new util.Point(50.0,   335.0),
+            new util.Point(1076.0, 305.0),
+            new util.Point(1130.0, 1688.0),
+            new util.Point(29.0,   1690.0)
+        );
+
+        const start = performance.now();
+        let out = await util.perspectiveTransform(apb, aq);
+        const time = (performance.now()-start)/1000;
+        expect(out).not.toBeNull();
+        let xxx = Buffer.from(out.data);
+        let xx = sharp(xxx, {
+            raw: {
+                width: out.width,
+                height: out.height,
+                channels: out.channels as 1 | 3 | 4 | 2,
+            }
+        });
+        await xx.avif().toFile("/tmp/output.avif");
+    })
 
 
 });

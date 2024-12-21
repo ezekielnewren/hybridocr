@@ -74,7 +74,7 @@ export namespace util {
     }
 
 
-    class Data {
+    export class Data {
         public wasm: any;
         _ptr_size: number;
         _ptr: bigint;
@@ -115,9 +115,11 @@ export namespace util {
             return t;
         }
 
-        to() {
+        to(off?: number, len?: number) {
+            off = off || 0;
+            len = len || this.len();
             let t = new Uint8Array(this.len());
-            t.set(this.as_Uint8Array());
+            t.set(this.as_Uint8Array().subarray(off, off+len));
             return t;
         }
 
@@ -131,6 +133,10 @@ export namespace util {
 
         as_Uint8Array(): Uint8Array {
             return new Uint8Array(this.wasm.memory.buffer, Number(this._ptr)+this._ptr_size, Number(this._len));
+        }
+
+        as_DataView(): DataView {
+            return new DataView(this.wasm.memory.buffer, Number(this._ptr)+this._ptr_size, Number(this._len));
         }
 
         free() {
@@ -220,32 +226,50 @@ export namespace util {
         }
     }
 
-    // export async function perspectiveTransform(img: PixelBuffer, quad: Quadrilateral): Promise<PixelBuffer> {
-    //     let x = perspective_transform(
-    //         img.width,
-    //         img.height,
-    //         img.channels,
-    //         img.interleaved,
-    //         img.data,
-    //         Float32Array.from([
-    //             quad.tl.x,
-    //             quad.tl.y,
-    //             quad.tr.x,
-    //             quad.tr.y,
-    //             quad.br.x,
-    //             quad.br.y,
-    //             quad.bl.x,
-    //             quad.bl.y,
-    //         ])
-    //     );
-    //     const dv = new DataView(x.buffer);
-    //     const w = dv.getUint32(0, true);
-    //     const h = dv.getUint32(4, true);
-    //     const c = dv.getUint8(8);
-    //     const interleaved = dv.getUint8(9) > 0;
-    //     const data = x.subarray(10);
-    //     return new PixelBuffer(w, h, c, interleaved, data);
-    // }
+    export async function perspectiveTransform(img: PixelBuffer, quad: Quadrilateral): Promise<PixelBuffer> {
+        const wasm = (await get_wasm()).instance.exports as any;
+
+        let _data = Data.from(wasm, img.data);
+        // let t = Float32Array.from([
+        //         quad.tl.x,
+        //         quad.tl.y,
+        //         quad.tr.x,
+        //         quad.tr.y,
+        //         quad.br.x,
+        //         quad.br.y,
+        //         quad.bl.x,
+        //         quad.bl.y,
+        //     ]);
+        let _quad = Data.new(wasm, BigInt(4*8));
+        let _dv = _quad.as_DataView();
+        let off = 0;
+        _dv.setFloat32(off, quad.tl.x, true); off += 4;
+        _dv.setFloat32(off, quad.tl.y, true); off += 4;
+        _dv.setFloat32(off, quad.tr.x, true); off += 4;
+        _dv.setFloat32(off, quad.tr.y, true); off += 4;
+        _dv.setFloat32(off, quad.br.x, true); off += 4;
+        _dv.setFloat32(off, quad.br.y, true); off += 4;
+        _dv.setFloat32(off, quad.bl.x, true); off += 4;
+        _dv.setFloat32(off, quad.bl.y, true);
+
+        let raw = wasm.perspective_transform(
+            img.width,
+            img.height,
+            img.channels,
+            img.interleaved ? 1 : 0,
+            _data.ptr(),
+            _quad.ptr()
+        );
+        let result = Data.from_pointer(wasm, raw);
+
+        const dv = result.as_DataView();
+        const w = dv.getUint32(0, true);
+        const h = dv.getUint32(4, true);
+        const c = dv.getUint8(8);
+        const interleaved = dv.getUint8(9) > 0;
+        const data = result.to(10);
+        return new PixelBuffer(w, h, c, interleaved, data);
+    }
 
     async function setup_wasm() {
         try {
