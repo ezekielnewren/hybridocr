@@ -22,10 +22,10 @@ pub fn _argon2id(
     _salt: *mut u8,
     m: u32, t: u32, p: u32, length: u32
 ) -> u64 {
-    let password = util::WasmMemory::from_pointer(_password);
-    let salt = util::WasmMemory::from_pointer(_salt);
+    let password = util::Data::from_pointer(_password);
+    let salt = util::Data::from_pointer(_salt);
     let hash = util::argon2(Algorithm::Argon2id, password.as_slice_mut(), salt.as_slice_mut(), m, t, p, length);
-    let ptr = util::WasmMemory::new(hash.len());
+    let ptr = util::Data::new(hash.len());
     let dst = ptr.as_slice_mut();
     dst.copy_from_slice(hash.as_slice());
     (ptr.ptr as u64) << 32 | hash.len() as u64

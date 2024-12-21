@@ -10,12 +10,12 @@ pub fn argon2(alg: Algorithm, password: &[u8], salt: &[u8], m: u32, t: u32, p: u
     buff
 }
 
-pub struct WasmMemory {
+pub struct Data {
     pub ptr: *mut u8,
     pub len: usize,
 }
 
-impl WasmMemory {
+impl Data {
 
     pub fn new(len: usize) -> Self {
         Self::from_pointer(allocate(len))
