@@ -235,23 +235,43 @@ export namespace util {
         let t = quad.to_array();
         _quad.as_Uint8Array().set(new Uint8Array(t.buffer));
 
-        let raw = wasm.perspective_transform(
-            img.width,
-            img.height,
-            img.channels,
-            img.interleaved ? 1 : 0,
-            _data.ptr(),
-            _quad.ptr()
-        );
-        let result = Data.from_pointer(wasm, raw);
+        const ptr_len = wasm.pointer_length();
 
-        const dv = result.as_DataView();
-        const w = dv.getUint32(0, true);
-        const h = dv.getUint32(4, true);
-        const c = dv.getUint8(8);
-        const interleaved = dv.getUint8(9) > 0;
-        const data = result.to(10);
-        return new PixelBuffer(w, h, c, interleaved, data);
+        let result = Data.new(wasm, BigInt(ptr_len));
+        try {
+            let success = wasm.perspective_transform(
+                img.width,
+                img.height,
+                img.channels,
+                img.interleaved ? 1 : 0,
+                _data.ptr(),
+                _quad.ptr(),
+                result.ptr(),
+            );
+
+            if (success) {
+                let dv = result.as_DataView();
+                let ok = Data.from_pointer(wasm, ptr_len == 4 ? dv.getUint32(0, true) : dv.getBigUint64(0, true));
+                dv = ok.as_DataView();
+                const w = dv.getUint32(0, true);
+                const h = dv.getUint32(4, true);
+                const c = dv.getUint8(8);
+                const interleaved = dv.getUint8(9) > 0;
+                const data = result.to(10);
+                ok.free();
+                return new PixelBuffer(w, h, c, interleaved, data);
+            } else {
+                let dv = result.as_DataView();
+                let err = Data.from_pointer(wasm, ptr_len == 4 ? dv.getUint32(0, true) : dv.getBigUint64(0, true));
+                dv = err.as_DataView();
+                let msg = new TextDecoder().decode(dv);
+                err.free();
+                throw new Error(msg);
+            }
+        } finally {
+            result.free();
+        }
+
     }
 
     async function setup_wasm() {

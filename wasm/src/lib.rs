@@ -43,9 +43,11 @@ pub fn _argon2id(
 
 
 #[no_mangle]
-pub fn perspective_transform(width: u32, height: u32, channels: u32, interleaved: bool, _data: *mut u8, _points: *mut u8) -> *mut u8 {
+pub fn perspective_transform(width: u32, height: u32, channels: u32, interleaved: bool, _data: *mut u8, _points: *mut u8, _answer: *mut u8) -> bool {
     let mut data = Data::from_pointer(_data);
     let mut points = Data::from_pointer(_points);
+    let mut answer = Data::from_pointer(_answer);
+
 
     let pb = PixelBuffer::new(width as usize, height as usize, channels as usize, interleaved, data.as_slice().to_vec()).unwrap();
     let p = unsafe {
@@ -58,7 +60,10 @@ pub fn perspective_transform(width: u32, height: u32, channels: u32, interleaved
         let t = out.as_bytes();
         let ans = Data::new(t.len());
         ans.as_slice_mut().copy_from_slice(t);
-        return ans.ptr;
+        unsafe {
+            *(answer.ptr as *mut usize) = ans.ptr as usize;
+        }
+        return false;
     }
 
 
@@ -74,13 +79,19 @@ pub fn perspective_transform(width: u32, height: u32, channels: u32, interleaved
             m[10..].copy_from_slice(v.data.as_slice());
             data.free();
             points.free();
-            out.ptr
+            unsafe {
+                *(answer.ptr as *mut usize) = out.ptr as usize;
+            }
+            true
         }
         Err(e) => {
             let t = e.as_bytes();
             let out = Data::new(t.len());
             out.as_slice_mut().copy_from_slice(t);
-            out.ptr
+            unsafe {
+                *(answer.ptr as *mut usize) = out.ptr as usize;
+            }
+            false
         }
     }
 
