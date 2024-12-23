@@ -54,17 +54,17 @@ pub fn perspective_transform(width: u32, height: u32, channels: u32, interleaved
         std::slice::from_raw_parts(points.ptr as *const f32, points.len/4)
     };
     let quad = Quadrilateral::from_slice(p);
-    let dst_quad = quad.output_dimension();
-    let out = format!("{:?}\n{:?}", p, quad);
-    if true {
-        let t = out.as_bytes();
-        let ans = Data::new(t.len());
-        ans.as_slice_mut().copy_from_slice(t);
-        unsafe {
-            *(answer.ptr as *mut usize) = ans.ptr as usize;
-        }
-        return false;
-    }
+    // let dst_quad = quad.output_dimension();
+    // let out = format!("{:?}\n{:?}", p, quad);
+    // if true {
+    //     let t = out.as_bytes();
+    //     let ans = Data::new(t.len());
+    //     ans.as_slice_mut().copy_from_slice(t);
+    //     unsafe {
+    //         *(answer.ptr as *mut usize) = ans.ptr as usize;
+    //     }
+    //     return false;
+    // }
 
 
     let result = _pt(pb, quad);
