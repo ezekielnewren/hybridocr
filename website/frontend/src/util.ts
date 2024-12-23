@@ -76,37 +76,25 @@ export namespace util {
 
     export class Data {
         public wasm: any;
-        _ptr_size: number;
         _ptr: bigint;
         _len: bigint;
 
-        private constructor(wasm: any, ptr_size: number, ptr: bigint, len: bigint) {
+        private constructor(wasm: any, ptr: bigint, len: bigint) {
             check_type(ptr, BigInt);
             check_type(len, BigInt);
             this.wasm = wasm;
-            this._ptr_size = ptr_size;
             this._ptr = ptr;
             this._len = len;
         }
 
         static new(wasm: any, len: bigint) {
             check_type(len, BigInt);
-            return this.from_pointer(wasm, wasm.allocate(Number(len)));
+            return this.from_pointer(wasm, wasm.malloc(Number(len)));
         }
 
         static from_pointer(wasm: any, ptr: any) {
-            let ptr_size;
-            if (typeof ptr === "number") {
-                ptr_size = 4;
-            } else if (typeof ptr === "bigint") {
-                ptr_size = 8;
-            } else {
-                throw new Error("ptr must be of type number or bigint");
-            }
-            ptr = Number(ptr);
-            let memory = new DataView(wasm.memory.buffer);
-            const len = ptr_size == 4 ? memory.getUint32(ptr, true) : memory.getBigUint64(ptr, true);
-            return new Data(wasm, ptr_size, BigInt(ptr), BigInt(len));
+            let len = wasm.memory_length(ptr);
+            return new Data(wasm, BigInt(ptr), BigInt(len));
         }
 
         static from(wasm: any, src: Uint8Array) {
@@ -132,15 +120,15 @@ export namespace util {
         }
 
         as_Uint8Array(): Uint8Array {
-            return new Uint8Array(this.wasm.memory.buffer, Number(this._ptr)+this._ptr_size, Number(this._len));
+            return new Uint8Array(this.wasm.memory.buffer, Number(this._ptr), Number(this._len));
         }
 
         as_DataView(): DataView {
-            return new DataView(this.wasm.memory.buffer, Number(this._ptr)+this._ptr_size, Number(this._len));
+            return new DataView(this.wasm.memory.buffer, Number(this._ptr), Number(this._len));
         }
 
         free() {
-            this.wasm.deallocate(Number(this._ptr), Number(this._len));
+            this.wasm.free(Number(this._ptr));
         }
 
 

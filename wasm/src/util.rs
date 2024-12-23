@@ -1,5 +1,5 @@
 use argon2::{Algorithm, Argon2, Params, Version};
-use crate::{allocate, deallocate};
+use crate::{malloc, free, memory_length};
 use nalgebra::{DMatrix, DVector};
 
 
@@ -17,28 +17,24 @@ pub struct Data {
 
 impl Data {
     pub fn new(len: usize) -> Self {
-        Self::from_pointer(allocate(len))
+        Self::from_pointer(malloc(len))
     }
 
     pub fn from_pointer(ptr: *mut u8) -> Self {
-        let mut _size = 0usize;
-        for i in 0..size_of::<usize>() {
-            let b = unsafe { *ptr.add(i) } as usize;
-            _size |= b<<(i*8);
-        }
-        Self { ptr, len: _size }
+        let len = memory_length(ptr);
+        Self { ptr, len }
     }
 
     pub fn as_slice_mut(&self) -> &mut [u8] {
-        unsafe { std::slice::from_raw_parts_mut(self.ptr.add(size_of::<usize>()), self.len) }
+        unsafe { std::slice::from_raw_parts_mut(self.ptr, self.len) }
     }
 
     pub fn as_slice(&self) -> &[u8] {
-        unsafe { std::slice::from_raw_parts(self.ptr.add(size_of::<usize>()), self.len) }
+        unsafe { std::slice::from_raw_parts(self.ptr, self.len) }
     }
 
     pub fn free(&mut self) {
-        deallocate(self.ptr, self.len);
+        free(self.ptr);
     }
 }
 

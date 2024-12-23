@@ -10,6 +10,9 @@ static ALLOC: WeeAlloc = WeeAlloc::INIT;
 pub mod util;
 
 
+const POINTER_LENGTH: usize = size_of::<usize>();
+
+
 #[no_mangle]
 pub fn sandbox(_points: *mut u8) -> f32 {
     let points = Data::from_pointer(_points);
@@ -84,33 +87,46 @@ pub fn perspective_transform(width: u32, height: u32, channels: u32, interleaved
 
 
 #[no_mangle]
-pub fn allocate(size: usize) -> *mut u8 {
-    let ptr_size = size_of::<usize>();
-    let layout = Layout::from_size_align(ptr_size+size, 1).unwrap();
-    let ptr = unsafe { alloc(layout) };
-    for i in 0..ptr_size {
+pub fn pointer_length() -> u32 {
+    POINTER_LENGTH as u32
+}
+
+
+#[no_mangle]
+pub fn memory_length(ptr: *mut u8) -> usize {
+    let _ptr = unsafe { ptr.sub(POINTER_LENGTH) };
+    let mut size = 0usize;
+    for i in 0..POINTER_LENGTH {
+        let b = unsafe { *_ptr.add(i) as usize };
+        size |= b<<(i*8);
+    }
+    size
+}
+
+
+#[no_mangle]
+pub fn malloc(size: usize) -> *mut u8 {
+    let layout = Layout::from_size_align(POINTER_LENGTH+size, 1).unwrap();
+    let _ptr = unsafe { alloc(layout) };
+    for i in 0..POINTER_LENGTH {
         unsafe {
-            *ptr.add(i) = (size>>(i*8)) as u8;
+            *_ptr.add(i) = (size>>(i*8)) as u8;
         }
     }
-    if ptr.is_null() {
+    if _ptr.is_null() {
         panic!("Could not allocate memory");
     }
+    let ptr = unsafe { _ptr.add(POINTER_LENGTH) };
     ptr
 }
 
 #[no_mangle]
-pub fn deallocate(ptr: *mut u8, size: usize) {
-    let ptr_size = size_of::<usize>();
-    let layout = Layout::from_size_align(ptr_size+size, 1).unwrap();
-    let mut _size = 0usize;
-    for i in 0..ptr_size {
-        let b = unsafe { *ptr.add(i) as usize };
-        _size |= b<<(i*8);
-    }
-    assert_eq!(size, _size, "mismatched allocation size");
+pub fn free(ptr: *mut u8) {
+    let len = memory_length(ptr);
+    let _ptr = unsafe { ptr.sub(POINTER_LENGTH) };
+    let layout = Layout::from_size_align(POINTER_LENGTH+len, 1).unwrap();
     unsafe {
-        dealloc(ptr, layout);
+        dealloc(_ptr, layout);
     }
 }
 
