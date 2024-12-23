@@ -48,12 +48,9 @@ pub fn perspective_transform(width: u32, height: u32, channels: u32, interleaved
     let mut points = Data::from_pointer(_points);
 
     let pb = PixelBuffer::new(width as usize, height as usize, channels as usize, interleaved, data.as_slice().to_vec()).unwrap();
-    let t = points.as_slice_mut();
-    let mut p = [0f32; 8];
-    for i in 0..t.len()/4 {
-        let v = f32::from_le_bytes(t[0..4].try_into().unwrap());
-        p[i] = v;
-    }
+    let p = unsafe {
+        std::slice::from_raw_parts(points.ptr as *const f32, points.len/4)
+    };
     let quad = Quadrilateral {
         tl: Point{ x: p[0], y: p[1] },
         tr: Point{ x: p[2], y: p[3] },
