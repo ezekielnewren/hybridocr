@@ -251,6 +251,8 @@ pub fn _pt(mut src: PixelBuffer, quad: Quadrilateral) -> Result<PixelBuffer, Str
         src.toggle_interleaved();
     }
 
+    let margin = 2.0;
+
     let out_dim = quad.output_dimension();
     let mut dst = PixelBuffer::blank(out_dim.0 as usize, out_dim.1 as usize, src.channels, false);
     let h = calculate_homography_matrix(&quad.dst_quad(), &quad);
@@ -264,8 +266,8 @@ pub fn _pt(mut src: PixelBuffer, quad: Quadrilateral) -> Result<PixelBuffer, Str
             let sp = h.map(col as f32, row as f32);
             let x_weight = sp.x-sp.x.floor();
             let y_weight = sp.y-sp.y.floor();
-            let (x, y) = (sp.x as usize, sp.y as usize);
-
+            let x = sp.x.clamp(margin, src.width as f32-1.0-margin) as usize;
+            let y = sp.y.clamp(margin, src.height as f32-1.0-margin) as usize;
 
             let mut kernel = [0f32; 16];
             let mut p: &[u8];
