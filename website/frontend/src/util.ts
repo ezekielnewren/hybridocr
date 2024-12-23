@@ -89,7 +89,7 @@ export namespace util {
 
         static new(wasm: any, len: bigint) {
             check_type(len, BigInt);
-            return this.from_pointer(wasm, wasm.malloc(Number(len)));
+            return this.from_pointer(wasm, wasm.w_malloc(Number(len)));
         }
 
         static from_pointer(wasm: any, ptr: any) {
@@ -128,7 +128,7 @@ export namespace util {
         }
 
         free() {
-            this.wasm.free(Number(this._ptr));
+            this.wasm.w_free(Number(this._ptr));
         }
 
 
@@ -196,6 +196,19 @@ export namespace util {
             this.br = br;
             this.bl = bl;
         }
+
+        to_array() {
+            return new Float32Array([
+                this.tl.x,
+                this.tl.y,
+                this.tr.x,
+                this.tr.y,
+                this.br.x,
+                this.br.y,
+                this.bl.x,
+                this.bl.y,
+            ]);
+        }
     }
 
     export class PixelBuffer {
@@ -218,27 +231,9 @@ export namespace util {
         const wasm = (await get_wasm()).instance.exports as any;
 
         let _data = Data.from(wasm, img.data);
-        // let t = Float32Array.from([
-        //         quad.tl.x,
-        //         quad.tl.y,
-        //         quad.tr.x,
-        //         quad.tr.y,
-        //         quad.br.x,
-        //         quad.br.y,
-        //         quad.bl.x,
-        //         quad.bl.y,
-        //     ]);
         let _quad = Data.new(wasm, BigInt(4*8));
-        let _dv = _quad.as_DataView();
-        let off = 0;
-        _dv.setFloat32(off, quad.tl.x, true); off += 4;
-        _dv.setFloat32(off, quad.tl.y, true); off += 4;
-        _dv.setFloat32(off, quad.tr.x, true); off += 4;
-        _dv.setFloat32(off, quad.tr.y, true); off += 4;
-        _dv.setFloat32(off, quad.br.x, true); off += 4;
-        _dv.setFloat32(off, quad.br.y, true); off += 4;
-        _dv.setFloat32(off, quad.bl.x, true); off += 4;
-        _dv.setFloat32(off, quad.bl.y, true);
+        let t = quad.to_array();
+        _quad.as_Uint8Array().set(new Uint8Array(t.buffer));
 
         let raw = wasm.perspective_transform(
             img.width,

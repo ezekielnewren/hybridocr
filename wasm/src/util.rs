@@ -1,5 +1,6 @@
+use std::fmt::{Debug, Formatter, Write};
 use argon2::{Algorithm, Argon2, Params, Version};
-use crate::{malloc, free, memory_length};
+use crate::{w_malloc, w_free, memory_length};
 use nalgebra::{DMatrix, DVector};
 
 
@@ -17,7 +18,7 @@ pub struct Data {
 
 impl Data {
     pub fn new(len: usize) -> Self {
-        Self::from_pointer(malloc(len))
+        Self::from_pointer(w_malloc(len))
     }
 
     pub fn from_pointer(ptr: *mut u8) -> Self {
@@ -34,7 +35,7 @@ impl Data {
     }
 
     pub fn free(&mut self) {
-        free(self.ptr);
+        w_free(self.ptr);
     }
 }
 
@@ -163,6 +164,16 @@ impl PixelBuffer {
 }
 
 
+impl Debug for Quadrilateral {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("tl: {:?}, {:?}, ", self.tl.x, self.tl.y))?;
+        f.write_fmt(format_args!("tr: {:?}, {:?}, ", self.tr.x, self.tr.y))?;
+        f.write_fmt(format_args!("br: {:?}, {:?}, ", self.br.x, self.br.y))?;
+        f.write_fmt(format_args!("bl: {:?}, {:?}", self.bl.x, self.bl.y))
+    }
+}
+
+
 pub struct Quadrilateral {
     pub tl: Point,
     pub tr: Point,
@@ -192,6 +203,15 @@ impl Quadrilateral {
             tr: Point{x: width, y: 0.0},
             br: Point{x: width, y: height},
             bl: Point{x: 0.0,   y: height}
+        }
+    }
+
+    pub fn from_slice(p: &[f32]) -> Self {
+        Self {
+            tl: Point{ x: p[0], y: p[1] },
+            tr: Point{ x: p[2], y: p[3] },
+            br: Point{ x: p[4], y: p[5] },
+            bl: Point{ x: p[6], y: p[7] },
         }
     }
 }

@@ -162,6 +162,20 @@ mod tests {
     }
 
     #[test]
+    fn test_output_dimension() {
+        let quad = Quadrilateral {
+            tl: Point{x: 50.0,   y: 335.0},
+            tr: Point{x: 1076.0, y: 305.0},
+            br: Point{x: 1130.0, y: 1688.0},
+            bl: Point{x: 29.0,   y: 1690.0},
+        };
+
+        let dst_quad = quad.output_dimension();
+
+        assert!(dst_quad.0 > 0.0);
+    }
+
+    #[test]
     fn test_perspective_transform() {
         let fd = ImageReader::open("../tests/file/ocr_sample_from_smartphone_rgba.avif").unwrap();
         let img_rgba = fd.decode().unwrap();

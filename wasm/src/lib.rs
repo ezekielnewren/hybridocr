@@ -51,12 +51,16 @@ pub fn perspective_transform(width: u32, height: u32, channels: u32, interleaved
     let p = unsafe {
         std::slice::from_raw_parts(points.ptr as *const f32, points.len/4)
     };
-    let quad = Quadrilateral {
-        tl: Point{ x: p[0], y: p[1] },
-        tr: Point{ x: p[2], y: p[3] },
-        bl: Point{ x: p[4], y: p[5] },
-        br: Point{ x: p[6], y: p[7] },
-    };
+    let quad = Quadrilateral::from_slice(p);
+    let dst_quad = quad.output_dimension();
+    let out = format!("{:?}\n{:?}", p, quad);
+    if true {
+        let t = out.as_bytes();
+        let ans = Data::new(t.len());
+        ans.as_slice_mut().copy_from_slice(t);
+        return ans.ptr;
+    }
+
 
     let result = _pt(pb, quad);
     match result {
@@ -102,7 +106,7 @@ pub fn memory_length(ptr: *mut u8) -> usize {
 
 
 #[no_mangle]
-pub fn malloc(size: usize) -> *mut u8 {
+pub fn w_malloc(size: usize) -> *mut u8 {
     let layout = Layout::from_size_align(POINTER_LENGTH+size, 1).unwrap();
     let _ptr = unsafe { alloc(layout) };
     for i in 0..POINTER_LENGTH {
@@ -118,7 +122,7 @@ pub fn malloc(size: usize) -> *mut u8 {
 }
 
 #[no_mangle]
-pub fn free(ptr: *mut u8) {
+pub fn w_free(ptr: *mut u8) {
     let len = memory_length(ptr);
     let _ptr = unsafe { ptr.sub(POINTER_LENGTH) };
     let layout = Layout::from_size_align(POINTER_LENGTH+len, 1).unwrap();
