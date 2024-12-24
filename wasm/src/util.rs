@@ -1,6 +1,6 @@
 use std::fmt::{Debug, Formatter, Write};
 use argon2::{Algorithm, Argon2, Params, Version};
-use crate::{w_malloc, w_free, memory_length};
+use crate::{w_malloc, w_free, memory_length, POINTER_LENGTH};
 use nalgebra::{DMatrix, DVector};
 
 
@@ -34,7 +34,7 @@ impl Data {
         unsafe { std::slice::from_raw_parts(self.ptr, self.len) }
     }
 
-    pub fn free(&mut self) {
+    pub fn free(&self) {
         w_free(self.ptr);
     }
 }
@@ -79,72 +79,56 @@ pub fn distance(a: &Point, b: &Point) -> f32 {
 }
 
 
-pub fn transpose(src: &[u8], width: usize, height: usize, dst: &mut [u8]) -> Result<(), String> {
-    if src.len() != dst.len() {
-        return Err(String::from("src and dst length must be the same"));
-    }
-    if width*height != src.len() {
-        return Err(String::from("the length of src must equal width*height"));
-    }
-    if width == 1 || height == 1 {
-        dst.copy_from_slice(&src);
-        return Ok(());
-    }
-
-    for col in 0..width {
-        for row in 0..height {
-            dst[col*height+row] = src[row*width+col];
-        }
-    }
-
-    Ok(())
-}
-
-
 pub struct PixelBuffer {
     pub width: usize,
     pub height: usize,
     pub channels: usize,
-    pub interleaved: bool,
-    pub data: Vec<u8>,
 }
 
+
 impl PixelBuffer {
-
-    pub fn new(width: usize, height: usize, channels: usize, interleaved: bool, src: Vec<u8>) -> Result<Self, String> {
-        if width*height*channels != src.len() {
-            return Err(String::from("width*height*channels must equal src.len()"));
+    pub fn from_data(raw: &Data) -> Result<Self, String> {
+        assert_eq!(3*POINTER_LENGTH, size_of::<PixelBuffer>());
+        if raw.len < size_of::<PixelBuffer>() {
+            return Err(format!("buffer length must be at least {} bytes", size_of::<PixelBuffer>()));
         }
-
-        Ok(Self {
-            width,
-            height,
-            channels,
-            interleaved,
-            data: src,
-        })
+        let r: PixelBuffer = unsafe {
+            let ptr = raw.ptr as *mut PixelBuffer;
+            std::ptr::read_unaligned(ptr)
+        };
+        Ok(r)
     }
 
-    pub fn blank(width: usize, height: usize, channels: usize, interleaved: bool) -> Self {
-        Self {
-            width,
-            height,
-            channels,
-            interleaved,
-            data: vec![0u8; width*height*channels],
+    pub fn into_data(self) -> Data {
+        unsafe {
+            let ptr = &self as *const Self as *mut u8;
+            Data::from_pointer(ptr)
         }
     }
 
-    pub fn toggle_interleaved(&mut self) {
-        let mut w = self.channels as usize;
-        let mut h = (self.width*self.height) as usize;
-        if !self.interleaved {
-            (w, h) = (h, w);
-        }
+    pub fn blank(width: usize, height: usize, channels: usize) -> Self {
+        assert_eq!(3*POINTER_LENGTH, size_of::<PixelBuffer>());
+        let raw = Data::new(size_of::<PixelBuffer>()+width*height*channels);
+        let r: PixelBuffer = unsafe {
+            let ptr = raw.ptr as *mut PixelBuffer;
+            std::ptr::write(ptr, Self {
+                width,
+                height,
+                channels,
+            });
+            // std::ptr::read_unaligned(ptr)
+            std::ptr::read(ptr)
+        };
+        r
+    }
 
-        let src = self.data.clone();
-        transpose(src.as_slice(), w, h, self.data.as_mut_slice()).unwrap();
-        self.interleaved = !self.interleaved;
+    pub fn buffer(&self) -> &mut [u8] {
+        unsafe {
+            let r = self as *const Self as *mut u8;
+            let t = r.add(size_of::<PixelBuffer>());
+            let len = self.width*self.height*self.channels;
+            std::slice::from_raw_parts_mut(t, len)
+        }
     }
 
     pub fn in_bounds(&self, quad: &Quadrilateral, margin: usize) -> bool {
@@ -206,7 +190,8 @@ impl Quadrilateral {
         }
     }
 
-    pub fn from_slice(p: &[f32]) -> Self {
+    pub fn from_data(d: &Data) -> Self {
+        let p = unsafe { std::slice::from_raw_parts(d.ptr as *const f32, d.len/4) };
         Self {
             tl: Point{ x: p[0], y: p[1] },
             tr: Point{ x: p[2], y: p[3] },
@@ -266,15 +251,11 @@ pub fn weight_cubic(p0: f32, p1: f32, p2: f32, p3: f32, w: f32) -> f32 {
 
 pub fn _pt(mut src: PixelBuffer, quad: Quadrilateral) -> Result<PixelBuffer, String> {
     assert!(src.in_bounds(&quad, 2));
-    let interleaved = src.interleaved;
-    if interleaved {
-        src.toggle_interleaved();
-    }
 
     let margin = 2.0;
 
     let out_dim = quad.output_dimension();
-    let mut dst = PixelBuffer::blank(out_dim.0 as usize, out_dim.1 as usize, src.channels, false);
+    let mut dst = PixelBuffer::blank(out_dim.0 as usize, out_dim.1 as usize, src.channels);
     let h = calculate_homography_matrix(&quad.dst_quad(), &quad);
 
     for channel in 0..dst.channels {
@@ -282,7 +263,7 @@ pub fn _pt(mut src: PixelBuffer, quad: Quadrilateral) -> Result<PixelBuffer, Str
         let mut col = 0usize;
 
         let dst_off = channel*dst.height*dst.width;
-        for dst_cell in &mut dst.data[dst_off..dst_off+dst.height*dst.width] {
+        for dst_cell in &mut dst.buffer()[dst_off..dst_off+dst.height*dst.width] {
             let sp = h.map(col as f32, row as f32);
             let x_weight = sp.x-sp.x.floor();
             let y_weight = sp.y-sp.y.floor();
@@ -293,22 +274,22 @@ pub fn _pt(mut src: PixelBuffer, quad: Quadrilateral) -> Result<PixelBuffer, Str
             let mut p: &[u8];
             let mut src_off = channel*src.height*src.width + (y-2)*src.width + (x-2);
 
-            p = &src.data[src_off..src_off+4]; src_off += src.width;
+            p = &src.buffer()[src_off..src_off+4]; src_off += src.width;
             kernel[0] = p[0] as f32;
             kernel[1] = p[1] as f32;
             kernel[2] = p[2] as f32;
             kernel[3] = p[3] as f32;
-            p = &src.data[src_off..src_off+4]; src_off += src.width;
+            p = &src.buffer()[src_off..src_off+4]; src_off += src.width;
             kernel[4] = p[0] as f32;
             kernel[5] = p[1] as f32;
             kernel[6] = p[2] as f32;
             kernel[7] = p[3] as f32;
-            p = &src.data[src_off..src_off+4]; src_off += src.width;
+            p = &src.buffer()[src_off..src_off+4]; src_off += src.width;
             kernel[8] = p[0] as f32;
             kernel[9] = p[1] as f32;
             kernel[10] = p[2] as f32;
             kernel[11] = p[3] as f32;
-            p = &src.data[src_off..src_off+4];
+            p = &src.buffer()[src_off..src_off+4];
             kernel[12] = p[0] as f32;
             kernel[13] = p[1] as f32;
             kernel[14] = p[2] as f32;
@@ -329,9 +310,6 @@ pub fn _pt(mut src: PixelBuffer, quad: Quadrilateral) -> Result<PixelBuffer, Str
         }
     }
 
-    if interleaved != dst.interleaved {
-        dst.toggle_interleaved();
-    }
     Ok(dst)
 }
 

@@ -4,8 +4,8 @@ use argon2::{Algorithm};
 use wee_alloc::WeeAlloc;
 use crate::util::{Data, PixelBuffer, Point, Quadrilateral, _pt};
 
-#[global_allocator]
-static ALLOC: WeeAlloc = WeeAlloc::INIT;
+// #[global_allocator]
+// static ALLOC: WeeAlloc = WeeAlloc::INIT;
 
 pub mod util;
 
@@ -43,45 +43,23 @@ pub fn _argon2id(
 
 
 #[no_mangle]
-pub fn perspective_transform(width: u32, height: u32, channels: u32, interleaved: bool, _data: *mut u8, _points: *mut u8, _answer: *mut u8) -> bool {
-    let mut data = Data::from_pointer(_data);
-    let mut points = Data::from_pointer(_points);
-    let mut answer = Data::from_pointer(_answer);
+pub fn perspective_transform(__pb: *mut u8, __quad: *mut u8, __answer: *mut u8) -> bool {
+    let _pb = Data::from_pointer(__pb);
+    let pb = PixelBuffer::from_data(&_pb).unwrap();
 
-
-    let pb = PixelBuffer::new(width as usize, height as usize, channels as usize, interleaved, data.as_slice().to_vec()).unwrap();
-    let p = unsafe {
-        std::slice::from_raw_parts(points.ptr as *const f32, points.len/4)
-    };
-    let quad = Quadrilateral::from_slice(p);
-    // let dst_quad = quad.output_dimension();
-    // let out = format!("{:?}\n{:?}", p, quad);
-    // if true {
-    //     let t = out.as_bytes();
-    //     let ans = Data::new(t.len());
-    //     ans.as_slice_mut().copy_from_slice(t);
-    //     unsafe {
-    //         *(answer.ptr as *mut usize) = ans.ptr as usize;
-    //     }
-    //     return false;
-    // }
-
+    let _quad = Data::from_pointer(__quad);
+    let quad = Quadrilateral::from_data(&_quad);
+    _quad.free();
+    let mut answer = Data::from_pointer(__answer);
 
     let result = _pt(pb, quad);
     match result {
         Ok(v) => {
-            let out = Data::new(10+v.data.len());
-            let m = out.as_slice_mut();
-            m[0..4].copy_from_slice(&(v.width as u32).to_le_bytes());
-            m[4..8].copy_from_slice(&(v.height as u32).to_le_bytes());
-            m[8] = v.channels as u8;
-            m[9] = if v.interleaved { 1 } else { 0 };
-            m[10..].copy_from_slice(v.data.as_slice());
-            data.free();
-            points.free();
+            let out: Data = v.into_data();
             unsafe {
                 *(answer.ptr as *mut usize) = out.ptr as usize;
             }
+            _pb.free();
             true
         }
         Err(e) => {
@@ -91,9 +69,11 @@ pub fn perspective_transform(width: u32, height: u32, channels: u32, interleaved
             unsafe {
                 *(answer.ptr as *mut usize) = out.ptr as usize;
             }
+            _pb.free();
             false
         }
     }
+
 
 }
 

@@ -5,7 +5,7 @@ use std::fs::File;
 use std::io::{Cursor, Write};
 use std::time::Instant;
 use imageproc::geometric_transformations::{warp_into, Interpolation, Projection};
-use hybridocr::util::{PixelBuffer, Quadrilateral, Point, transpose};
+use hybridocr::util::{PixelBuffer, Quadrilateral, Point};
 
 pub fn write_image(img: DynamicImage, fmt: ImageFormat, path: &Path) {
     let mut bytes = Vec::<u8>::new();
@@ -31,29 +31,23 @@ pub fn get_transform(proj: &Projection) -> Vec<[f32; 9]> {
 
 
 pub fn from_dynamic_image(img: &DynamicImage) -> PixelBuffer {
-    PixelBuffer::new(
+    let p = PixelBuffer::blank(
         img.width() as usize,
         img.height() as usize,
         img.color().channel_count() as usize,
-        true,
-        img.as_bytes().to_vec()
-    ).unwrap()
+    );
+    let dst = p.buffer();
+    let src = img.as_bytes();
+    for i in 0..src.len() {
+        dst[i] = src[i];
+    }
+    // dst.copy_from_slice(src);
+    p
 }
 
-pub fn as_bytes(pb: &PixelBuffer) -> Vec<u8> {
-    if pb.interleaved {
-        pb.data.clone()
-    } else {
-        let mut t = vec![0u8; pb.data.len()];
-        let w = pb.width*pb.height;
-        let h = pb.channels;
-        transpose(pb.data.as_slice(), w, h, t.as_mut_slice()).unwrap();
-        t
-    }
-}
 
 pub fn as_dynamic_image(pb: &PixelBuffer) -> Result<DynamicImage, String> {
-    let woven = as_bytes(&pb);
+    let woven = pb.buffer().to_vec();
 
     if pb.channels == 1 {
         Ok(DynamicImage::ImageLuma8(ImageBuffer::from_vec(pb.width as u32, pb.height as u32, woven).unwrap()))
@@ -86,7 +80,7 @@ pub fn _perspective_transform(pb: &PixelBuffer, quad: &Quadrilateral) -> Result<
     let w = out_dim.0 as u32;
     let h = out_dim.1 as u32;
 
-    let src = as_bytes(&pb);
+    let src = pb.buffer().to_vec();
     let out_img: DynamicImage;
     if pb.channels == 1 {
         let gray = GrayImage::from_vec(pb.width as u32, pb.height as u32, src).unwrap();
@@ -128,10 +122,7 @@ pub fn _perspective_transform(pb: &PixelBuffer, quad: &Quadrilateral) -> Result<
         return Err(String::from("only 1, 3, or 4 channels are supported"));
     }
 
-    let mut pb_out = from_dynamic_image(&out_img);
-    if !pb.interleaved {
-        pb_out.toggle_interleaved();
-    }
+    let pb_out = from_dynamic_image(&out_img);
     Ok(pb_out)
 }
 
@@ -202,9 +193,7 @@ mod tests {
         let img = &img_rgba;
 
         let mut pb = from_dynamic_image(&img);
-        pb.toggle_interleaved();
-        assert_eq!(pb.width*pb.height*pb.channels, pb.data.len());
-        let interleaved = pb.interleaved;
+        assert_eq!(pb.width*pb.height*pb.channels, pb.buffer().len());
 
         let quad = Quadrilateral {
             tl: Point{x: 50.0,   y: 335.0},
@@ -217,7 +206,6 @@ mod tests {
         let result = _pt(pb, quad).unwrap();
         let out = as_dynamic_image(&result).unwrap();
 
-        assert_eq!(interleaved, result.interleaved);
         write_image(out, ImageFormat::Png, Path::new("/tmp/output.png"));
     }
 
@@ -230,8 +218,7 @@ mod tests {
         let img = &img_gray;
 
         let pb = from_dynamic_image(&img);
-        let src_interleaved = pb.interleaved;
-        assert_eq!(pb.width*pb.height*pb.channels, pb.data.len());
+        assert_eq!(pb.width*pb.height*pb.channels, pb.buffer().len());
 
         let quad = Quadrilateral {
             tl: Point{x: 50.0,   y: 335.0},
@@ -248,7 +235,6 @@ mod tests {
         let out = as_dynamic_image(&result).unwrap();
 
 
-        assert_eq!(src_interleaved, result.interleaved);
         write_image(out, ImageFormat::Png, Path::new("/tmp/output.png"));
     }
 
