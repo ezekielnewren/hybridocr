@@ -1,7 +1,7 @@
-use std::fmt::{Debug, Formatter, Write};
+use std::fmt::{Debug, Formatter};
 use argon2::{Algorithm, Argon2, Params, Version};
-use crate::{w_malloc, w_free, memory_length, POINTER_LENGTH};
 use nalgebra::{DMatrix, DVector};
+use serde::{Deserialize, Serialize};
 
 
 pub fn argon2(alg: Algorithm, password: &[u8], salt: &[u8], m: u32, t: u32, p: u32, length: u32) -> Vec<u8> {
@@ -11,34 +11,8 @@ pub fn argon2(alg: Algorithm, password: &[u8], salt: &[u8], m: u32, t: u32, p: u
     buff
 }
 
-pub struct Data {
-    pub ptr: *mut u8,
-    pub len: usize,
-}
 
-impl Data {
-    pub fn new(len: usize) -> Self {
-        Self::from_pointer(w_malloc(len))
-    }
-
-    pub fn from_pointer(ptr: *mut u8) -> Self {
-        let len = memory_length(ptr);
-        Self { ptr, len }
-    }
-
-    pub fn as_slice_mut(&self) -> &mut [u8] {
-        unsafe { std::slice::from_raw_parts_mut(self.ptr, self.len) }
-    }
-
-    pub fn as_slice(&self) -> &[u8] {
-        unsafe { std::slice::from_raw_parts(self.ptr, self.len) }
-    }
-
-    pub fn free(&self) {
-        w_free(self.ptr);
-    }
-}
-
+#[derive(Serialize, Deserialize)]
 pub struct Point {
     pub x: f32,
     pub y: f32,
@@ -78,56 +52,23 @@ pub fn distance(a: &Point, b: &Point) -> f32 {
     ((a.x-b.x).powi(2) + (a.y-b.y).powi(2)).sqrt()
 }
 
-
+#[derive(Serialize, Deserialize)]
 pub struct PixelBuffer {
     pub width: usize,
     pub height: usize,
     pub channels: usize,
+    pub data: Vec<u8>,
 }
 
 
 impl PixelBuffer {
-    pub fn from_data(raw: &Data) -> Result<Self, String> {
-        assert_eq!(3*POINTER_LENGTH, size_of::<PixelBuffer>());
-        if raw.len < size_of::<PixelBuffer>() {
-            return Err(format!("buffer length must be at least {} bytes", size_of::<PixelBuffer>()));
-        }
-        let r: PixelBuffer = unsafe {
-            let ptr = raw.ptr as *mut PixelBuffer;
-            std::ptr::read_unaligned(ptr)
-        };
-        Ok(r)
-    }
-
-    pub fn into_data(self) -> Data {
-        unsafe {
-            let ptr = &self as *const Self as *mut u8;
-            Data::from_pointer(ptr)
-        }
-    }
 
     pub fn blank(width: usize, height: usize, channels: usize) -> Self {
-        assert_eq!(3*POINTER_LENGTH, size_of::<PixelBuffer>());
-        let raw = Data::new(size_of::<PixelBuffer>()+width*height*channels);
-        let r: PixelBuffer = unsafe {
-            let ptr = raw.ptr as *mut PixelBuffer;
-            std::ptr::write(ptr, Self {
-                width,
-                height,
-                channels,
-            });
-            // std::ptr::read_unaligned(ptr)
-            std::ptr::read(ptr)
-        };
-        r
-    }
-
-    pub fn buffer(&self) -> &mut [u8] {
-        unsafe {
-            let r = self as *const Self as *mut u8;
-            let t = r.add(size_of::<PixelBuffer>());
-            let len = self.width*self.height*self.channels;
-            std::slice::from_raw_parts_mut(t, len)
+        Self {
+            width,
+            height,
+            channels,
+            data: vec![0; width*height*channels],
         }
     }
 
@@ -158,6 +99,7 @@ impl Debug for Quadrilateral {
 }
 
 
+#[derive(Serialize, Deserialize)]
 pub struct Quadrilateral {
     pub tl: Point,
     pub tr: Point,
@@ -190,8 +132,7 @@ impl Quadrilateral {
         }
     }
 
-    pub fn from_data(d: &Data) -> Self {
-        let p = unsafe { std::slice::from_raw_parts(d.ptr as *const f32, d.len/4) };
+    pub fn from_data(p: &[f32]) -> Self {
         Self {
             tl: Point{ x: p[0], y: p[1] },
             tr: Point{ x: p[2], y: p[3] },
@@ -249,7 +190,7 @@ pub fn weight_cubic(p0: f32, p1: f32, p2: f32, p3: f32, w: f32) -> f32 {
 }
 
 
-pub fn _pt(mut src: PixelBuffer, quad: Quadrilateral) -> Result<PixelBuffer, String> {
+pub fn _pt(src: PixelBuffer, quad: Quadrilateral) -> Result<PixelBuffer, String> {
     assert!(src.in_bounds(&quad, 2));
 
     let margin = 2.0;
@@ -263,7 +204,7 @@ pub fn _pt(mut src: PixelBuffer, quad: Quadrilateral) -> Result<PixelBuffer, Str
         let mut col = 0usize;
 
         let dst_off = channel*dst.height*dst.width;
-        for dst_cell in &mut dst.buffer()[dst_off..dst_off+dst.height*dst.width] {
+        for dst_cell in &mut dst.data[dst_off..dst_off+dst.height*dst.width] {
             let sp = h.map(col as f32, row as f32);
             let x_weight = sp.x-sp.x.floor();
             let y_weight = sp.y-sp.y.floor();
@@ -274,22 +215,22 @@ pub fn _pt(mut src: PixelBuffer, quad: Quadrilateral) -> Result<PixelBuffer, Str
             let mut p: &[u8];
             let mut src_off = channel*src.height*src.width + (y-2)*src.width + (x-2);
 
-            p = &src.buffer()[src_off..src_off+4]; src_off += src.width;
+            p = &src.data[src_off..src_off+4]; src_off += src.width;
             kernel[0] = p[0] as f32;
             kernel[1] = p[1] as f32;
             kernel[2] = p[2] as f32;
             kernel[3] = p[3] as f32;
-            p = &src.buffer()[src_off..src_off+4]; src_off += src.width;
+            p = &src.data[src_off..src_off+4]; src_off += src.width;
             kernel[4] = p[0] as f32;
             kernel[5] = p[1] as f32;
             kernel[6] = p[2] as f32;
             kernel[7] = p[3] as f32;
-            p = &src.buffer()[src_off..src_off+4]; src_off += src.width;
+            p = &src.data[src_off..src_off+4]; src_off += src.width;
             kernel[8] = p[0] as f32;
             kernel[9] = p[1] as f32;
             kernel[10] = p[2] as f32;
             kernel[11] = p[3] as f32;
-            p = &src.buffer()[src_off..src_off+4];
+            p = &src.data[src_off..src_off+4];
             kernel[12] = p[0] as f32;
             kernel[13] = p[1] as f32;
             kernel[14] = p[2] as f32;

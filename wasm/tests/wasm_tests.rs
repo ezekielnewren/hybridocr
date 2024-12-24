@@ -31,23 +31,18 @@ pub fn get_transform(proj: &Projection) -> Vec<[f32; 9]> {
 
 
 pub fn from_dynamic_image(img: &DynamicImage) -> PixelBuffer {
-    let p = PixelBuffer::blank(
+    let mut p = PixelBuffer::blank(
         img.width() as usize,
         img.height() as usize,
         img.color().channel_count() as usize,
     );
-    let dst = p.buffer();
-    let src = img.as_bytes();
-    for i in 0..src.len() {
-        dst[i] = src[i];
-    }
-    // dst.copy_from_slice(src);
+    p.data.copy_from_slice(img.as_bytes());
     p
 }
 
 
 pub fn as_dynamic_image(pb: &PixelBuffer) -> Result<DynamicImage, String> {
-    let woven = pb.buffer().to_vec();
+    let woven = pb.data.clone();
 
     if pb.channels == 1 {
         Ok(DynamicImage::ImageLuma8(ImageBuffer::from_vec(pb.width as u32, pb.height as u32, woven).unwrap()))
@@ -80,7 +75,7 @@ pub fn _perspective_transform(pb: &PixelBuffer, quad: &Quadrilateral) -> Result<
     let w = out_dim.0 as u32;
     let h = out_dim.1 as u32;
 
-    let src = pb.buffer().to_vec();
+    let src = pb.data.clone();
     let out_img: DynamicImage;
     if pb.channels == 1 {
         let gray = GrayImage::from_vec(pb.width as u32, pb.height as u32, src).unwrap();
@@ -193,7 +188,7 @@ mod tests {
         let img = &img_rgba;
 
         let mut pb = from_dynamic_image(&img);
-        assert_eq!(pb.width*pb.height*pb.channels, pb.buffer().len());
+        assert_eq!(pb.width*pb.height*pb.channels, pb.data.len());
 
         let quad = Quadrilateral {
             tl: Point{x: 50.0,   y: 335.0},
@@ -218,7 +213,7 @@ mod tests {
         let img = &img_gray;
 
         let pb = from_dynamic_image(&img);
-        assert_eq!(pb.width*pb.height*pb.channels, pb.buffer().len());
+        assert_eq!(pb.width*pb.height*pb.channels, pb.data.len());
 
         let quad = Quadrilateral {
             tl: Point{x: 50.0,   y: 335.0},

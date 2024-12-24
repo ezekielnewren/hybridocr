@@ -6,18 +6,6 @@ import sharp, { Metadata } from "sharp";
 
 describe("util", () => {
 
-    test("sandbox", async () => {
-        const wasm = (await util.get_wasm()).instance.exports as any;
-
-        let a = 3235.26342;
-        let _a = util.Data.new(wasm, 4n);
-        let dv = _a.as_DataView();
-        dv.setFloat32(0, a, true);
-        let x = wasm.sandbox(_a.ptr());
-
-        expect(x).not.toBeNull();
-    })
-
     test("rustargon2", async () => {
         const test_vector: [string, string, number, number, number, number, string][] = [
             // ["abc123", "saltsaltsaltsalt", 8, 100000, 1, 8, "805ef5742dad2e5d"],
@@ -57,7 +45,6 @@ describe("util", () => {
             meta.width as number,
             meta.height as number,
             meta.channels as number,
-            true,
             raw
         );
 
@@ -69,7 +56,7 @@ describe("util", () => {
         );
 
         const start = performance.now();
-        let out = await util.perspectiveTransform(apb, aq);
+        let out = await util.perspective_transform(apb, aq);
         const time = (performance.now()-start)/1000;
         expect(out).not.toBeNull();
         let xxx = Buffer.from(out.data);
