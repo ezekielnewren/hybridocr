@@ -208,9 +208,9 @@ mod tests {
     pub fn test_custom_pt() {
         let fd = ImageReader::open("../tests/file/ocr_sample_from_smartphone_rgba.avif").unwrap();
         let img_rgba = fd.decode().unwrap();
-        // let _img_rgb = DynamicImage::ImageRgb8(img_rgba.to_rgb8());
+        let img_rgb = DynamicImage::ImageRgb8(img_rgba.to_rgb8());
         let img_gray = DynamicImage::ImageLuma8(img_rgba.to_luma8());
-        let img = &img_gray;
+        let img = &img_rgb;
 
         let pb = from_dynamic_image(&img);
         assert_eq!(pb.width*pb.height*pb.channels, pb.data.len());

@@ -191,63 +191,45 @@ pub fn weight_cubic(p0: f32, p1: f32, p2: f32, p3: f32, w: f32) -> f32 {
 
 
 pub fn _pt(src: PixelBuffer, quad: Quadrilateral) -> Result<PixelBuffer, String> {
-    assert!(src.in_bounds(&quad, 2));
+    assert!(src.in_bounds(&quad, 0));
 
-    let margin = 2.0;
+    let margin = 2usize;
+    let dim = quad.output_dimension();
+    let cw = src.channels;
+    let mut dst = PixelBuffer::blank(dim.0 as usize, dim.1 as usize, cw);
+    let hmat = calculate_homography_matrix(&quad.dst_quad(), &quad);
+    let mut run = [0f32; 4];
 
-    let out_dim = quad.output_dimension();
-    let mut dst = PixelBuffer::blank(out_dim.0 as usize, out_dim.1 as usize, src.channels);
-    let h = calculate_homography_matrix(&quad.dst_quad(), &quad);
+    let mut row = 0usize;
+    let mut col = 0usize;
+    let mut channel = 0usize;
+    for sink in dst.data.as_mut_slice() {
+        let sp = hmat.map(col as f32, row as f32);
+        let x = sp.x.clamp(margin as f32, (src.width-1-margin) as f32) as usize;
+        let y = sp.y.clamp(margin as f32, (src.height-1-margin) as f32) as usize;
+        let x_weight = sp.x-sp.x.floor();
+        let y_weight = sp.y-sp.y.floor();
 
-    for channel in 0..dst.channels {
-        let mut row = 0usize;
-        let mut col = 0usize;
+        for i in 0..4 {
+            let src_off = (y-margin+i)*src.width*cw + (x-margin)*cw;
+            let p = &src.data[src_off..src_off+4*cw];
+            let c0 = p[0*cw+channel] as f32;
+            let c1 = p[1*cw+channel] as f32;
+            let c2 = p[2*cw+channel] as f32;
+            let c3 = p[3*cw+channel] as f32;
+            run[i] = weight_cubic(c0, c1, c2, c3, x_weight);
+        }
+        let w = weight_cubic(run[0], run[1], run[2], run[3], y_weight) as u8;
+        *sink = w;
 
-        let dst_off = channel*dst.height*dst.width;
-        for dst_cell in &mut dst.data[dst_off..dst_off+dst.height*dst.width] {
-            let sp = h.map(col as f32, row as f32);
-            let x_weight = sp.x-sp.x.floor();
-            let y_weight = sp.y-sp.y.floor();
-            let x = sp.x.clamp(margin, src.width as f32-1.0-margin) as usize;
-            let y = sp.y.clamp(margin, src.height as f32-1.0-margin) as usize;
-
-            let mut kernel = [0f32; 16];
-            let mut p: &[u8];
-            let mut src_off = channel*src.height*src.width + (y-2)*src.width + (x-2);
-
-            p = &src.data[src_off..src_off+4]; src_off += src.width;
-            kernel[0] = p[0] as f32;
-            kernel[1] = p[1] as f32;
-            kernel[2] = p[2] as f32;
-            kernel[3] = p[3] as f32;
-            p = &src.data[src_off..src_off+4]; src_off += src.width;
-            kernel[4] = p[0] as f32;
-            kernel[5] = p[1] as f32;
-            kernel[6] = p[2] as f32;
-            kernel[7] = p[3] as f32;
-            p = &src.data[src_off..src_off+4]; src_off += src.width;
-            kernel[8] = p[0] as f32;
-            kernel[9] = p[1] as f32;
-            kernel[10] = p[2] as f32;
-            kernel[11] = p[3] as f32;
-            p = &src.data[src_off..src_off+4];
-            kernel[12] = p[0] as f32;
-            kernel[13] = p[1] as f32;
-            kernel[14] = p[2] as f32;
-            kernel[15] = p[3] as f32;
-
-            let r0 = weight_cubic(kernel[0],  kernel[1],  kernel[2],  kernel[3],  x_weight);
-            let r1 = weight_cubic(kernel[4],  kernel[5],  kernel[6],  kernel[7],  x_weight);
-            let r2 = weight_cubic(kernel[8],  kernel[9],  kernel[10], kernel[11], x_weight);
-            let r3 = weight_cubic(kernel[12], kernel[13], kernel[14], kernel[15], x_weight);
-
-            *dst_cell = weight_cubic(r0, r1, r2, r3, y_weight) as u8;
-
+        channel += 1;
+        if channel == cw {
+            channel = 0;
             col += 1;
-            if col >= dst.width {
-                col = 0usize;
-                row += 1;
-            }
+        }
+        if col == dst.width {
+            col = 0;
+            row += 1;
         }
     }
 
