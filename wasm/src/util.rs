@@ -200,36 +200,29 @@ pub fn _pt(src: PixelBuffer, quad: Quadrilateral) -> Result<PixelBuffer, String>
     let hmat = calculate_homography_matrix(&quad.dst_quad(), &quad);
     let mut run = [0f32; 4];
 
-    let mut row = 0usize;
-    let mut col = 0usize;
-    let mut channel = 0usize;
-    for sink in dst.data.as_mut_slice() {
-        let sp = hmat.map(col as f32, row as f32);
-        let x = sp.x.clamp(margin as f32, (src.width-1-margin) as f32) as usize;
-        let y = sp.y.clamp(margin as f32, (src.height-1-margin) as f32) as usize;
-        let x_weight = sp.x-sp.x.floor();
-        let y_weight = sp.y-sp.y.floor();
+    let mut dst_idx = 0usize;
+    for row in 0..dst.height {
+        for col in 0..dst.width {
+            let sp = hmat.map(col as f32, row as f32);
+            let x = sp.x.clamp(margin as f32, (src.width-1-margin) as f32) as usize;
+            let y = sp.y.clamp(margin as f32, (src.height-1-margin) as f32) as usize;
+            let x_weight = sp.x-sp.x.floor();
+            let y_weight = sp.y-sp.y.floor();
 
-        for i in 0..4 {
-            let src_off = (y-margin+i)*src.width*cw + (x-margin)*cw;
-            let p = &src.data[src_off..src_off+4*cw];
-            let c0 = p[0*cw+channel] as f32;
-            let c1 = p[1*cw+channel] as f32;
-            let c2 = p[2*cw+channel] as f32;
-            let c3 = p[3*cw+channel] as f32;
-            run[i] = weight_cubic(c0, c1, c2, c3, x_weight);
-        }
-        let w = weight_cubic(run[0], run[1], run[2], run[3], y_weight) as u8;
-        *sink = w;
-
-        channel += 1;
-        if channel == cw {
-            channel = 0;
-            col += 1;
-        }
-        if col == dst.width {
-            col = 0;
-            row += 1;
+            for channel in 0..cw {
+                for i in 0..4 {
+                    let src_off = (y-margin+i)*src.width*cw + (x-margin)*cw;
+                    let p = &src.data[src_off..src_off+4*cw];
+                    let c0 = p[0*cw+channel] as f32;
+                    let c1 = p[1*cw+channel] as f32;
+                    let c2 = p[2*cw+channel] as f32;
+                    let c3 = p[3*cw+channel] as f32;
+                    run[i] = weight_cubic(c0, c1, c2, c3, x_weight);
+                }
+                let w = weight_cubic(run[0], run[1], run[2], run[3], y_weight) as u8;
+                dst.data[dst_idx] = w;
+                dst_idx += 1;
+            }
         }
     }
 
