@@ -136,7 +136,10 @@ mod tests {
         let password = b"password";
         let salt = b"saltsaltsaltsalt";
         let start = Instant::now();
-        let buff = util::argon2(Algorithm::Argon2id, password, salt, 8192, 10, 1, output_length);
+        let buff = match util::argon2(Algorithm::Argon2id as usize, password, salt, 8192, 10, 1, output_length) {
+            Ok(v) => v,
+            Err(e) => panic!("{}", e),
+        };
         let duration = start.elapsed();
 
         let result = hex::encode(&buff);

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 // import * as util from "../src/util.js"
-import {util} from "../src/util.js"
+import * as util from "../src/util.js"
 import sharp, { Metadata } from "sharp";
 // import {perspectiveTransform} from "../src/util.js";
 
@@ -17,13 +17,18 @@ describe("util", () => {
             ["123456", "wdvnasldkfarealdfg", 32, 100, 4, 8, "fd809746448b8335"],
         ]
 
+
         const e = new TextEncoder();
+        try {
+            await util.argon2id(e.encode("a"), e.encode("asdf"), 1, 1, 1, 1);
+            expect.fail("These parameters are invalid and this should throw an error");
+        } catch (e) {
+            expect(e).not.toBeNull();
+        }
 
         for (const v of test_vector) {
             const password = e.encode(v[0]);
             let salt = e.encode(v[1]);
-
-
 
             const start = performance.now();
             let result = await util.argon2id(password, salt, v[2], v[3], v[4], v[5]);

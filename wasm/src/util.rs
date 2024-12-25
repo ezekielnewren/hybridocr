@@ -4,11 +4,24 @@ use nalgebra::{DMatrix, DVector};
 use serde::{Deserialize, Serialize};
 
 
-pub fn argon2(alg: Algorithm, password: &[u8], salt: &[u8], m: u32, t: u32, p: u32, length: u32) -> Vec<u8> {
-    let inst = Argon2::new(alg, Version::V0x13, Params::new(m, t, p, Some(length as usize)).unwrap());
+pub fn argon2(_alg: usize, password: &[u8], salt: &[u8], m: u32, t: u32, p: u32, length: u32) -> Result<Vec<u8>, String> {
+    let alg = match _alg {
+        0 => Ok(Algorithm::Argon2d),
+        1 => Ok(Algorithm::Argon2i),
+        2 => Ok(Algorithm::Argon2id),
+        _ => Err(format!("invalid algorithm index: {}", _alg)),
+    }?;
+    let param: Params;
+    match Params::new(m, t, p, Some(length as usize)) {
+        Ok(v) => param = v,
+        Err(e) => return Err(e.to_string())
+    }
+    let inst = Argon2::new(alg, Version::V0x13, param);
     let mut buff = vec![0u8; length as usize];
-    inst.hash_password_into(password, salt, &mut buff).expect("hashing failed");
-    buff
+    match inst.hash_password_into(password, salt, &mut buff) {
+        Ok(_) => Ok(buff.to_vec()),
+        Err(e) => Err(e.to_string()),
+    }
 }
 
 

@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
     {% include '_header.html' %}
-    <script src="/static/js/ui.js" type="module"></script>
 </head>
 <body>
 {% include '_banner.html' %}
@@ -18,8 +17,11 @@
     <input id="fire" type="button" value="go">
 </div>
 {% include '_footer.html' %}
+<script src="/static/js/util.js" type="module"></script>
 <script type="module">
-    import { util } from "/static/js/util.js";
+    // import { util } from "/static/js/util.js";
+    import * as util from "/static/js/util.js";
+    // await util.setup_wasm();
 
     document.getElementById("fire").addEventListener("click", async () => {
         console.log("go clicked");
