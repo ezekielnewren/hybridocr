@@ -2,8 +2,7 @@
 <html lang="en">
 <head>
     {% include '_header.html' %}
-    <script src="/static/js/util.js"></script>
-    <script src="/static/js/ui.js"></script>
+    <script src="/static/js/ui.js" type="module"></script>
 </head>
 <body>
 {% include '_banner.html' %}
@@ -20,6 +19,8 @@
 </div>
 {% include '_footer.html' %}
 <script type="module">
+    import { util } from "/static/js/util.js";
+
     document.getElementById("fire").addEventListener("click", async () => {
         console.log("go clicked");
         // await setup_wasm();

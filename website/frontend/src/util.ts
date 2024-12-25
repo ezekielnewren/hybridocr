@@ -2,7 +2,7 @@ import init, { _perspective_transform, _argon2id } from "hybridocr"
 
 
 async function setup_wasm() {
-    if (process.env.NODE_ENV !== "production") {
+    if (typeof window === "undefined") {
         let path = await import('path');
         let fs = await import('fs');
         const wasmPath = path.resolve(__dirname, "../../../wasm/pkg/hybridocr_bg.wasm");
@@ -71,10 +71,6 @@ export namespace util {
         return new Argon2Result("argon2id", 19, m, t, p, salt, hash);
     }
 
-    export function is_nodejs() {
-        return process.env.NODE_ENV !== "production";
-    }
-
     export function toHex(data: Uint8Array): string {
         return Array.from(data)
             .map(byte => byte.toString(16).padStart(2, "0"))
@@ -138,6 +134,10 @@ export namespace util {
 
     export async function setup_wasm() {
 
+    }
+
+    export function get_util() {
+        return util;
     }
 }
 
