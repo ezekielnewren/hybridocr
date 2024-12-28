@@ -16,7 +16,7 @@ async function setup_wasm() {
         await init({module_or_path: wasmBuffer});
     } else {
         // @ts-ignore
-        await init({module_or_path: "/static/wasm/hybridocr_bg.wasm"});
+        await init({module_or_path: window.static_prefix+"/wasm/hybridocr_bg.wasm"});
     }
 }
 await setup_wasm();

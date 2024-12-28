@@ -38,10 +38,11 @@
         .showcase {
             flex-direction: column;
         }
-
     </style>
-    <script>
-        document.addEventListener("DOMContentLoaded", async () => {
+    <script type="module">
+        import * as util from "/static/js/util.js";
+
+        let startup = async () => {
             const errorMessage = document.getElementById("error-message");
 
             $(document).ready(function() {
@@ -51,7 +52,7 @@
                     try {
                         errorMessage.innerText = "";
                         errorMessage.style.display = "none";
-                        await register(null, email);
+                        await util.register(null, email);
                         window.location.href = "/check-your-email";
                     } catch (e) {
                         errorMessage.innerText = e.message;
@@ -61,9 +62,9 @@
             });
 
 
-            const showcaseMachinePrint = new Showcase(document.getElementById('machine_print'));
-            const showcaseBlockLetters = new Showcase(document.getElementById('block_letters'));
-            const showcaseCursive = new Showcase(document.getElementById('cursive'));
+            const showcaseMachinePrint = new util.Showcase(document.getElementById('machine_print'));
+            const showcaseBlockLetters = new util.Showcase(document.getElementById('block_letters'));
+            const showcaseCursive = new util.Showcase(document.getElementById('cursive'));
 
             for (const showcase of [showcaseMachinePrint, showcaseBlockLetters, showcaseCursive]) {
                 const example = showcase.element.id;
@@ -78,9 +79,9 @@
                 }
                 showcase.setOcr(JSON.parse(await result.text()));
             }
-        });
+        };
 
-
+        await startup();
     </script>
 </head>
 <body>

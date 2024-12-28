@@ -15,6 +15,23 @@
         }
     </style>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <script>
+        window.captchaToken = null;
+        window.needReset = false;
+
+        function onCaptchaSuccess(token) {
+            console.log("CAPTCHA solved successfully. Token:", token);
+            window.captchaToken = token;  // Store the token for later use
+            readyToSubmit();
+        }
+
+        // Optional: Callback function when the CAPTCHA expires
+        function onCaptchaExpired() {
+            console.log("CAPTCHA expired. Please solve it again.");
+            window.captchaToken = null;  // Clear the token
+            document.getElementById("recognize-btn").disabled = true;
+        }
+    </script>
 </head>
 <body>
 {% include '_banner.html' %}
@@ -69,7 +86,9 @@
 {% endif %}
 </div>
 {% include '_footer.html' %}
-<script>
+<script type="module">
+    import * as util from "/static/js/util.js";
+
     const dropArea = document.getElementById('drop-area');
     const fileInput = document.getElementById('file-input');
     const recognizeBtn = document.getElementById('recognize-btn');
@@ -77,9 +96,9 @@
     const eUsername = document.getElementById('username');
     const eBalance = document.getElementById('balance');
     const eSideBySide = document.getElementById('side-by-side');
-    let showcase = null;
+    window.showcase = null;
     if (eSideBySide != null) {
-        showcase = new Showcase(eSideBySide);
+        window.showcase = new util.Showcase(eSideBySide);
     }
 
     {% if need_email %}
@@ -91,11 +110,11 @@
             const email = emailInput.value.trim();
 
             try {
-                clearErrorMessage();
-                await register(null, email);
+                util.clearErrorMessage();
+                await util.register(null, email);
                 window.location.href = "/check-your-email";
             } catch (e) {
-                setErrorMessage(e.message);
+                util.setErrorMessage(e.message);
             }
         });
     {% elif need_challenge %}
@@ -108,11 +127,11 @@
             const _id = p.get('_id');
 
             try {
-                clearErrorMessage();
-                await register(_id, null);
+                util.clearErrorMessage();
+                await util.register(_id, null);
                 window.location.href = "/check-your-email";
             } catch (e) {
-                setErrorMessage(e.message);
+                util.setErrorMessage(e.message);
             }
         });
     {% endif %}
@@ -131,9 +150,6 @@
         fileInput.click();
     });
 
-    let captchaToken = null;
-    let needReset = false;
-
     fileInput.addEventListener('change', (event) => {
         handleImage(event.target.files[0]);
     });
@@ -149,26 +165,21 @@
         eBalance.innerText = result["balance"];
     }
 
-    window.onload = async () => {
-        await updateBalance();
-        readyToSubmit();
-    };
-
     function resetCaptcha() {
         turnstile.reset();
-        captchaToken = null;
-        needReset = false;
+        window.captchaToken = null;
+        window.needReset = false;
         readyToSubmit();
     }
 
     function handleImage(file) {
         if (file) {
             try {
-                showcase.setImage(file);
+                window.showcase.setImage(file);
             } catch (e) {
-                setErrorMessage(e.message);
+                util.setErrorMessage(e.message);
             }
-            if (needReset) {
+            if (window.needReset) {
                 resetCaptcha();
             }
             readyToSubmit();
@@ -176,23 +187,9 @@
     }
 
     function readyToSubmit() {
-        recognizeBtn.disabled = needReset || captchaToken == null || showcase.getImage() == null;
+        recognizeBtn.disabled = window.needReset || window.captchaToken == null || window.showcase.getImage() == null;
         return !recognizeBtn.disabled;
     }
-
-    function onCaptchaSuccess(token) {
-        console.log("CAPTCHA solved successfully. Token:", token);
-        captchaToken = token;  // Store the token for later use
-        readyToSubmit();
-    }
-
-    // Optional: Callback function when the CAPTCHA expires
-    function onCaptchaExpired() {
-        console.log("CAPTCHA expired. Please solve it again.");
-        captchaToken = null;  // Clear the token
-        document.getElementById("recognize-btn").disabled = true;
-    }
-
 
     recognizeBtn.addEventListener('click', async () => {
         if (!readyToSubmit()) {
@@ -207,34 +204,42 @@
             const p = new URLSearchParams(url.search);
             const authorization = p.get('_id')+":"+p.get('challenge')
 
-            const arrayBuffer = await showcase.getImage().arrayBuffer();
+            const arrayBuffer = await window.showcase.getImage().arrayBuffer();
             const response = await fetch('/api/v1/ocr', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/octet-stream',
                     'Authorization': authorization,
-                    'cf-turnstile': captchaToken,
+                    'cf-turnstile': window.captchaToken,
                 },
                 body: arrayBuffer,  // Send raw binary data
             });
 
             // Check for response success
             if (response.ok) {
-                showcase.setOcr(await response.json());
-                needReset = true;
+                window.showcase.setOcr(await response.json());
+                window.needReset = true;
                 readyToSubmit();
                 await updateBalance();
-                clearErrorMessage();
+                util.clearErrorMessage();
             } else {
                 const errorText = await response.text();
-                setErrorMessage(`Error: ${errorText}`);
+                util.setErrorMessage(`Error: ${errorText}`);
             }
         } catch (error) {
-            setErrorMessage(`Error: ${error.message}`);
+            util.setErrorMessage(`Error: ${error.message}`);
         } finally {
             loadingMessage.style.display = 'none';
         }
     });
+
+    let startup = async () => {
+        await updateBalance();
+        window.onCaptchaSuccess = onCaptchaSuccess;
+        readyToSubmit();
+    };
+
+    await startup();
 </script>
 
 </body>
