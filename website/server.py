@@ -125,6 +125,7 @@ async def check_your_email(request: Request):
         "request": request,
         "production": ctx.config["production"],
         "gtag_id": ctx.config["webserver"]["gtag_id"],
+        "static_prefix": ctx.config["webserver"]["static_prefix"],
     })
 
 

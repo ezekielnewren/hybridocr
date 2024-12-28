@@ -93,4 +93,5 @@ async def get_config():
     env = result["data"]["meta"]["env"]
     config = await vault.kv_get(Path("kv/env/"+env))
     config["production"] = config["webserver"].get("production") or False
+    config["webserver"]["static_prefix"] = "/static/"
     return config

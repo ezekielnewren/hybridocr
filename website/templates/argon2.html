@@ -2,6 +2,9 @@
 <html lang="en">
 <head>
     {% include '_header.html' %}
+    <script>
+        window.static_prefix = {{ static_prefix }};
+    </script>
 </head>
 <body>
 {% include '_banner.html' %}
@@ -34,16 +37,23 @@
         const eLength = document.getElementById("length");
         const eView = document.getElementById("view");
 
-        const argon2_result = await util.argon2id(
-            ePassword.value,
-            eSalt.value,
-            Number(eM.value),
-            Number(eT.value),
-            Number(eP.value),
-            Number(eLength.value),
-        );
+        try {
+            const encoder = new TextEncoder();
 
-        eView.innerHTML = util.toHex(argon2_result.hash);
+            const argon2_result = await util.argon2id(
+                encoder.encode(ePassword.value),
+                encoder.encode(eSalt.value),
+                Number(eM.value),
+                Number(eT.value),
+                Number(eP.value),
+                Number(eLength.value),
+            );
+
+            eView.innerHTML = util.toHex(argon2_result.hash);
+            util.clearErrorMessage();
+        } catch (e) {
+            util.setErrorMessage(e);
+        }
     });
 </script>
 </body>

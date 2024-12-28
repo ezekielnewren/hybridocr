@@ -7,16 +7,20 @@ export function assert(condition: boolean, message?: string) {
 }
 
 async function setup_wasm() {
-    if (typeof window === "undefined") {
-        let path = await import('path');
-        let fs = await import('fs');
-        const wasmPath = path.resolve(__dirname, "../../../wasm/pkg/hybridocr_bg.wasm");
-        const wasmBuffer = fs.readFileSync(wasmPath);
-        // @ts-ignore
-        await init({module_or_path: wasmBuffer});
-    } else {
-        // @ts-ignore
-        await init({module_or_path: window.static_prefix+"/wasm/hybridocr_bg.wasm"});
+    try {
+        if (typeof window === "undefined") {
+            let path = await import('path');
+            let fs = await import('fs');
+            const wasmPath = path.resolve(__dirname, "../../../wasm/pkg/hybridocr_bg.wasm");
+            const wasmBuffer = fs.readFileSync(wasmPath);
+            // @ts-ignore
+            await init({module_or_path: wasmBuffer});
+        } else {
+            // @ts-ignore
+            await init({module_or_path: window.static_prefix+"wasm/hybridocr_bg.wasm"});
+        }
+    } catch (e) {
+        console.log(e);
     }
 }
 await setup_wasm();
@@ -320,6 +324,7 @@ export class Showcase {
 }
 
 export function setErrorMessage(msg: string) {
+    console.log(msg);
     const e = document.getElementById("error-message");
     if (e != null) {
         e.innerText = msg;
