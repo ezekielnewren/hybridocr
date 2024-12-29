@@ -17,6 +17,7 @@
     <label>p: <input id="p" type="number"></label>
     <label>length: <input id="length" type="number"></label>
     <pre id="view"></pre>
+    <pre id="elapsed"></pre>
     <input id="fire" type="button" value="go">
 </div>
 {% include '_footer.html' %}
@@ -36,10 +37,12 @@
         const eP = document.getElementById("p");
         const eLength = document.getElementById("length");
         const eView = document.getElementById("view");
+        const eElapsed = document.getElementById("elapsed");
 
         try {
             const encoder = new TextEncoder();
 
+            const start = performance.now();
             const argon2_result = await util.argon2id(
                 encoder.encode(ePassword.value),
                 encoder.encode(eSalt.value),
@@ -48,8 +51,11 @@
                 Number(eP.value),
                 Number(eLength.value),
             );
+            const end = performance.now();
+            const time = end-start;
 
             eView.innerHTML = util.toHex(argon2_result.hash);
+            eElapsed.innerHTML = time.toString();
             util.clearErrorMessage();
         } catch (e) {
             util.setErrorMessage(e);
