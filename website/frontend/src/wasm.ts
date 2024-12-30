@@ -10,11 +10,8 @@ const workerAPI = {
             console.log(e);
         }
     },
-    // _perspective_transform,
-    a2(alg: number, password: Uint8Array, salt: Uint8Array, m: number, t: number, p: number, length: number): Uint8Array {
-        console.log("_argon2 called");
-        return _argon2(alg, password, salt, m, t, p, length);
-    },
+    _argon2,
+    _perspective_transform,
 }
 
 Comlink.expose(workerAPI);
