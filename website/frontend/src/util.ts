@@ -1,8 +1,8 @@
 import * as Comlink from "comlink";
 
-let static_prefix = "/static/";
+let g_static_prefix = "/static/";
 export function set_static_prefix(x: string) {
-    static_prefix = x;
+    g_static_prefix = x;
 }
 
 
@@ -14,20 +14,26 @@ interface WorkerAPI {
 
 
 class WasmWorker {
-    private static instance: WasmWorker;
-    worker: Worker = new Worker(static_prefix+"js/wasm.js", { type: "module" });
-    public workerAPI = Comlink.wrap<WorkerAPI>(this.worker);
+    private static instance: Promise<WasmWorker>;
+    worker: Worker = new Worker(g_static_prefix+"js/wasm.js", { type: "module" });
+    workerAPI = Comlink.wrap<WorkerAPI>(this.worker);
 
     private constructor() {}
 
-    public static async getInstance() {
-        if (!WasmWorker.instance) {
-            WasmWorker.instance = new WasmWorker();
-            await WasmWorker.instance.workerAPI.setup(static_prefix+"wasm/hybridocr_bg.wasm");
-        }
-        return WasmWorker.instance;
+    public api() {
+        return this.workerAPI;
     }
 
+    public static async getInstance() {
+        if (!WasmWorker.instance) {
+            WasmWorker.instance = new Promise<WasmWorker>(async (resolve)=> {
+                let t = new WasmWorker();
+                await t.api().setup(g_static_prefix+"wasm/hybridocr_bg.wasm");
+                resolve(t);
+            });
+        }
+        return await WasmWorker.instance;
+    }
 }
 
 
@@ -87,7 +93,7 @@ class Argon2Result {
 
 export async function argon2d(password: Uint8Array, salt: Uint8Array, m: number, t: number, p: number, length: number) {
     let w = await WasmWorker.getInstance();
-    let result = await w.workerAPI._argon2(0, password, salt, m, t, p, length);
+    let result = await w.api()._argon2(0, password, salt, m, t, p, length);
     if (typeof result === "string") {
         throw new Error(result);
     }
@@ -96,7 +102,7 @@ export async function argon2d(password: Uint8Array, salt: Uint8Array, m: number,
 
 export async function argon2i(password: Uint8Array, salt: Uint8Array, m: number, t: number, p: number, length: number) {
     let w = await WasmWorker.getInstance();
-    let result = await w.workerAPI._argon2(1, password, salt, m, t, p, length);
+    let result = await w.api()._argon2(1, password, salt, m, t, p, length);
     if (typeof result === "string") {
         throw new Error(result);
     }
@@ -105,7 +111,7 @@ export async function argon2i(password: Uint8Array, salt: Uint8Array, m: number,
 
 export async function argon2id(password: Uint8Array, salt: Uint8Array, m: number, t: number, p: number, length: number) {
     let w = await WasmWorker.getInstance();
-    let result = await w.workerAPI._argon2(2, password, salt, m, t, p, length);
+    let result = await w.api()._argon2(2, password, salt, m, t, p, length);
     if (typeof result === "string") {
         throw new Error(result);
     }
@@ -171,7 +177,7 @@ export class PixelBuffer {
 
 export async function perspective_transform(img: PixelBuffer, quad: Quadrilateral) {
     let w = await WasmWorker.getInstance();
-    let result = await w.workerAPI._perspective_transform(img, quad);
+    let result = await w.api()._perspective_transform(img, quad);
     if (typeof result === "string") {
         throw new Error(result);
     }

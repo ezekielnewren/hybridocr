@@ -48,10 +48,10 @@
                 Number(eLength.value),
             );
             const end = performance.now();
-            const time = end-start;
+            const time = (end-start)/1000.0;
 
             eView.innerHTML = util.toHex(argon2_result.hash);
-            eElapsed.innerHTML = time.toString();
+            eElapsed.innerHTML = "seconds: "+time.toString();
             util.clearErrorMessage();
         } catch (e) {
             util.setErrorMessage(e);
