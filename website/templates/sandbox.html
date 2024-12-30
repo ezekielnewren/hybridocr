@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% include '_header.html' %}
+    <script>
+        window.static_prefix = {{ static_prefix }};
+    </script>
+</head>
+<body>
+{% include '_banner.html' %}
+{% include '_navbar.html' %}
+<div class="main-content-f99c33bb">
+    <label>a: <input id="a" type="number" value="5"></label>
+    <label>b: <input id="b" type="number" value="13"></label>
+    <pre id="view"></pre>
+    <pre id="elapsed"></pre>
+    <input id="fire" type="button" value="go">
+</div>
+{% include '_footer.html' %}
+<script src="/static/js/util.js" type="module"></script>
+<script type="module">
+    // import * as Comlink from "comlink";
+    import * as Comlink from "https://unpkg.com/comlink/dist/esm/comlink.mjs";
+
+    const worker = new Worker("/static/js/worker.js");
+    const workerAPI = Comlink.wrap(worker);
+
+    document.getElementById("fire").addEventListener("click", async () => {
+        console.log("go clicked");
+        // await setup_wasm();
+        const eA = document.getElementById("a");
+        const eB = document.getElementById("b");
+        const eView = document.getElementById("view");
+        const eElapsed = document.getElementById("elapsed");
+
+        const a = Number(eA.value);
+        const b = Number(eB.value);
+
+        const start = performance.now();
+        let c = await workerAPI.add(a, b);
+        const time = (performance.now()-start)/1000.0;
+        eView.innerHTML = c.toString();
+        eElapsed.innerHTML = time.toString();
+
+    });
+</script>
+</body>
+</html>

@@ -120,8 +120,18 @@ async def check_your_email(request: Request):
 
 
 @app.get('/argon2')
-async def check_your_email(request: Request):
+async def argon2(request: Request):
     return templates.TemplateResponse('argon2.html', {
+        "request": request,
+        "production": ctx.config["production"],
+        "gtag_id": ctx.config["webserver"]["gtag_id"],
+        "static_prefix": ctx.config["webserver"]["static_prefix"],
+    })
+
+
+@app.get('/sandbox')
+async def sandbox(request: Request):
+    return templates.TemplateResponse('sandbox.html', {
         "request": request,
         "production": ctx.config["production"],
         "gtag_id": ctx.config["webserver"]["gtag_id"],

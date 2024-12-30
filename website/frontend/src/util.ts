@@ -1,4 +1,6 @@
-import init, { _perspective_transform, _argon2 } from "hybridocr"
+// import init, { _perspective_transform, _argon2 } from "hybridocr"
+
+const worker = new Worker("wasm.js");
 
 export function assert(condition: boolean, message?: string) {
     if (!condition) {
@@ -6,24 +8,6 @@ export function assert(condition: boolean, message?: string) {
     }
 }
 
-async function setup_wasm() {
-    try {
-        if (typeof window === "undefined") {
-            let path = await import('path');
-            let fs = await import('fs');
-            const wasmPath = path.resolve(__dirname, "../../../wasm/pkg/hybridocr_bg.wasm");
-            const wasmBuffer = fs.readFileSync(wasmPath);
-            // @ts-ignore
-            await init({module_or_path: wasmBuffer});
-        } else {
-            // @ts-ignore
-            await init({module_or_path: window.static_prefix+"wasm/hybridocr_bg.wasm"});
-        }
-    } catch (e) {
-        console.log(e);
-    }
-}
-await setup_wasm();
 
 export function toB64(data: Uint8Array, padding: boolean = true, urlSafe: boolean = false) {
     const binaryString = Array.from(data)
