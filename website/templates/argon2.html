@@ -2,20 +2,17 @@
 <html lang="en">
 <head>
     {% include '_header.html' %}
-    <script>
-        window.static_prefix = {{ static_prefix }};
-    </script>
 </head>
 <body>
 {% include '_banner.html' %}
 {% include '_navbar.html' %}
 <div class="main-content-f99c33bb">
-    <label>password: <input id="password" type="text"></label>
-    <label>salt: <input id="salt" type="text"></label>
-    <label>m: <input id="m" type="number"></label>
-    <label>t: <input id="t" type="number"></label>
-    <label>p: <input id="p" type="number"></label>
-    <label>length: <input id="length" type="number"></label>
+    <label>password: <input id="password" type="text" value="password"></label>
+    <label>salt: <input id="salt" type="text" value="saltsaltsaltsalt"></label>
+    <label>m: <input id="m" type="number" value="8192"></label>
+    <label>t: <input id="t" type="number" value="10"></label>
+    <label>p: <input id="p" type="number" value="1"></label>
+    <label>length: <input id="length" type="number" value="16"></label>
     <pre id="view"></pre>
     <pre id="elapsed"></pre>
     <input id="fire" type="button" value="go">
@@ -23,13 +20,12 @@
 {% include '_footer.html' %}
 <script src="/static/js/util.js" type="module"></script>
 <script type="module">
-    // import { util } from "/static/js/util.js";
     import * as util from "/static/js/util.js";
-    // await util.setup_wasm();
+    util.set_static_prefix({{ static_prefix }});
 
     document.getElementById("fire").addEventListener("click", async () => {
         console.log("go clicked");
-        // await setup_wasm();
+
         const ePassword = document.getElementById("password");
         const eSalt = document.getElementById("salt");
         const eM = document.getElementById("m");

@@ -3,7 +3,7 @@ import { build } from "esbuild";
 await build({
     entryPoints: [
         "src/util.ts",
-        "src/worker.ts",
+        "src/wasm.ts",
         "src/sandbox.ts",
     ],
     bundle: true,
