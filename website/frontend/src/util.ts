@@ -1,6 +1,7 @@
 import * as Comlink from "comlink";
+import init, { _perspective_transform, _argon2 } from "hybridocr"
 
-let g_static_prefix = "/static/";
+let g_static_prefix = typeof window === "undefined" ? "../../static/" : "/static/";
 export function set_static_prefix(x: string) {
     g_static_prefix = x;
 }
@@ -15,10 +16,15 @@ interface WorkerAPI {
 
 class WasmWorker {
     private static instance: Promise<WasmWorker>;
-    worker: Worker = new Worker(g_static_prefix+"js/wasm.js", { type: "module" });
-    workerAPI = Comlink.wrap<WorkerAPI>(this.worker);
+    worker: any = null;
+    workerAPI: any = null;
 
-    private constructor() {}
+    private constructor() {
+        if (typeof window !== "undefined") {
+            this.worker = new Worker(g_static_prefix+"js/wasm.js", { type: "module" });
+            this.workerAPI = Comlink.wrap<WorkerAPI>(this.worker);
+        }
+    }
 
     public api() {
         return this.workerAPI;
@@ -26,11 +32,37 @@ class WasmWorker {
 
     public static async getInstance() {
         if (!WasmWorker.instance) {
-            WasmWorker.instance = new Promise<WasmWorker>(async (resolve)=> {
-                let t = new WasmWorker();
-                await t.api().setup(g_static_prefix+"wasm/hybridocr_bg.wasm");
-                resolve(t);
-            });
+            if (typeof window !== "undefined") {
+                WasmWorker.instance = new Promise<WasmWorker>(async (resolve, reject)=> {
+                    try {
+                        let t = new WasmWorker();
+                        await t.api().setup(g_static_prefix+"wasm/hybridocr_bg.wasm");
+                        resolve(t);
+                    } catch (e) {
+                        reject(e);
+                    }
+                });
+            } else {
+                WasmWorker.instance = new Promise<WasmWorker>(async (resolve, reject) => {
+                    try {
+                        let t = new WasmWorker();
+                        let path = await import('path');
+                        let fs = await import('fs');
+                        const wasmPath = path.resolve(__dirname, "../../../wasm/pkg/hybridocr_bg.wasm");
+                        const wasmBuffer = fs.readFileSync(wasmPath);
+                        // @ts-ignore
+                        await init({module_or_path: wasmBuffer});
+                        t.workerAPI = {
+                            setup: undefined,
+                            _argon2: _argon2,
+                            _perspective_transform: _perspective_transform,
+                        };
+                        resolve(t);
+                    } catch (e) {
+                        reject(e);
+                    }
+                });
+            }
         }
         return await WasmWorker.instance;
     }

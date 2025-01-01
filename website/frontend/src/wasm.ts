@@ -1,7 +1,8 @@
 import * as Comlink from "comlink";
 import init, { _perspective_transform, _argon2 } from "hybridocr"
 
-const workerAPI = {
+
+export const workerAPI = {
     async setup(url: string) {
         try {
             await init({module_or_path: url});
