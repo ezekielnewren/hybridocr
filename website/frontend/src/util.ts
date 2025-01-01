@@ -130,7 +130,10 @@ const MAP_HEX = new Map<number, number>([
 ]);
 
 
-export function toHex(data: Uint8Array, as_string: boolean): string | Uint8Array {
+export function toHex(data: string | Uint8Array, as_string: boolean): string | Uint8Array {
+    if (typeof data === "string") {
+        data = new TextEncoder().encode(data);
+    }
     const out = new Uint8Array(data.length*2);
     for (let i = 0; i < data.length; i++) {
         let v = data[i];
