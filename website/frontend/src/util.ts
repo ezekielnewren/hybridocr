@@ -118,11 +118,49 @@ export async function argon2id(password: Uint8Array, salt: Uint8Array, m: number
     return new Argon2Result("argon2id", 19, m, t, p, salt, result);
 }
 
-export function toHex(data: Uint8Array): string {
-    return Array.from(data)
-        .map(byte => byte.toString(16).padStart(2, "0"))
-        .join("");
+const HEX_ALPHABET = [
+    0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39,
+    0x61, 0x62, 0x63, 0x64, 0x65, 0x66
+];
+const MAP_HEX = new Map<number, number>([
+    [0x30, 0], [0x31, 1], [0x32, 2], [0x33, 3], [0x34, 4],
+    [0x35, 5], [0x36, 6], [0x37, 7], [0x38, 8], [0x39, 9],
+    [0x61, 10], [0x62, 11], [0x63, 12], [0x64, 13], [0x65, 14], [0x66, 15],
+    [0x41, 10], [0x42, 11], [0x43, 12], [0x44, 13], [0x45, 14], [0x46, 15]
+]);
+
+
+export function toHex(data: Uint8Array, as_string: boolean): string | Uint8Array {
+    const out = new Uint8Array(data.length*2);
+    for (let i = 0; i < data.length; i++) {
+        let v = data[i];
+        out[i*2]   = HEX_ALPHABET[v>>4];
+        out[i*2+1] = HEX_ALPHABET[v&0x0f];
+    }
+    if (as_string) {
+        return new TextDecoder().decode(out);
+    }
+    return out;
 }
+
+export function fromHex(data: string | Uint8Array): Uint8Array {
+    if (typeof data === "string") {
+        data = new TextEncoder().encode(data);
+    }
+
+    const out = new Uint8Array(data.length/2);
+    for (let i = 0; i < out.length; i++) {
+        const a = MAP_HEX.get(data[i*2]);
+        const b = MAP_HEX.get(data[i*2+1]);
+        if (a === undefined || b === undefined) {
+            throw new Error("Illegal character");
+        }
+        out[i] = (a << 4) | b;
+    }
+    return out;
+}
+
+
 
 export class Point {
     x: number;
