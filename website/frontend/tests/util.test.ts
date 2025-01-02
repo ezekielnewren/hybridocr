@@ -78,7 +78,7 @@ describe("util", () => {
     
     test("hkdf", async () => {
         // okm, hash, ikm, salt, info, length
-        let tv: [string, string, string, string, string, number][] = [
+        let tv0: [string, string, string, string, string, number][] = [
             [
                 "e00f9e18a24f2ae769846de7e5c65380981a0fd324c7e371340cb9a5454b01e4",
                 "SHA-512",
@@ -155,7 +155,7 @@ describe("util", () => {
         ];
 
 
-        for (const [answer, hash_algorithm, input_keying_material, hkdf_salt, hkdf_info, okm_length] of tv) {
+        for (const [answer, hash_algorithm, input_keying_material, hkdf_salt, hkdf_info, okm_length] of tv0) {
             let params: HkdfParams = {
                 name: "HKDF",
                 hash: hash_algorithm,
@@ -170,6 +170,30 @@ describe("util", () => {
 
             expect(actual).toBe(answer);
         }
+
+
+        let tv1: [string, string, string, number][] = [
+            [
+                "20438203c9f3ec8dbd791ecd14394b4252c4f3bd805eaf940a8c8453961af673",
+                "33d299bc37e305983fc5b75c2399c508ebd0d4cc5bd61b6e0aa9d9883fcad3d9",
+                util.toHex("auth", true) as string,
+                32
+            ],
+            [
+                "18d10cfee20ee4df294f0faf361884e3601a5211a7532016021440ce77f0efe7",
+                "33d299bc37e305983fc5b75c2399c508ebd0d4cc5bd61b6e0aa9d9883fcad3d9",
+                util.toHex("conf", true) as string,
+                32,
+            ]
+        ];
+
+        for (const [answer, input_keying_material, info, okm_length] of tv1) {
+            let okm = await util.deriveBytes(util.fromHex(input_keying_material), util.fromHex(info), okm_length);
+            let actual = util.toHex(okm, true) as string;
+            expect(actual).toBe(answer);
+        }
+
+
     });
     
 

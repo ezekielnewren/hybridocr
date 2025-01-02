@@ -1,5 +1,6 @@
 import * as Comlink from "comlink";
 import init, { _perspective_transform, _argon2 } from "hybridocr"
+import crypto from "crypto";
 
 let g_static_prefix = typeof window === "undefined" ? "../../static/" : "/static/";
 export function set_static_prefix(x: string) {
@@ -149,6 +150,21 @@ export async function argon2id(password: Uint8Array, salt: Uint8Array, m: number
     }
     return new Argon2Result("argon2id", 19, m, t, p, salt, result);
 }
+
+
+export async function deriveBytes(input_keying_material: Uint8Array, info: Uint8Array, okm_length: number) {
+    let params: HkdfParams = {
+        name: "HKDF",
+        hash: "SHA-384",
+        info: info,
+        salt: new Uint8Array(0),
+    };
+
+    let t0 = await crypto.subtle.importKey("raw", input_keying_material, "HKDF", false, ["deriveBits"]);
+    let t1 = await crypto.subtle.deriveBits(params, t0, okm_length*8);
+    return new Uint8Array(t1);
+}
+
 
 const HEX_ALPHABET = [
     0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39,
