@@ -1,0 +1,94 @@
+## kubectl create namespace redis
+## read -sp "REDIS_PASSWORD: " REDIS_PASSWORD; export REDIS_PASSWORD
+## kubectl -n redis create configmap redis-username --from-literal=redis-username="redisAdmin"
+## kubectl -n redis create secret generic redis-password --from-literal=redis-password="$REDIS_PASSWORD"
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: redis
+  labels:
+    app: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      initContainers:
+      - name: init-redis-config
+        image: python:3.11.7
+        command: ["bash", "-c", "pip install envtpl; envtpl -o /config/redis.conf --keep-template /tmp/redis.conf.j2"]
+        env:
+        - name: REDIS_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: redis-username
+              key: redis-username
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-password
+              key: redis-password
+        volumeMounts:
+        - name: redis-config-volume
+          mountPath: /config
+        - name: redis-config-j2
+          mountPath: /tmp/redis.conf.j2
+          subPath: redis.conf.j2
+      containers:
+      - name: redis
+        image: redis:7.4.1
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 6379
+        volumeMounts:
+        - name: redis-config-volume
+          mountPath: /config
+        args:
+          - "/config/redis.conf"
+      volumes:
+      - name: redis-config-volume
+        emptyDir: {}
+      - name: redis-config-j2
+        configMap:
+          name: redis-config-j2
+          items:
+          - key: redis.conf.j2
+            path: redis.conf.j2
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config-j2
+  namespace: redis
+data:
+  redis.conf.j2: |
+    bind 0.0.0.0
+    save ""
+    appendonly no
+    dbfilename ""
+
+    maxmemory {{ MAX_MEMORY | default("0") }}
+    maxmemory-policy {{ MAX_MEMORY_POLICY | default("noeviction") }}
+
+    user default off
+    user {{ REDIS_USERNAME }} on >{{ REDIS_PASSWORD }} ~* +@all
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: redis
+spec:
+  type: LoadBalancer
+  selector:
+    app: redis
+  ports:
+    - protocol: TCP
+      port: 6379
+      targetPort: 6379
