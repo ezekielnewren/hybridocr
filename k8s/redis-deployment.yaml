@@ -78,19 +78,3 @@ data:
 
     user default off
     user {{ REDIS_USERNAME }} on >{{ REDIS_PASSWORD }} ~* +@all
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: redis
-  namespace: redis
-spec:
-  type: LoadBalancer
-  selector:
-    app: redis
-  ports:
-    - protocol: TCP
-      port: 6379
-      targetPort: 6379
-  loadBalancerSourceRanges:
-    - 71.195.228.50/32
