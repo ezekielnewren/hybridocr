@@ -92,3 +92,5 @@ spec:
     - protocol: TCP
       port: 6379
       targetPort: 6379
+  loadBalancerSourceRanges:
+    - 71.195.228.50/32
