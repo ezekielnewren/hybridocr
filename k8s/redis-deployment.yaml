@@ -36,6 +36,8 @@ spec:
               key: redis-password
         - name: MAX_MEMORY
           value: 1000mb
+        - name: MAX_MEMORY_POLICY
+          value: allkeys-lru
         volumeMounts:
         - name: redis-config-volume
           mountPath: /config
