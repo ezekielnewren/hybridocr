@@ -34,6 +34,8 @@ spec:
             secretKeyRef:
               name: redis-password
               key: redis-password
+        - name: MAX_MEMORY
+          value: 1000mb
         volumeMounts:
         - name: redis-config-volume
           mountPath: /config
@@ -51,6 +53,13 @@ spec:
           mountPath: /config
         args:
           - "/config/redis.conf"
+        resources:
+          requests:
+            cpu: "5m"
+            memory: "8Mi"
+          limits:
+            cpu: "1"
+            memory: "1024Mi"
       volumes:
       - name: redis-config-volume
         emptyDir: {}
