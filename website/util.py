@@ -47,6 +47,8 @@ def open_redis(config):
         port=node["port"],
         username=config["redis"]["auth"].get("username"),
         password=config["redis"]["auth"].get("password"),
+        socket_connect_timeout=10,
+        socket_timeout=10,
         encoding="utf-8",
         db=config["redis"]["db"],
     )
